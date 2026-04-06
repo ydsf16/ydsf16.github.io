@@ -1,6 +1,3 @@
-# Dongsheng Yang
-
-Building spatial perception systems from geometric SLAM to semantic spatial intelligence.
 
 ## About
 I Spatial AI systems.
