@@ -10,7 +10,7 @@ const products = (await getCollection('products', ({ data }) => data.lang === lo
 const projects = (await getCollection('projects', ({ data }) => data.lang === locale)).filter(({ data }) => data.featured).slice(0, 2);
 const notes = (await getCollection('notes', ({ data }) => data.lang === locale && !data.draft)).sort((a, b) => (b.data.date?.valueOf() || 0) - (a.data.date?.valueOf() || 0)).slice(0, 2);
 ---
-<BaseLayout locale={locale} title="Home">
+<BaseLayout locale={locale} title={locale === 'zh' ? '首页' : 'Home'}>
   <section class="hero shell">
     <div class="hero-copy"><p class="eyebrow">{copy.heroEyebrow}</p><p class="hero-body">{copy.heroBody}</p><div class="actions"><a class="button primary" href={`/${locale}/projects`}>{copy.primary} <span>↗</span></a><a class="button secondary" href={`/${locale}/about`}>{copy.secondary}</a></div></div>
     <div class="hero-art" aria-hidden="true"><img src="/media/brand-banner.png" alt="" /></div>

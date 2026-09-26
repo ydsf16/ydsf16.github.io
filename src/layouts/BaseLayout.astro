@@ -4,10 +4,14 @@ import '../styles/detail.css';
 import '../styles/scale.css';
 import 'katex/dist/katex.min.css';
 import { siteCopy, localizedPath, type Locale } from '../data/site';
-const { locale = 'en', title = 'TinyGrape Lab' } = Astro.props;
+const { locale = 'en', title = 'TinyGrape Lab', description: suppliedDescription, image = '/media/brand-banner.png' } = Astro.props;
 const normalizedLocale = locale as Locale;
 const copy = siteCopy[normalizedLocale];
-const description = Astro.props.description || copy.heroBody;
+const description = suppliedDescription || copy.heroBody;
+const siteUrl = 'https://tinygrape.com.cn';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const imageUrl = new URL(image, siteUrl).toString();
+const pageTitle = `${title} · TinyGrape Lab`;
 ---
 <!doctype html>
 <html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
@@ -15,10 +19,25 @@ const description = Astro.props.description || copy.heroBody;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate" hreflang="en" href={`https://tinygrape.com.cn${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'en')}`} />
-    <link rel="alternate" hreflang="zh" href={`https://tinygrape.com.cn${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'zh')}`} />
-    <title>{title} · TinyGrape Lab</title>
+    <link rel="alternate" hreflang="en" href={`${siteUrl}${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'en')}`} />
+    <link rel="alternate" hreflang="zh-CN" href={`${siteUrl}${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'zh')}`} />
+    <link rel="alternate" hreflang="x-default" href={`${siteUrl}${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'en')}`} />
+    <title>{pageTitle}</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TinyGrape Lab" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
+    <meta property="og:locale:alternate" content={locale === 'zh' ? 'en_US' : 'zh_CN'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
   </head>
   <body>
     <header class="site-header">
