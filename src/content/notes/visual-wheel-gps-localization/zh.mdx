@@ -1,0 +1,155 @@
+---
+type: note
+title: "[FF] Visual-Wheel-GPS Localization：轮速、视觉、GPS 融合定位"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 16
+tags: [VWO, MSCKF, GPS, VIO, ENU, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/330880853
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 接上一篇 [MSCKF-Based Visual Wheel Odometry（VWO-MSCKF）](https://zhuanlan.zhihu.com/p/270670373)，这篇文章接入 GPS 信息，实现全局定位。
+
+实现方法参考了 Guoquan Huang 老师组的工作：W. Lee、K. Eckenhoff、P. Geneva、G. Huang，**Intermittent GPS-aided VIO: Online Initialization and Calibration**，2020 ICRA。
+
+先看一下效果：**红色的是融合定位轨迹，青色的是 GPS 数据**。
+
+实验视频：[知乎视频 1319077432150827008](https://www.zhihu.com/zvideo/1319077432150827008)  
+代码：[ydsf16/TinyGrapeKit](https://github.com/ydsf16/TinyGrapeKit)
+
+## 坐标系
+
+与 VWO-MSCKF 不同，这里的全局坐标系 $\{G\}$ 变为 ENU（East-North-Up）坐标系，原点与初始化时轮速坐标系的原点重合。
+
+## 系统状态
+
+系统状态与 VWO-MSCKF 总体相同：
+
+$$
+\chi = \left[\begin{matrix}
+{}^G_O T & {}^G_C T_1 & {}^G_C T_2 & \cdots & {}^G_C T_N
+\end{matrix}\right]
+\tag{1}
+$$
+
+其中包含轮速里程计坐标系与全局坐标系之间的变换，以及滑动窗口内各相机状态的位姿。
+
+## 外参数
+
+相比 VWO-MSCKF，这里增加了 GPS 与相机坐标系之间的外参数：GPS 在相机坐标系下的位置
+
+$$
+{}^C p_{Gps}
+$$
+
+也可以称为 GPS 与相机之间的杆臂值（lever arm）。
+
+## GPS Update
+
+GPS、轮速和图像数据的时间戳通常不同步。假设一条 GPS 数据落在 sliding window 中的 $a$、$b$ 两帧图像之间。两帧图像的时间戳为 $t_a$、$t_b$，对应的相机位姿为：
+
+$$
+{}^G_C T_a = \left\{{}^G_C R_a, {}^G p_{C_a}\right\},
+\qquad
+{}^G_C T_b = \left\{{}^G_C R_b, {}^G p_{C_b}\right\}
+$$
+
+GPS 数据的时间戳记为 $t_g$。在 $t_g$ 时刻，可以通过插值得到相机位姿：
+
+$$
+\begin{aligned}
+{}^G_C R_g &= {}^G_C R_a \, \operatorname{Exp}\left[\lambda \, \operatorname{Log}\left({}^G_C R_a^T {}^G_C R_b\right)\right] \\
+{}^G p_{C_g} &= {}^G p_{C_a} + \lambda\left({}^G p_{C_b} - {}^G p_{C_a}\right) \\
+\lambda &= \frac{t_g - t_a}{t_b - t_a}
+\end{aligned}
+\tag{2}
+$$
+
+GPS 可以提供 WGS84 坐标。先把它转换到 ENU 坐标系，记为 ${}^G p_{Gps}$，然后建立观测方程：
+
+$$
+{}^G p_{Gps} = {}^G p_{C_g} + {}^G_C R_g \, {}^C p_{Gps}
+\tag{3}
+$$
+
+下面求观测方程关于系统状态的雅克比：
+
+$$
+H_\chi = \frac{\partial {}^G p_{Gps}}{\partial \chi}
+= \frac{\partial {}^G p_{Gps}}{\partial {}^G_C T_g}
+\left[\begin{matrix}
+0 & \cdots & \frac{\partial {}^G_C T_g}{\partial {}^G_C T_a} & \frac{\partial {}^G_C T_g}{\partial {}^G_C T_b} & \cdots & 0
+\end{matrix}\right]
+\tag{4}
+$$
+
+其中，关于插值位姿的偏导可以写成：
+
+$$
+\frac{\partial {}^G p_{Gps}}{\partial {}^G_C T_g}
+= \left[\begin{matrix}
+-{}^G_C R_g[{}^C p_{Gps}]_\times & I
+\end{matrix}\right]
+$$
+
+令
+
+$$
+\tau = \operatorname{Log}\left({}^G_C R_a^T {}^G_C R_b\right)
+$$
+
+则插值位姿对窗口两端位姿的偏导为：
+
+$$
+\frac{\partial {}^G_C T_g}{\partial {}^G_C T_a}
+= \left[\begin{matrix}
+\operatorname{Exp}(\lambda\tau)^T\left[I-\lambda J_l(\lambda\tau)J_l^{-1}(\tau)\right] & 0 \\
+0 & (1-\lambda)I
+\end{matrix}\right]
+$$
+
+$$
+\frac{\partial {}^G_C T_g}{\partial {}^G_C T_b}
+= \left[\begin{matrix}
+\lambda J_r(\lambda\tau)J_r^{-1}(\tau) & 0 \\
+0 & \lambda I
+\end{matrix}\right]
+$$
+
+需要注意，对位姿的雅克比中，旋转和平移是分开求的。
+
+## 初始化
+
+因为 ENU 坐标系的原点是初始时刻轮速坐标系的原点，所以初始位置设为零：
+
+$$
+{}^G p_W = 0
+$$
+
+对于旋转，假设 roll、pitch 都为 0。由于初始 yaw 未知，也将其设为 0，但可以把 yaw 的初始方差设置得大一些，保证 yaw 快速收敛：
+
+$$
+{}^G_W R = I
+$$
+
+## 实验测试
+
+实验仍然使用 KAIST 数据集：[KAIST Urban Dataset](https://irap.kaist.ac.kr/dataset/)。
+
+下图是实验得到的轨迹：红色为融合轨迹，青色为 GPS 轨迹。可以看出，融合轨迹更加平滑且不发散，而 GPS 轨迹存在明显噪声和偏差。
+
+![轮速、视觉与 GPS 融合定位轨迹](/media/notes/visual-wheel-gps-localization/trajectory.png)
+
+## 小结
+
+通过把 GPS 观测加入 VWO-MSCKF 的滑动窗口，可以在保留视觉与轮速短期运动约束的同时，为系统提供全局位置参考。关键步骤包括：统一到 ENU 坐标系、处理 GPS 与图像的时间不同步、引入 GPS-相机杆臂外参，以及对插值位姿建立正确的旋转和平移雅克比。
