@@ -6,7 +6,7 @@ date: 2026-07-02
 updated: 2026-07-02
 status: "已发布"
 featured: false
-priority: 20
+priority: -1
 tags: [数据采集, SLAM, 具身智能, IMU, GNSS]
 categories: [Phone AI, 技术笔记]
 draft: false
