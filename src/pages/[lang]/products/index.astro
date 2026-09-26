@@ -1,0 +1,5 @@
+---
+import { getCollection } from 'astro:content'; import BaseLayout from '../../../layouts/BaseLayout.astro'; import ContentCard from '../../../components/ContentCard.astro'; import { type Locale } from '../../../data/site';
+export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }]; const locale = Astro.params.lang as Locale; const items = await getCollection('products', ({ data }) => data.lang === locale);
+---
+<BaseLayout locale={locale} title={locale === 'zh' ? '产品' : 'Products'}><section class="shell page-intro"><p class="eyebrow">PRODUCTS</p><h1>{locale === 'zh' ? '做出来，拿来用。' : 'Tools made to be used.'}</h1><p>{locale === 'zh' ? '面向真实工作流的小型工具。' : 'Small products for real workflows.'}</p></section><section class="shell card-grid page-grid">{items.map((item) => <ContentCard item={item} locale={locale} kind="product">{item.body}</ContentCard>)}</section></BaseLayout>

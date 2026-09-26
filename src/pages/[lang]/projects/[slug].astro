@@ -1,0 +1,6 @@
+---
+import { getCollection, render } from 'astro:content'; import BaseLayout from '../../../layouts/BaseLayout.astro'; import { type Locale } from '../../../data/site';
+export async function getStaticPaths() { const items = await getCollection('projects'); return items.map((item) => ({ params: { lang: item.data.lang, slug: item.data.slug || item.id.split('/')[0] }, props: { item } })); }
+const { item } = Astro.props; const locale = Astro.params.lang as Locale; const { Content } = await render(item);
+---
+<BaseLayout locale={locale} title={item.data.title}><article class="shell detail-page"><p class="eyebrow">PROJECT / {item.data.status?.toUpperCase()}</p><h1>{item.data.title}</h1><p class="detail-lede"><Content /></p><div class="detail-meta">{item.data.categories.map((category) => <span>{category}</span>)}{item.data.tags.map((tag) => <span>{tag}</span>)}</div></article></BaseLayout>

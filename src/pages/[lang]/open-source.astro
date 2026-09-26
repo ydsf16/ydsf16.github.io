@@ -1,0 +1,4 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import { type Locale } from '../../data/site'; export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }]; const locale = Astro.params.lang as Locale;
+---
+<BaseLayout locale={locale} title={locale === 'zh' ? '开源' : 'Open Source'}><section class="shell page-intro"><p class="eyebrow">OPEN SOURCE</p><h1>{locale === 'zh' ? '代码、数据与实验。' : 'Code, data, and experiments.'}</h1><p>{locale === 'zh' ? '在它能帮助别人继续前进的地方分享。' : 'Shared where it helps someone else move forward.'}</p><a class="button primary" href="https://github.com/ydsf16">GitHub ↗</a></section></BaseLayout>

@@ -1,0 +1,22 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import { siteCopy, type Locale } from '../../data/site';
+export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }];
+const locale = Astro.params.lang as Locale;
+const copy = siteCopy[locale];
+const products = (await getCollection('products', ({ data }) => data.lang === locale)).sort((a, b) => b.data.priority - a.data.priority).slice(0, 2);
+const projects = (await getCollection('projects', ({ data }) => data.lang === locale)).filter(({ data }) => data.featured).slice(0, 2);
+const notes = (await getCollection('notes', ({ data }) => data.lang === locale && !data.draft)).sort((a, b) => (b.data.date?.valueOf() || 0) - (a.data.date?.valueOf() || 0)).slice(0, 2);
+---
+<BaseLayout locale={locale} title="Home">
+  <section class="hero shell">
+    <div class="hero-copy"><p class="eyebrow">{copy.heroEyebrow}</p><h1>{copy.heroTitle}</h1><p class="hero-body">{copy.heroBody}</p><div class="actions"><a class="button primary" href={`/${locale}/projects`}>{copy.primary} <span>↗</span></a><a class="button secondary" href={`/${locale}/about`}>{copy.secondary}</a></div></div>
+    <div class="hero-art" aria-hidden="true"><img src="/media/brand-banner.png" alt="" /></div>
+  </section>
+  <section class="shell section"><div class="section-heading"><div><p class="eyebrow">01 / PRODUCTS</p><h2>{copy.productsTitle}</h2><p>{copy.productsBody}</p></div><a class="text-link" href={`/${locale}/products`}>{copy.viewAll} ↗</a></div><div class="card-grid">{products.map((item) => <ContentCard item={item} locale={locale} kind="product">{item.body ? item.body.slice(0, 140) : copy.productsBody}</ContentCard>)}</div></section>
+  <section class="shell section split-section"><div><p class="eyebrow">02 / PROJECTS</p><h2>{copy.projectsTitle}</h2><p>{copy.projectsBody}</p><a class="text-link" href={`/${locale}/projects`}>{copy.viewAll} ↗</a></div><div class="feature-list">{projects.map((item) => <ContentCard item={item} locale={locale} kind="project">{item.body ? item.body.slice(0, 140) : copy.projectsBody}</ContentCard>)}</div></section>
+  <section class="shell section notes-band"><div class="section-heading"><div><p class="eyebrow">03 / NOTES</p><h2>{copy.notesTitle}</h2></div><a class="text-link" href={`/${locale}/notes`}>{copy.viewAll} ↗</a></div><div class="note-list">{notes.map((item) => <a class="note-row" href={`/${locale}/notes/${item.data.slug || item.id.split('/')[0]}`}><span class="note-index">0{notes.indexOf(item) + 1}</span><span><strong>{item.data.title}</strong><small>{item.data.tags.join(' · ')}</small></span><span>↗</span></a>)}</div></section>
+  <section class="shell about-band"><div><p class="eyebrow">04 / ABOUT</p><h2>{copy.aboutTitle}</h2></div><p>{copy.aboutBody}</p><a class="button secondary" href={`/${locale}/about`}>{copy.secondary} ↗</a></section>
+</BaseLayout>

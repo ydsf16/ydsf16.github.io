@@ -1,0 +1,4 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import { type Locale } from '../../data/site'; export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }]; const locale = Astro.params.lang as Locale;
+---
+<BaseLayout locale={locale} title={locale === 'zh' ? '隐私' : 'Privacy'}><section class="shell page-intro"><p class="eyebrow">PRIVACY</p><h1>{locale === 'zh' ? '隐私政策即将发布。' : 'Privacy policy coming soon.'}</h1><p>{locale === 'zh' ? '正式产品隐私文本将在产品上线前补充并审核。' : 'Approved product privacy text will be added before public product launch.'}</p></section></BaseLayout>

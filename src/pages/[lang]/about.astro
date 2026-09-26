@@ -1,0 +1,4 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import { type Locale } from '../../data/site'; export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }]; const locale = Astro.params.lang as Locale;
+---
+<BaseLayout locale={locale} title={locale === 'zh' ? '关于' : 'About'}><section class="shell page-intro about-page"><p class="eyebrow">ABOUT TINYGrape LAB</p><h1>{locale === 'zh' ? '持续探索有趣且实用的技术。' : 'Stay curious. Build useful things.'}</h1><p>{locale === 'zh' ? 'TinyGrape Lab 是一个个人技术实验室，专注于移动设备、机器人、航空和人工智能。这里既放置可以直接使用的产品，也保存实验过程与技术笔记。' : 'TinyGrape Lab is a personal technology lab focused on mobile devices, robotics, aviation and artificial intelligence. It is a home for products people can use, along with the experiments and notes behind them.'}</p></section></BaseLayout>
