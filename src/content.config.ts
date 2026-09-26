@@ -16,7 +16,9 @@ const products = defineCollection({
     relatedNotes: z.array(z.string()).default([]),
     relatedProjects: z.array(z.string()).default([]),
     githubUrl: z.string().url().optional(),
-    appStoreUrl: z.string().url().optional()
+    appStoreUrl: z.string().url().optional(),
+    xiaohongshuUrl: z.string().url().optional(),
+    gallery: z.array(z.string()).default([])
   })
 });
 

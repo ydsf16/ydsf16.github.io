@@ -3,4 +3,25 @@ import { getCollection, render } from 'astro:content'; import BaseLayout from '.
 export async function getStaticPaths() { const items = await getCollection('products'); return items.map((item) => ({ params: { lang: item.data.lang, slug: item.data.slug || item.id.split('/')[0] }, props: { item } })); }
 const { item } = Astro.props; const locale = Astro.params.lang as Locale; const { Content } = await render(item);
 ---
-<BaseLayout locale={locale} title={item.data.title}><article class="shell detail-page"><p class="eyebrow">PRODUCT / {item.data.status?.toUpperCase()}</p><div class="product-head"><div><h1>{item.data.title}</h1><p class="detail-lede"><Content /></p><div class="detail-meta">{item.data.platforms.map((platform) => <span>{platform}</span>)}{item.data.tags.map((tag) => <span>{tag}</span>)}</div><div class="detail-actions">{item.data.githubUrl && <a class="button primary" href={item.data.githubUrl}>GitHub ↗</a>}{item.data.appStoreUrl && <a class="button secondary" href={item.data.appStoreUrl}>App Store ↗</a>}</div></div><div class="product-mark">{item.data.platforms[0] || 'LAB'}<strong>{item.data.status}</strong></div></div><section class="product-section"><h2>What it does</h2><div class="feature-grid">{item.data.features.map((feature) => <div><strong>{feature}</strong></div>)}</div></section><section class="product-section"><h2>Built for</h2><ul class="use-case-list">{item.data.useCases.map((useCase) => <li>{useCase}</li>)}</ul></section><nav class="product-links" aria-label="Product resources"><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/privacy`}>Privacy ↗</a><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/support`}>Support ↗</a>{item.data.docsUrl && <a href={item.data.docsUrl}>Documentation ↗</a>}</nav></article></BaseLayout>
+<BaseLayout locale={locale} title={item.data.title}>
+  <article class="shell detail-page">
+    <p class="eyebrow">PRODUCT / {item.data.status?.toUpperCase()}</p>
+    <div class="product-head">
+      <div>
+        <h1>{item.data.title}</h1>
+        <p class="detail-lede"><Content /></p>
+        <div class="detail-meta">{item.data.platforms.map((platform) => <span>{platform}</span>)}{item.data.tags.map((tag) => <span>{tag}</span>)}</div>
+        <div class="detail-actions">
+          {item.data.appStoreUrl && <a class="button primary" href={item.data.appStoreUrl}>App Store ↗</a>}
+          {item.data.githubUrl && <a class="button secondary" href={item.data.githubUrl}>GitHub ↗</a>}
+          {item.data.xiaohongshuUrl && <a class="button secondary" href={item.data.xiaohongshuUrl}>小红书 ↗</a>}
+        </div>
+      </div>
+      <div class="product-mark">{item.data.platforms[0] || 'LAB'}<strong>{item.data.status}</strong></div>
+    </div>
+    {item.data.gallery.length > 0 && <section class="product-gallery" aria-label="Product screenshots">{item.data.gallery.map((image, index) => <img src={image} alt={`${item.data.title} ${locale === 'zh' ? '产品展示' : 'product preview'} ${index + 1}`} loading={index === 0 ? 'eager' : 'lazy'} />)}</section>}
+    <section class="product-section"><h2>What it does</h2><div class="feature-grid">{item.data.features.map((feature) => <div><strong>{feature}</strong></div>)}</div></section>
+    <section class="product-section"><h2>Built for</h2><ul class="use-case-list">{item.data.useCases.map((useCase) => <li>{useCase}</li>)}</ul></section>
+    <nav class="product-links" aria-label="Product resources"><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/privacy`}>Privacy ↗</a><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/support`}>Support ↗</a>{item.data.docsUrl && <a href={item.data.docsUrl}>Documentation ↗</a>}</nav>
+  </article>
+</BaseLayout>
