@@ -7,8 +7,6 @@ summary: 把 iPhone 变成可复用的多传感器数据采集器，为机器人
 featured: true
 priority: 100
 platforms: [iOS]
-features: [双相机、音频与 IMU 同步采集, Device Motion 与 GNSS 记录, 统一时间戳与结构化导出]
-useCases: [SLAM 与 VIO 评估, 机器人与具身智能数据采集, XR、运动研究与现场实验]
 categories: [PhoneAI, 传感]
 tags: [相机, IMU, GNSS, ARKit]
 githubUrl: https://github.com/ydsf16/ios_sensor_recorder

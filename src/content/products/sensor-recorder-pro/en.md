@@ -7,8 +7,6 @@ summary: Turn an iPhone into a reusable multi-sensor recorder for robotics, SLAM
 featured: true
 priority: 100
 platforms: [iOS]
-features: [Synchronized camera, audio and IMU capture, Device Motion and GNSS logging, Unified timestamps and structured export]
-useCases: [SLAM and VIO evaluation, Robotics and embodied AI data collection, XR, motion studies and field experiments]
 categories: [PhoneAI, sensing]
 tags: [camera, IMU, GNSS, ARKit]
 githubUrl: https://github.com/ydsf16/ios_sensor_recorder
