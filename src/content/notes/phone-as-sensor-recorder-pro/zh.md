@@ -32,11 +32,20 @@ relatedProjects: [robotics-experiments]
 - 为什么具身智能、Physical AI、机器人、XR 和科学实验都需要多传感器数据？
 - Sensor Recorder Pro 目前做了什么，后续还想做什么？
 
+![Sensor Recorder Pro](/media/notes/phone-as-sensor-recorder-pro/overview.png)
+
+App 名称：[Sensor Recorder Pro](https://apps.apple.com/us/app/sensor-recorder-pro/id6782758613?l=zh-Hans-CN)  
+GitHub 开源代码：[ydsf16/ios_sensor_recorder](https://github.com/ydsf16/ios_sensor_recorder)
+
 ## 手机：被低估的真实世界数据入口
 
 手机本身就是一个高度集成的多传感器计算平台。它通常包含相机、麦克风、IMU、GNSS、磁力计、气压计；部分高端设备还提供 LiDAR 或深度信息。同时，手机具备边缘计算能力、成熟的权限管理、存储和网络能力。
 
 这意味着我们可以直接利用现成设备采集真实世界数据，减少专用硬件开发和维护成本，让更多低成本实验成为可能。
+
+相比于从零开始设计、开模和调试一套专用硬件采集设备，直接利用手机可以快速部署，使用门槛低，且传感器与端侧算力还在持续增强。在很多真实世界的数据采集任务中，我们不一定需要先造硬件，把手机里的传感器和算力利用起来，就能以较低成本完成第一轮实验闭环。
+
+Sensor Recorder Pro 就是基于这个想法迈出的第一步：先从 iPhone 平台开始，把手机变成一个开箱即用、数据可导出、实验可复现的多传感器数据采集器。
 
 ## 为什么需要多传感器数据？
 
@@ -46,17 +55,33 @@ relatedProjects: [robotics-experiments]
 
 具身智能需要从物理环境中获得连续的视觉、动作和状态信息。手机可以作为轻量的数据采集端，为动作理解、环境感知和多模态模型提供真实样本。
 
+在第一人称视角（Ego-centric AI）数据方向上，许多研究会通过挂脖或头部支架将手机作为采集终端，记录人类日常行为，再在云端进行数据清洗和基础物理模型训练。Sensor Recorder Pro 希望补上其中一块：方便地采集多传感器原始数据，为后续算法提供数据基础。
+
+![AoE: Always-on Egocentric Human Video Collection for Embodied AI](/media/notes/phone-as-sensor-recorder-pro/aoe.jpg)
+
 ### 机器人
 
 机器人系统需要视觉、惯性、位置和运动信息之间的时间关系。高质量的同步数据可以用于 VIO、SLAM、运动分析、传感器标定和算法验证。
+
+手机也可以直接固连在低成本移动机器人本体上，例如四足机器人、轮式底盘或无人机，同时作为传感器源与临时计算平台，以较低成本快速验证原型。
+
+![机器人数据采集示例](/media/notes/phone-as-sensor-recorder-pro/robot.jpg)
 
 ### XR / AR / VR
 
 XR 设备需要理解用户的头部和身体运动，也需要理解周围的空间。相机、IMU、Motion 和 GNSS 等数据可以帮助研究空间定位、姿态估计和交互体验。
 
+Sensor Recorder Pro 当前更关注底层原始数据的记录。相比高度封装的空间框架输出，原始数据更适合验证自定义的空间计算、场景重建和传感器融合方法。
+
+![XR / AR / VR 数据采集示例](/media/notes/phone-as-sensor-recorder-pro/xr.jpg)
+
 ### AI 眼镜与 Always-on Agent
 
 AI 眼镜和持续运行的智能体需要长期观察环境、理解用户行为。低成本、可移动的手机数据采集方案可以先用于原型验证和数据闭环。
+
+例如将手机固定在胸前，通过间歇式、占空比约 10% 的采集策略，连续记录低功耗音频和 GPS，并在固定间隔唤醒相机录制短视频，可以模拟 Always-on 硬件的数据形态，用于探索 Life-Long Agent 系统。
+
+![Always-on Agent 数据采集示例](/media/notes/phone-as-sensor-recorder-pro/always-on-agent.jpg)
 
 ### 科学实验与教育
 
@@ -77,6 +102,8 @@ Sensor Recorder Pro 是一个面向算法和实验的数据采集工具，当前
 - **开放源代码**：项目源码已公开，方便研究和二次开发。
 
 产品的核心目标，是让真实世界的多模态传感器数据更容易采集、导出和使用。
+
+![Rerun 可视化](/media/notes/phone-as-sensor-recorder-pro/rerun-visualization.jpg)
 
 ## 数据格式与使用方式
 
@@ -115,6 +142,8 @@ SR_yyyy-MM-dd_HH-mm-ss/
 ## 开放数据
 
 我也在使用自己的手机采集数据。如果这些数据对你的研究或实验有帮助，欢迎下载、分析和提出问题，也欢迎基于它做一些有趣的尝试。
+
+示例数据：[inv0](https://pan.baidu.com/s/1AkZOUvUq2zS3ihPHkEMs9g)
 
 Sensor Recorder Pro 可在 [App Store](https://apps.apple.com/us/app/sensor-recorder-pro/id6782758613?l=zh-Hans-CN) 获取，项目源码见 [GitHub](https://github.com/ydsf16/ios_sensor_recorder)。
 
