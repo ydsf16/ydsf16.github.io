@@ -18,10 +18,6 @@ relatedProducts: [sensor-recorder-pro]
 relatedProjects: [robotics-experiments]
 ---
 
-> 原文作者：小葡萄  
-> 原文链接：[知乎专栏](https://zhuanlan.zhihu.com/p/2056025596623431002)  
-> 原文编辑于 2026-07-02
-
 最近做了一个 iPhone 多传感器数据记录工具：**Sensor Recorder Pro**。目标是把手机变成一个低成本的真实世界数据采集器。
 
 当前支持 iPhone（iOS），可以同步记录两路相机视频、音频、IMU、Motion、GNSS 等多源数据，并导出为规范的数据文件。
