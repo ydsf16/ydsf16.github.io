@@ -1,0 +1,38 @@
+---
+type: note
+title: Sensor Recorder 数据约定
+lang: zh
+date: 2026-09-26
+tags: [IMU, ARKit, 数据]
+categories: [PhoneAI]
+relatedProducts: [sensor-recorder-pro]
+draft: false
+---
+
+import DownloadCard from '../../../components/DownloadCard.astro';
+
+传感器记录只有在时间戳、坐标系和单位从采集到评估的全过程中保持明确，才真正可用。
+
+## 一个小型约定
+
+时刻 $t$ 的样本可以表示为：
+
+$$
+z_t = [a_x, a_y, a_z, \omega_x, \omega_y, \omega_z, t]
+$$
+
+| 字段 | 约定 |
+| --- | --- |
+| `t` | 单调递增的秒级采集时间 |
+| `a` | m/s²，设备坐标系下的线性加速度 |
+| `ω` | rad/s，设备坐标系下的角速度 |
+
+```swift
+struct IMUSample: Codable {
+    let timestamp: Double
+    let acceleration: SIMD3<Double>
+    let rotationRate: SIMD3<Double>
+}
+```
+
+<DownloadCard href="/docs/sensor-recorder-data-contract.txt" title="数据约定清单" description="已预留的导出约定文档。" />

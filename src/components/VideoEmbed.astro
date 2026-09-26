@@ -1,0 +1,5 @@
+---
+const { src, title = 'Embedded video' } = Astro.props;
+const embedSrc = src.includes('youtube.com/watch?v=') ? src.replace('watch?v=', 'embed/') : src.includes('youtu.be/') ? src.replace('youtu.be/', 'www.youtube.com/embed/') : src;
+---
+<div class="video-embed"><iframe src={embedSrc} title={title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>

@@ -7,13 +7,19 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "new:product": "node scripts/new-content.mjs product",
+    "new:project": "node scripts/new-content.mjs project",
+    "new:note": "node scripts/new-content.mjs note"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.0",
     "@astrojs/sitemap": "^3.5.0",
     "astro": "^5.13.5",
     "@astrojs/check": "^0.9.4",
+    "katex": "^0.16.25",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "typescript": "^5.9.2"
   }
 }

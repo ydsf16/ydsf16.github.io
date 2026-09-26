@@ -1,0 +1,3 @@
+TinyGrape Lab — Sensor Recorder data contract checklist
+
+This placeholder document will be replaced after the export contract is reviewed.

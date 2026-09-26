@@ -1,0 +1,4 @@
+---
+const { href, title, description = 'Download the accompanying document.' } = Astro.props;
+---
+<a class="download-card" href={href} download><span class="download-icon">↓</span><span><strong>{title}</strong><small>{description}</small></span><span>↗</span></a>

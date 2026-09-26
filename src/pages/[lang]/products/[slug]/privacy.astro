@@ -1,0 +1,6 @@
+---
+import { getCollection } from 'astro:content'; import BaseLayout from '../../../../layouts/BaseLayout.astro'; import { type Locale } from '../../../../data/site';
+export async function getStaticPaths() { const items = await getCollection('products'); return items.map((item) => ({ params: { lang: item.data.lang, slug: item.data.slug || item.id.split('/')[0] }, props: { item } })); }
+const { item } = Astro.props; const locale = Astro.params.lang as Locale;
+---
+<BaseLayout locale={locale} title={`${item.data.title} Privacy`}><section class="shell page-intro legal-page"><p class="eyebrow">{item.data.title.toUpperCase()} / PRIVACY</p><h1>Privacy policy placeholder</h1><p>{locale === 'zh' ? '正式隐私文本将在产品公开发布前补充并审核。当前页面保留稳定链接，避免后续改动产品导航。' : 'Approved privacy text will be added before public product launch. This stable page is reserved for the product policy.'}</p><p class="todo-note">TODO: supply and approve the current privacy wording for this product.</p></section></BaseLayout>
