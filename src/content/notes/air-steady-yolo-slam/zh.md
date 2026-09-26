@@ -18,6 +18,8 @@ relatedProducts: [roamshot]
 relatedProjects: [robotics-experiments]
 ---
 
+import VideoEmbed from '../../../components/VideoEmbed.astro';
+
 > 给拍飞机、航模、打鸟的人：让长焦手抖、主体乱飘的视频变得“像有云台一样好看”。
 
 ## 动机：一个航空爱好者的痛点
@@ -36,6 +38,14 @@ relatedProjects: [robotics-experiments]
 看完航展后我就在想：**这个问题能不能用算法自动解决？** 后来写了 demo 验证，才发现专业软件已经可以做这件事。但它们的交互方式让我继续思考：能不能做一个更自动化、更垂直的工具？
 
 ## 演示视频
+
+### Bilibili 播放
+
+<VideoEmbed src="https://www.bilibili.com/video/BV19naF66Ezb/" title="AirSteady 航空稳拍工具演示" />
+
+如果播放器无法加载，也可以[直接打开 Bilibili 视频](https://www.bilibili.com/video/BV19naF66Ezb/)。
+
+### 知乎版本
 
 ### 软件使用演示
 
