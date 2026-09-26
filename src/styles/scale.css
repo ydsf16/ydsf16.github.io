@@ -1,0 +1,8 @@
+/* A quieter type scale: content leads, headlines support it. */
+.hero{min-height:420px;padding-block:54px 48px}
+.hero h1{font-size:clamp(2.45rem,4.2vw,3.85rem);line-height:1.05;max-width:560px;margin-bottom:22px}
+.section h2,.about-band h2{font-size:clamp(1.75rem,3vw,2.5rem);line-height:1.08}
+.content-card h3{font-size:22px;margin-top:24px}
+.page-intro h1{font-size:clamp(2.35rem,4.5vw,3.8rem);line-height:1.08;max-width:700px}
+.detail-page h1{font-size:clamp(2.45rem,5vw,4.2rem);line-height:1.08;max-width:760px}
+@media(max-width:800px){.hero{min-height:0;padding-block:48px 38px}.hero h1{font-size:clamp(2.4rem,12vw,3.5rem)}.page-intro h1{font-size:clamp(2.35rem,12vw,3.5rem)}}
