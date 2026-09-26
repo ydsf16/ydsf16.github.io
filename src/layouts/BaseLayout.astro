@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import '../styles/detail.css';
 import '../styles/scale.css';
+import 'katex/dist/katex.min.css';
 import { siteCopy, localizedPath, type Locale } from '../data/site';
 const { locale = 'en', title = 'TinyGrape Lab' } = Astro.props;
 const normalizedLocale = locale as Locale;
@@ -15,7 +16,6 @@ const description = Astro.props.description || copy.heroBody;
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css" integrity="sha384-6Q4m0lF5Yh1A4cVj9W0xKp2lZ9j8Qm2gQZ6yWJkQJ0Y6M0lH8mY3j5D7fK3jN3Q" crossorigin="anonymous" />
     <link rel="alternate" hreflang="en" href={`https://tinygrape.com.cn${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'en')}`} />
     <link rel="alternate" hreflang="zh" href={`https://tinygrape.com.cn${localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'zh')}`} />
     <title>{title} · TinyGrape Lab</title>
