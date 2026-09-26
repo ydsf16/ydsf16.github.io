@@ -76,19 +76,19 @@ relatedProjects: [robotics-experiments]
 
 ![文章配图](/media/notes/zhihu-60589790-slam/image-01.jpg)平面轨迹真值捕获原理
 
-世界坐标系下，一个3D的点 $\[&#123;&#125;^w&#123;\mathbf&#123;p&#125;&#125; = &#123;\left[ &#123;x,y,z&#125; \right]^T&#125;\]$ ，投影到图像坐标下，可表示为
+世界坐标系下，一个3D的点 ${}^w{\mathbf{p}} = {\left[ {x,y,z} \right]^T}$ ，投影到图像坐标下，可表示为
 
 
 $$
-\lambda \left[ {\begin{array}{*{20}{c}} u\\ v\\ 1 \end{array}} \right] = \left[ {\begin{array}{*{20}{l}} {{f_x}}&0&{{c_x}}&0\\ 0&{{f_y}}&{{c_y}}&0\\ 0&0&1&0 \end{array}} \right]\underbrace {\left[ {\begin{array}{*{20}{c}} {{r_{11}}}&{{r_{12}}}&{{r_{13}}}&{{t_x}}\\ {{r_{21}}}&{{r_{22}}}&{{r_{23}}}&{{t_y}}\\ {{r_{31}}}&{{r_{32}}}&{{r_{33}}}&{{t_z}}\\ 0&0&0&1 \end{array}} \right]}_{\bf{T}}\left[ {\begin{array}{*{20}{c}} x\\ y\\ z\\ 1 \end{array}} \right] \ (1) \\
+\lambda \left[ {\begin{array}{c} u\\ v\\ 1 \end{array}} \right] = \left[ {\begin{array}{l} {{f_x}}&0&{{c_x}}&0\\ 0&{{f_y}}&{{c_y}}&0\\ 0&0&1&0 \end{array}} \right]\underbrace {\left[ {\begin{array}{c} {{r_{11}}}&{{r_{12}}}&{{r_{13}}}&{{t_x}}\\ {{r_{21}}}&{{r_{22}}}&{{r_{23}}}&{{t_y}}\\ {{r_{31}}}&{{r_{32}}}&{{r_{33}}}&{{t_z}}\\ 0&0&0&1 \end{array}} \right]}_{\bf{T}}\left[ {\begin{array}{c} x\\ y\\ z\\ 1 \end{array}} \right] \ (1) \\
 $$
 
 
-$\mathbf T$ 是外参。我们想要测量的是2D平面内的坐标，为了方便，可以把世界坐标系的原点设在平面之上，$Z$ 轴垂直于被这个平面（就是ArUco那个平面）。那么 $\[&#123;&#125;^w&#123;\bf&#123;p&#125;&#125;\]$ 的 $z=0$ 。式（1）就可以变为
+$\mathbf T$ 是外参。我们想要测量的是2D平面内的坐标，为了方便，可以把世界坐标系的原点设在平面之上，$Z$ 轴垂直于被这个平面（就是ArUco那个平面）。那么 ${}^w{\bf{p}}$ 的 $z=0$ 。式（1）就可以变为
 
 
 $$
-\lambda \left[ {\begin{array}{*{20}{c}} u\\ v\\ 1 \end{array}} \right] = \underbrace {{}\left[ {\begin{array}{*{20}{c}} {{f_x}}&0&{{c_x}}\\ 0&{{f_y}}&{{c_y}}\\ 0&0&1 \end{array}} \right]\left[ {\begin{array}{*{20}{c}} {{r_{11}}}&{{r_{12}}}&{{t_x}}\\ {{r_{21}}}&{{r_{22}}}&{{t_y}}\\ {{r_{31}}}&{{r_{32}}}&{{t_z}} \end{array}} \right]}_{\bf{H}_{3\times 3}}\left[ {\begin{array}{*{20}{c}} x\\ y\\ 1 \end{array}} \right] \ (2) \\
+\lambda \left[ {\begin{array}{c} u\\ v\\ 1 \end{array}} \right] = \underbrace {{}\left[ {\begin{array}{c} {{f_x}}&0&{{c_x}}\\ 0&{{f_y}}&{{c_y}}\\ 0&0&1 \end{array}} \right]\left[ {\begin{array}{c} {{r_{11}}}&{{r_{12}}}&{{t_x}}\\ {{r_{21}}}&{{r_{22}}}&{{t_y}}\\ {{r_{31}}}&{{r_{32}}}&{{t_z}} \end{array}} \right]}_{\bf{H}_{3\times 3}}\left[ {\begin{array}{c} x\\ y\\ 1 \end{array}} \right] \ (2) \\
 $$
 
 
@@ -104,17 +104,17 @@ $$
 
 
 $$
-{\left[ {\begin{array}{*{20}{c}} x\\ y\\ 1 \end{array}} \right] = \lambda {H^{ - 1}}\left[ {\begin{array}{*{20}{c}} u\\ v\\ 1 \end{array}} \right]} \ (3)\\
+{\left[ {\begin{array}{c} x\\ y\\ 1 \end{array}} \right] = \lambda {H^{ - 1}}\left[ {\begin{array}{c} u\\ v\\ 1 \end{array}} \right]} \ (3)\\
 $$
 
 
 ## **2. 现在的问题是单应矩阵怎么来的呢？**
 
-从式（2）可以看出，只要知道摄像机的内参数 $\bf K$ 和外参数 $\bf T$ ， $\bf H$ 就有了。内参数 $\bf K$ 好说，大家应该都很熟悉。关键是 $\bf T$ ，我们这里用平面靶标来标定。具体的，如下图把一张棋盘格靶标放在ArUco码之上，通过[PnP方法](https://zhuanlan.zhihu.com/p/59070440)可以计算出靶标坐标系与摄像机坐标系之间的位姿变换 $\bf T ^&#123;'&#125;$ 。注意，棋盘格靶标这个平面并不是ArUco码的平面，因为棋盘格靶标有厚度 $t$ 。这个厚度 $t$ 我们很容易测量，认为是已知的。那么，相机坐标系和ArUco面上的世界坐标系之间的坐标变换就是
+从式（2）可以看出，只要知道摄像机的内参数 $\bf K$ 和外参数 $\bf T$ ， $\bf H$ 就有了。内参数 $\bf K$ 好说，大家应该都很熟悉。关键是 $\bf T$ ，我们这里用平面靶标来标定。具体的，如下图把一张棋盘格靶标放在ArUco码之上，通过[PnP方法](https://zhuanlan.zhihu.com/p/59070440)可以计算出靶标坐标系与摄像机坐标系之间的位姿变换 $\bf T ^{'}$ 。注意，棋盘格靶标这个平面并不是ArUco码的平面，因为棋盘格靶标有厚度 $t$ 。这个厚度 $t$ 我们很容易测量，认为是已知的。那么，相机坐标系和ArUco面上的世界坐标系之间的坐标变换就是
 
 
 $$
-{\bf{T}}{\rm{ = }}{\bf{T'}}\left[ {\begin{array}{*{20}{c}} 1&0&0&0\\ 0&1&0&0\\ 0&0&1&t\\ 0&0&0&1 \end{array}} \right] \ (4)\\
+{\bf{T}}{\rm{ = }}{\bf{T'}}\left[ {\begin{array}{c} 1&0&0&0\\ 0&1&0&0\\ 0&0&1&t\\ 0&0&0&1 \end{array}} \right] \ (4)\\
 $$
 
 
@@ -130,7 +130,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{u_i}} \\    {{v_i}}  \end{array}} \right],i = 1\sim4  \ (5)\\
+\left[ {\begin{array}{c}   {{u_i}} \\    {{v_i}}  \end{array}} \right],i = 1\sim4  \ (5)\\
 $$
 
 
@@ -138,7 +138,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{x_i}} \\    {{y_i}}  \end{array}} \right],i = 1\sim4 \ (6) \\
+\left[ {\begin{array}{c}   {{x_i}} \\    {{y_i}}  \end{array}} \right],i = 1\sim4 \ (6) \\
 $$
 
 
@@ -146,7 +146,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{x_c}} \\    {{y_c}}  \end{array}} \right] = \frac{1}{4}\sum\limits_{i = 1}^n {\left[ {\begin{array}{*{20}{c}}   {{x_i}} \\    {{y_i}}  \end{array}} \right]} (7) \\
+\left[ {\begin{array}{c}   {{x_c}} \\    {{y_c}}  \end{array}} \right] = \frac{1}{4}\sum\limits_{i = 1}^n {\left[ {\begin{array}{c}   {{x_i}} \\    {{y_i}}  \end{array}} \right]} (7) \\
 $$
 
 
@@ -156,7 +156,7 @@ $[x_c,y_c]^T$**就是机器人的位置。**
 
 
 $$
-\begin{gathered}   \theta  = \frac{{\left\{ {\arctan2 ({{\mathbf{V}}_1}[2],{{\mathbf{V}}_1}[1]){\text{ + }}\arctan2 ({{\mathbf{V}}_2}[2],{{\mathbf{V}}_2}[1])} \right\}}}{2} \hfill, \\   {{\mathbf{V}}_1} = \left[ {\begin{array}{*{20}{c}}   {{x_1}} \\    {{y_1}}  \end{array}} \right] - \left[ {\begin{array}{*{20}{c}}   {{x_4}} \\    {{y_4}}  \end{array}} \right],{{\mathbf{V}}_2} = \left[ {\begin{array}{*{20}{c}}   {{x_2}} \\    {{y_2}}  \end{array}} \right] - \left[ {\begin{array}{*{20}{c}}   {{x_3}} \\    {{y_3}}  \end{array}} \right] \hfill \\  \end{gathered}  \ (8) \\
+\begin{gathered}   \theta  = \frac{{\left\{ {\arctan2 ({{\mathbf{V}}_1}[2],{{\mathbf{V}}_1}[1]){\text{ + }}\arctan2 ({{\mathbf{V}}_2}[2],{{\mathbf{V}}_2}[1])} \right\}}}{2} \hfill, \\   {{\mathbf{V}}_1} = \left[ {\begin{array}{c}   {{x_1}} \\    {{y_1}}  \end{array}} \right] - \left[ {\begin{array}{c}   {{x_4}} \\    {{y_4}}  \end{array}} \right],{{\mathbf{V}}_2} = \left[ {\begin{array}{c}   {{x_2}} \\    {{y_2}}  \end{array}} \right] - \left[ {\begin{array}{c}   {{x_3}} \\    {{y_3}}  \end{array}} \right] \hfill \\  \end{gathered}  \ (8) \\
 $$
 
 
@@ -168,7 +168,7 @@ $\theta$**就是机器人的朝向。**
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   x \\    y \\    1  \end{array}} \right] = \lambda \underbrace {\left[ {\begin{array}{*{20}{c}}   {{h_{11}}}&{{h_{12}}}&{{h_{13}}} \\    {{h_{21}}}&{{h_{22}}}&{{h_{23}}} \\    {{h_{31}}}&{{h_{32}}}&{{h_{33}}}  \end{array}} \right]}_{{{\mathbf{H}}^{-1}}}\left[ {\begin{array}{*{20}{c}}   u \\    v \\    1  \end{array}} \right] \ (9) \\
+\left[ {\begin{array}{c}   x \\    y \\    1  \end{array}} \right] = \lambda \underbrace {\left[ {\begin{array}{c}   {{h_{11}}}&{{h_{12}}}&{{h_{13}}} \\    {{h_{21}}}&{{h_{22}}}&{{h_{23}}} \\    {{h_{31}}}&{{h_{32}}}&{{h_{33}}}  \end{array}} \right]}_{{{\mathbf{H}}^{-1}}}\left[ {\begin{array}{c}   u \\    v \\    1  \end{array}} \right] \ (9) \\
 $$
 
 
@@ -176,7 +176,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   x \\    y  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {\frac{{{h_{11}}u + {h_{12}}v + {h_{13}}}}{{{h_{31}}u + {h_{32}}v + {h_{33}}}}} \\    {\frac{{{h_{21}}u + {h_{22}}v + {h_{23}}}}{{{h_{31}}u + {h_{32}}v + {h_{33}}}}}  \end{array}} \right] = F\left( {\left[ {\begin{array}{*{20}{c}}   u \\    v  \end{array}} \right]} \right)\ (10) \\
+\left[ {\begin{array}{c}   x \\    y  \end{array}} \right] = \left[ {\begin{array}{c}   {\frac{{{h_{11}}u + {h_{12}}v + {h_{13}}}}{{{h_{31}}u + {h_{32}}v + {h_{33}}}}} \\    {\frac{{{h_{21}}u + {h_{22}}v + {h_{23}}}}{{{h_{31}}u + {h_{32}}v + {h_{33}}}}}  \end{array}} \right] = F\left( {\left[ {\begin{array}{c}   u \\    v  \end{array}} \right]} \right)\ (10) \\
 $$
 
 
@@ -184,7 +184,7 @@ $$
 
 
 $$
-{{\mathbf{\Sigma }}_{uv}} = \left[ {\begin{array}{*{20}{c}}   {{\sigma _u}^2}&0 \\    0&{{\sigma _v}^2}  \end{array}} \right] \ (11)\\
+{{\mathbf{\Sigma }}_{uv}} = \left[ {\begin{array}{c}   {{\sigma _u}^2}&0 \\    0&{{\sigma _v}^2}  \end{array}} \right] \ (11)\\
 $$
 
 

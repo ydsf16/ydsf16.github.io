@@ -98,7 +98,7 @@ RANSAC里面有三个重要的参数需要确定，分别是 $t$ 、 $T$ 、 $N$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {Inlier}&{{d^2} < {t^2}} \\    {Outlier}&{{d^2} \geqslant {t^2}}  \end{array}, \ where,{t^2} = {F^{ - 1}}} \right.(\alpha ){\sigma ^2} \\
+\left\{ {\begin{array}{l}   {Inlier}&{{d^2} < {t^2}} \\    {Outlier}&{{d^2} \geqslant {t^2}}  \end{array}, \ where,{t^2} = {F^{ - 1}}} \right.(\alpha ){\sigma ^2} \\
 $$
 
 
@@ -148,7 +148,7 @@ $$
 
 从式(1)可以看出，采样次数 $N$ 与内点概率 $w$ 有关系。但实际情况是，一组数据中有多少内点，事先是不知道的。
 
-开始时可以设 $w=0$ ，这时候 $N=\infty$。经过一次采样后，设获得的内点个数为 $n_i$ ,可以更新内点概率为 $w=\frac&#123;n_i&#125;&#123;n&#125;$ ，从而可以再更新一次 $N$ 。如此，每次迭代，如果发现内点个数增加，就更新 $N$ 。详细算法如下：
+开始时可以设 $w=0$ ，这时候 $N=\infty$。经过一次采样后，设获得的内点个数为 $n_i$ ,可以更新内点概率为 $w=\frac{n_i}{n}$ ，从而可以再更新一次 $N$ 。如此，每次迭代，如果发现内点个数增加，就更新 $N$ 。详细算法如下：
 
 > ，sample_count = 0
 >
@@ -188,11 +188,16 @@ $$
 
 两边同时除以 $C$ 变成
 
-$A^\ast x+B ^\ast y +1 = 0 \\$ 两个点 $(X_1, Y_1,), (X_2, Y_2)$ 可以确定一条直线。带入到上式有
+
+$$
+A^\ast x+B ^\ast y +1 = 0 \\
+$$
+
+两个点 $(X_1, Y_1,), (X_2, Y_2)$ 可以确定一条直线。带入到上式有
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{X_1}}&{{Y_1}} \\    {{X_2}}&{{Y_2}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{A^ * }} \\    {{B^ * }}  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   { - 1} \\    { - 1}  \end{array}} \right]\\
+\left[ {\begin{array}{c}   {{X_1}}&{{Y_1}} \\    {{X_2}}&{{Y_2}}  \end{array}} \right]\left[ {\begin{array}{c}   {{A^ * }} \\    {{B^ * }}  \end{array}} \right] = \left[ {\begin{array}{c}   { - 1} \\    { - 1}  \end{array}} \right]\\
 $$
 
 
@@ -200,7 +205,7 @@ $$
 
 
 $$
-\begin{gathered}   \left[ {\begin{array}{*{20}{c}}   {{A^ * }} \\    {{B^ * }}  \end{array}} \right] = {\left[ {\begin{array}{*{20}{c}}   {{X_1}}&{{Y_1}} \\    {{X_2}}&{{Y_2}}  \end{array}} \right]^{ - 1}}\left[ {\begin{array}{*{20}{c}}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{*{20}{c}}   {{Y_2}}&{ - {Y_1}} \\    { - {X_2}}&{{X_1}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{*{20}{c}}   {{Y_1} - {Y_2}} \\    {{X_2} - {X_1}}  \end{array}} \right] \hfill \\  \end{gathered} \\
+\begin{gathered}   \left[ {\begin{array}{c}   {{A^ * }} \\    {{B^ * }}  \end{array}} \right] = {\left[ {\begin{array}{c}   {{X_1}}&{{Y_1}} \\    {{X_2}}&{{Y_2}}  \end{array}} \right]^{ - 1}}\left[ {\begin{array}{c}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{c}   {{Y_2}}&{ - {Y_1}} \\    { - {X_2}}&{{X_1}}  \end{array}} \right]\left[ {\begin{array}{c}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{c}   {{Y_1} - {Y_2}} \\    {{X_2} - {X_1}}  \end{array}} \right] \hfill \\  \end{gathered} \\
 $$
 
 
@@ -246,7 +251,7 @@ $$
 
 
 $$
-\arg \min \sum\limits_i^{} {\rho \left( {{d_i}} \right)}  = \left\{ {\begin{array}{*{20}{l}}   {{{\left\| {{d_i}} \right\|}^2},if\left| {{d_i}} \right| < t} \\    {2t\left| {{d_i}} \right| - {t^2},else}  \end{array}} \right. \\
+\arg \min \sum\limits_i^{} {\rho \left( {{d_i}} \right)}  = \left\{ {\begin{array}{l}   {{{\left\| {{d_i}} \right\|}^2},if\left| {{d_i}} \right| < t} \\    {2t\left| {{d_i}} \right| - {t^2},else}  \end{array}} \right. \\
 $$
 
 

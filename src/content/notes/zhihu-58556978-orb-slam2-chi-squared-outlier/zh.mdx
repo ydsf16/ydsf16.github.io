@@ -24,7 +24,7 @@ relatedProjects: [robotics-experiments]
 
 ## **误差**
 
-就特征点法的视觉SLAM而言，一般会计算重投影误差。具体而言，记 $\mathbf&#123;u&#125;$ 为特征点的2D位置， $\mathbf&#123; \bar u&#125;$ 为由地图点投影到图像上的2D位置。重投影误差为
+就特征点法的视觉SLAM而言，一般会计算重投影误差。具体而言，记 $\mathbf{u}$ 为特征点的2D位置， $\mathbf{ \bar u}$ 为由地图点投影到图像上的2D位置。重投影误差为
 
 
 $$
@@ -44,7 +44,7 @@ $$
 
 
 $$
-\mathbf \Sigma =  {\left( {{s^n} \times p} \right)^2}\left[ {\begin{array}{*{20}{c}}   1&0 \\    0&1  \end{array}} \right]  \ \ \ \ \ \ \ \ \ (3)\\
+\mathbf \Sigma =  {\left( {{s^n} \times p} \right)^2}\left[ {\begin{array}{c}   1&0 \\    0&1  \end{array}} \right]  \ \ \ \ \ \ \ \ \ (3)\\
 $$
 
 
@@ -86,15 +86,15 @@ $$
 
 ![文章配图](/media/notes/zhihu-58556978-orb-slam2-chi-squared-outlier/image-02.jpg)几种自由度的卡方分布的概率分布 摘自https://en.wikipedia.org/wiki/Chi-squared_distribution
 
-记概率分布（累积分布函数）为 $\alpha = F(x)$ 。给定一个 $\alpha$ 可以确定一个区间 $[0,\ F^&#123;-1&#125;(\alpha)]$ 。可以认为， $r$ 落在这个区间内，则为内点，落在这个区间外则为外点。 $F^&#123;-1&#125;(\alpha)$ 就是我们要找的阈值 $x$ 。
+记概率分布（累积分布函数）为 $\alpha = F(x)$ 。给定一个 $\alpha$ 可以确定一个区间 $[0,\ F^{-1}(\alpha)]$ 。可以认为， $r$ 落在这个区间内，则为内点，落在这个区间外则为外点。 $F^{-1}(\alpha)$ 就是我们要找的阈值 $x$ 。
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {{\text{内点 }}r < x } \\    {{\text{外点 }}r \geqslant x {\text{ }}}  \end{array}} \right.,{\text{ }}x  = {F^{ - 1}}\left( \alpha  \right)\\
+\left\{ {\begin{array}{l}   {{\text{内点 }}r < x } \\    {{\text{外点 }}r \geqslant x {\text{ }}}  \end{array}} \right.,{\text{ }}x  = {F^{ - 1}}\left( \alpha  \right)\\
 $$
 
 
-一般取 $\alpha$ 为95%，一个内点只有5%的可能被错误的认为是外点。关于 $F^&#123;-1&#125;(\alpha)$ ，前人已经搞了一个表。
+一般取 $\alpha$ 为95%，一个内点只有5%的可能被错误的认为是外点。关于 $F^{-1}(\alpha)$ ，前人已经搞了一个表。
 
 ![文章配图](/media/notes/zhihu-58556978-orb-slam2-chi-squared-outlier/image-03.jpg)累积分布函数的逆函数表
 

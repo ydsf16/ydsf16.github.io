@@ -67,7 +67,7 @@ $$
 $$
 
 
-其中， $M$ 为 $H$ 或者 $F$ 。 $T_M$ 为距离阈值，根据95%的 $\chi^2$ 测试设置。 $T_H=5.99$ （两个自由度）， $T_F = 3.84$ （1个自由度）。这里假设标准差为1个pixel。***这里的***$\Gamma$***与***$T_&#123;H&#125;$***相同。TODO没看明白。***
+其中， $M$ 为 $H$ 或者 $F$ 。 $T_M$ 为距离阈值，根据95%的 $\chi^2$ 测试设置。 $T_H=5.99$ （两个自由度）， $T_F = 3.84$ （1个自由度）。这里假设标准差为1个pixel。***这里的***$\Gamma$***与***$T_{H}$***相同。TODO没看明白。***
 
 完成所有的迭代步骤之后，选择分数最高的那一个作为$H$ 和 $F$ 的结果。
 
@@ -113,7 +113,7 @@ $$
 $$
 
 
-$\bf&#123;P&#125;$ 点投影到第2帧上
+$\bf{P}$ 点投影到第2帧上
 
 
 $$
@@ -133,7 +133,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{u_2}} \\    {{v_2}} \\    1  \end{array}} \right] = s\left[ {\begin{array}{*{20}{c}}   {{h_{11}}}&{{h_{12}}}&{{h_{13}}} \\    {{h_{21}}}&{{h_{22}}}&{{h_{23}}} \\    {{h_{31}}}&{{h_{32}}}&{{h_{33}}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{u_1}} \\    {{v_1}} \\    1  \end{array}} \right] \\
+\left[ {\begin{array}{c}   {{u_2}} \\    {{v_2}} \\    1  \end{array}} \right] = s\left[ {\begin{array}{c}   {{h_{11}}}&{{h_{12}}}&{{h_{13}}} \\    {{h_{21}}}&{{h_{22}}}&{{h_{23}}} \\    {{h_{31}}}&{{h_{32}}}&{{h_{33}}}  \end{array}} \right]\left[ {\begin{array}{c}   {{u_1}} \\    {{v_1}} \\    1  \end{array}} \right] \\
 $$
 
 
@@ -147,7 +147,7 @@ $$
 
 ### 解法1：
 
-由于H是尺度缩放，可以通过调整 $s$ 使得 $h_&#123;33&#125;=1$ ，这样（9）式变为
+由于H是尺度缩放，可以通过调整 $s$ 使得 $h_{33}=1$ ，这样（9）式变为
 
 
 $$
@@ -163,7 +163,7 @@ $$
 $$
 
 
-可以计算一个最小二乘解 $x=&#123;\left( &#123;&#123;&#123;\mathbf&#123;M&#125;&#125;^T&#125;&#123;\mathbf&#123;M&#125;&#125;&#125; \right)^&#123; - 1&#125;&#125;&#123;&#123;\mathbf&#123;M&#125;&#125;^T&#125;b$，或者利用QR分解 $x = &#123;R^&#123; - 1&#125;&#125;&#123;Q^T&#125;b$ ，还有很多解法，请参考[http://eigen.tuxfamily.org/dox/group__LeastSquares.html](https://link.zhihu.com/?target=http%3A//eigen.tuxfamily.org/dox/group__LeastSquares.html)。
+可以计算一个最小二乘解 $x={\left( {{{\mathbf{M}}^T}{\mathbf{M}}} \right)^{ - 1}}{{\mathbf{M}}^T}b$，或者利用QR分解 $x = {R^{ - 1}}{Q^T}b$ ，还有很多解法，请参考[http://eigen.tuxfamily.org/dox/group__LeastSquares.html](https://link.zhihu.com/?target=http%3A//eigen.tuxfamily.org/dox/group__LeastSquares.html)。
 
 ### 解法2:
 
@@ -189,7 +189,7 @@ $$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {{s_1}{p_1} = KP} \\    {{s_2}{p_2} = K\left( {RP + t} \right)}  \end{array}} \right.  \ (11)\\
+\left\{ {\begin{array}{l}   {{s_1}{p_1} = KP} \\    {{s_2}{p_2} = K\left( {RP + t} \right)}  \end{array}} \right.  \ (11)\\
 $$
 
 
@@ -197,7 +197,7 @@ $$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {{s_1}\underbrace {{K^{ - 1}}{p_1}}_{{x_1}} = P}&{ \Leftrightarrow {s_1}{x_1}{\text{ = }}P} \\    {{s_2}\underbrace {{K^{ - 1}}{p_2}}_{{x_2}} = RP + t}&{ \Leftrightarrow {s_2}{x_2}{\text{ = }}RP + t}  \end{array}} \right. \Rightarrow {s_2}{x_2} = {s_1}R{x_1} + t \ (12) \\
+\left\{ {\begin{array}{l}   {{s_1}\underbrace {{K^{ - 1}}{p_1}}_{{x_1}} = P}&{ \Leftrightarrow {s_1}{x_1}{\text{ = }}P} \\    {{s_2}\underbrace {{K^{ - 1}}{p_2}}_{{x_2}} = RP + t}&{ \Leftrightarrow {s_2}{x_2}{\text{ = }}RP + t}  \end{array}} \right. \Rightarrow {s_2}{x_2} = {s_1}R{x_1} + t \ (12) \\
 $$
 
 
@@ -205,7 +205,7 @@ $$
 
 
 $$
-\begin{array}{*{20}{c}}   {{s_2}{t^ \wedge }{x_2} = {s_1}{t^ \wedge }R{x_1} \Rightarrow {s_2}{x_2}^T{t^ \wedge }{x_2} = {s_1}{x_2}^T{t^ \wedge }R{x_1}} \\     \Downarrow  \\    {{x_2}^T\underbrace {{t^ \wedge }R}_E{x_1}{\text{ = }}0}  \end{array}\ (13) \\
+\begin{array}{c}   {{s_2}{t^ \wedge }{x_2} = {s_1}{t^ \wedge }R{x_1} \Rightarrow {s_2}{x_2}^T{t^ \wedge }{x_2} = {s_1}{x_2}^T{t^ \wedge }R{x_1}} \\     \Downarrow  \\    {{x_2}^T\underbrace {{t^ \wedge }R}_E{x_1}{\text{ = }}0}  \end{array}\ (13) \\
 $$
 
 
@@ -223,7 +223,7 @@ $$
 
 同样的 $F$ 矩阵也是up to scale的。因此，它也只有8个自由度。一般把第9个量固定为1，或者求一个9量的通解。一个（14）可以提供一个方程，那么8个点对就可以计算出$F$ 矩阵。解法与单应矩阵相同。具体的，展开（14）式有
 
-$&#123;u_2&#125;&#123;u_1&#125;&#123;f_&#123;11&#125;&#125; + &#123;u_2&#125;&#123;v_1&#125;&#123;f_&#123;12&#125;&#125; + &#123;u_2&#125;&#123;f_&#123;13&#125;&#125; + &#123;v_2&#125;&#123;u_1&#125;&#123;f_&#123;21&#125;&#125; + &#123;v_2&#125;&#123;v_1&#125;&#123;f_&#123;22&#125;&#125; + &#123;v_2&#125;&#123;f_&#123;23&#125;&#125; + &#123;u_1&#125;&#123;f_&#123;31&#125;&#125;&#123;\text&#123; + &#125;&#125;&#123;v_1&#125;&#123;f_&#123;32&#125;&#125;&#123;\text&#123; + &#125;&#125;&#123;f_&#123;33&#125;&#125;&#123;\text&#123; = &#125;&#125;0$
+${u_2}{u_1}{f_{11}} + {u_2}{v_1}{f_{12}} + {u_2}{f_{13}} + {v_2}{u_1}{f_{21}} + {v_2}{v_1}{f_{22}} + {v_2}{f_{23}} + {u_1}{f_{31}}{\text{ + }}{v_1}{f_{32}}{\text{ + }}{f_{33}}{\text{ = }}0$
 
 于是，大于等于8个点形成了方程
 
@@ -279,7 +279,7 @@ $T_M$ 用来判定内点和外点。
 
 已知基础矩阵F，可以获得Essential Matrix矩阵
 
-$\[E = &#123;K^T&#125;FK\]$
+$E = {K^T}FK$
 
 下面根据Essential Matrix分解出R和t。我们知道E的成分有一个反对称矩阵S和一个正交矩阵R，外加一个scale组成。
 
@@ -295,7 +295,7 @@ $$
 
 
 $$
-W = \left[ {\begin{array}{*{20}{c}}   0&{{\text{ - }}1}&0 \\    1&0&0 \\    0&0&1  \end{array}} \right]Z{\text{ = }}\left[ {\begin{array}{*{20}{c}}   0&1&0 \\    {{\text{ - }}1}&0&0 \\    0&0&0  \end{array}} \right] \\
+W = \left[ {\begin{array}{c}   0&{{\text{ - }}1}&0 \\    1&0&0 \\    0&0&1  \end{array}} \right]Z{\text{ = }}\left[ {\begin{array}{c}   0&1&0 \\    {{\text{ - }}1}&0&0 \\    0&0&0  \end{array}} \right] \\
 $$
 
 
@@ -313,7 +313,7 @@ $$
 
 
 $$
-\begin{gathered}   \left\{ {\begin{array}{*{20}{l}}   {R = UW{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = UW{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = U{W^T}{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = U{W^T}{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\  \end{gathered}  \\
+\begin{gathered}   \left\{ {\begin{array}{l}   {R = UW{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{l}   {R = UW{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{l}   {R = U{W^T}{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{l}   {R = U{W^T}{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\  \end{gathered}  \\
 $$
 
 

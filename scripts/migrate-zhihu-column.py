@@ -122,7 +122,7 @@ def inline(node: Tag | NavigableString, media_dir: Path, image_counter: list[int
     if node.name == "img":
         alt = html.unescape(node.get("alt", "")).strip()
         if node.get("eeimg") == "1" or node.get("src", "").startswith("https://www.zhihu.com/equation"):
-            if "\\begin{" in alt or "\\\\" in alt:
+            if "\\begin{" in alt or "\\matrix{" in alt or "\\eqalign{" in alt or "\\\\" in alt:
                 return f"\n$$\n{alt}\n$$\n"
             return f"\\({alt}\\)"
         src = node.get("src") or node.get("data-original")
@@ -185,6 +185,14 @@ def markdown_from_html(body: str, media_dir: Path) -> str:
     root = soup.body or soup
     markdown = render_children(root, media_dir, image_counter)
     markdown = re.sub(r"\n{3,}", "\n\n", markdown)
+    markdown = markdown.replace(r"\[", "").replace(r"\]", "")
+    markdown = markdown.replace(r"\cr", r"\\")
+    markdown = markdown.replace(r"\begin{array}{*{20}{c}}", r"\begin{array}{c}")
+    markdown = markdown.replace(r"\begin{array}{*{20}{l}}", r"\begin{array}{l}")
+    markdown = markdown.replace(r"\begin{array}[]{}", r"\begin{array}{c}")
+    markdown = markdown.replace(r"\hfill", r"\quad")
+    markdown = markdown.replace(r"\rm", r"\mathrm")
+    markdown = markdown.replace(r"\bm ", r"\mathbf ").replace(r"\bm}", r"\mathbf}")
     return markdown.strip() + "\n"
 
 

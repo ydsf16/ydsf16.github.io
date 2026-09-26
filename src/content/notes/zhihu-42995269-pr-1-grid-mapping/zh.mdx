@@ -28,7 +28,7 @@ relatedProjects: [robotics-experiments]
 
 ## **理论依据**
 
-占用栅格地图构建要解决的问题是：已知机器人位姿序列 $x_&#123;1:t&#125;$ 和观测序列 $z_&#123;1:t&#125;$ ，求解环境地图 $m$ 。表达成概率形式，就是求地图的后验概率。
+占用栅格地图构建要解决的问题是：已知机器人位姿序列 $x_{1:t}$ 和观测序列 $z_{1:t}$ ，求解环境地图 $m$ 。表达成概率形式，就是求地图的后验概率。
 
 
 $$
@@ -40,7 +40,7 @@ $$
 
 ![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-01.jpg)图1. 占用栅格地图
 
-占用栅格地图将环境等分成小格子，那么总的地图 $m$ 就是由这些小格子组成： $m=\&#123;m_1, m_2, \cdots, m_n\&#125;$ 。式（1）就可以变换一下啦：
+占用栅格地图将环境等分成小格子，那么总的地图 $m$ 就是由这些小格子组成： $m=\{m_1, m_2, \cdots, m_n\}$ 。式（1）就可以变换一下啦：
 
 
 $$
@@ -48,13 +48,13 @@ p(m|x_{1:t}, \ z_{1:t}) = p(m_1, m_2, \cdots, m_n |x_{1:t}, \ z_{1:t}) \\ = \pro
 $$
 
 
-这就转换成了一个独立求解每个栅格的问题。每个小格子要么是占有栅格，即在这个地方有障碍物，要么就是空闲栅格表示这个地方没有障碍物，还有就是我们系统还没有探测到这个地方有没有障碍物，就是未知栅格。我们把一个格子被占有的概率记为——置信度 $bel(m_i) = p(m_i | x_&#123;1:t&#125;, \ z_&#123;1:t&#125;)$ ，最终我们可以通过设置阈值来确定哪些格子是占有栅格（比如 $bel(m_i) >0.6$） ，哪些格子是空闲栅格（比如 $bel(m_i)&lt;0.4$ ），哪些是未知栅格（比如 $0.4\leq bel(m_i) \leq0.6$ ）。
+这就转换成了一个独立求解每个栅格的问题。每个小格子要么是占有栅格，即在这个地方有障碍物，要么就是空闲栅格表示这个地方没有障碍物，还有就是我们系统还没有探测到这个地方有没有障碍物，就是未知栅格。我们把一个格子被占有的概率记为——置信度 $bel(m_i) = p(m_i | x_{1:t}, \ z_{1:t})$ ，最终我们可以通过设置阈值来确定哪些格子是占有栅格（比如 $bel(m_i) >0.6$） ，哪些格子是空闲栅格（比如 $bel(m_i)<0.4$ ），哪些是未知栅格（比如 $0.4\leq bel(m_i) \leq0.6$ ）。
 
 现在问题的关键就在与求解栅格的置信度： $bel(m_i)$ 。下面我们就来推导一下：
 
 
 $$
-\begin{aligned} &bel_t(m_i) = p(m_i | x_{1:t}, z_{1:t}) \\ &= \frac{ p(z_t | m_i, x_{1:t}, z_{1:t-1}) p( m_i | x_{1:t}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \\ &= \frac{ p(z_t | m_i, x_t) p( m_i | x_{1:t-1}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \ \ 其中，(p(z_t | m_i, x_t) = \frac{p(m_i | z_t, x_t) p(z_t | x_t)}{ p(m_i | x_t)}) \\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i | x_t) p (z_t | x_{1:t}, z_{1:t-1}) }\\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ & =\frac{ p(m_i | z_t, x_t) p(z_t | x_t) bel_{t-1}(m_i) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned}\ \ (3)
+\begin{aligned} &bel_t(m_i) = p(m_i | x_{1:t}, z_{1:t}) \\ &= \frac{ p(z_t | m_i, x_{1:t}, z_{1:t-1}) p( m_i | x_{1:t}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \\ &= \frac{ p(z_t | m_i, x_t) p( m_i | x_{1:t-1}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \ \ 其中，(p(z_t | m_i, x_t) = \frac{p(m_i | z_t, x_t) p(z_t | x_t)}{ p(m_i | x_t)}) \\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i | x_t) p (z_t | x_{1:t}, z_{1:t-1}) }\\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ & =\frac{ p(m_i | z_t, x_t) p(z_t | x_t) bel_{t-1}(m_i) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned}
 $$
 
 
@@ -62,7 +62,7 @@ $$
 
 
 $$
-\begin{aligned} &bel_t( \bar{m_i}) =\frac{ p(\bar{m_i} | z_t, x_t) p(z_t | x_t) bel_{t-1}(\bar{m_i}) }{ p(\bar{m_i}) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned} \ \ (4)\\
+\begin{aligned} &bel_t( \bar{m_i}) =\frac{ p(\bar{m_i} | z_t, x_t) p(z_t | x_t) bel_{t-1}(\bar{m_i}) }{ p(\bar{m_i}) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned}
 $$
 
 
@@ -70,17 +70,17 @@ $$
 
 
 $$
-\begin{aligned} \frac{bel_t(m_i)}{bel_{t}(\bar{m_i})} &= \frac{bel_t(m_i)}{ [1-bel_{t}({m_i})]}\\ & = \frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) p(\bar{m_i}) }{ p(\bar{m_i} | z_t, x_t) bel_{t-1}(\bar{m_i}) p(m_i) }\\ &=\frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) [1- p(m_i)] }{ [1-p(m_i | z_t, x_t)] [1-bel_{t-1}(m_i) ] p(m_i) } \end{aligned}\ \ \ (5) \\
+\begin{aligned} \frac{bel_t(m_i)}{bel_{t}(\bar{m_i})} &= \frac{bel_t(m_i)}{ [1-bel_{t}({m_i})]}\\ & = \frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) p(\bar{m_i}) }{ p(\bar{m_i} | z_t, x_t) bel_{t-1}(\bar{m_i}) p(m_i) }\\ &=\frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) [1- p(m_i)] }{ [1-p(m_i | z_t, x_t)] [1-bel_{t-1}(m_i) ] p(m_i) } \end{aligned}
 $$
 
 
 这个式子里面的东西都是可以求出来的啦。我们再定义一些中间变量：
 
-$对数置信度：l_&#123;t,i&#125;=log\frac&#123; bel_&#123;t&#125;(m_i)&#125;&#123; 1- bel_&#123;t&#125;(m_i) &#125; =log\frac&#123; p(m_i | z_&#123;1:t&#125;, x_&#123;1:t&#125;) &#125;&#123; 1- p(m_i | z_&#123;1:t&#125;, x_&#123;1:t&#125;) &#125;$
+$对数置信度：l_{t,i}=log\frac{ bel_{t}(m_i)}{ 1- bel_{t}(m_i) } =log\frac{ p(m_i | z_{1:t}, x_{1:t}) }{ 1- p(m_i | z_{1:t}, x_{1:t}) }$
 
-$反演观测模型：l_&#123;inv,i&#125; = log \frac&#123; p(m_i | z_t, x_t) &#125;&#123; 1- p(m_i | z_t, x_t) &#125;$
+$反演观测模型：l_{inv,i} = log \frac{ p(m_i | z_t, x_t) }{ 1- p(m_i | z_t, x_t) }$
 
-$先验概率：l_0 = log \frac&#123;p(m_i)&#125; &#123;1-p(m_i)&#125;$
+$先验概率：l_0 = log \frac{p(m_i)} {1-p(m_i)}$
 
 （5）式就变成了：
 

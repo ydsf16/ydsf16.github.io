@@ -31,7 +31,7 @@ relatedProjects: [robotics-experiments]
 1. 封闭性： $\forall a_1, a_2 \in A, \ a_1 \cdot a_2 \in A.$
 2. 结合律： $\forall a_1,\ a_2,\ a_3 \in A, \ (a_1 \cdot a_2)\cdot a_3 = a_1 \cdot (a_2 \cdot a_3)$
 3. 幺元： $\exists a_0 \in A, s.t. \forall a\in A, \ a_0\cdot a = a\cdot a_0 = a$
-4. 逆： $\forall a \in A, \ \exists a^&#123;-1&#125; \in A, \ s.t. \ a\cdot a^&#123;-1&#125; = a_0$
+4. 逆： $\forall a \in A, \ \exists a^{-1} \in A, \ s.t. \ a\cdot a^{-1} = a_0$
 
 **常见的群：**
 
@@ -52,7 +52,7 @@ relatedProjects: [robotics-experiments]
 3. 自反性： $\forall X \in \mathbb V, [X,X]=0$ .
 4. 雅克比等价： $\forall X,Y,Z\in \mathbb V, [X, [Y,Z]] + [Z,[X,Y]]+[Y,[Z,X]]=0.$
 
-## **李代数 $\mathfrak &#123;so&#125;(3)$**
+## **李代数 $\mathfrak {so}(3)$**
 
 
 $$
@@ -61,10 +61,10 @@ $$
 
 
 1. 元素是三维向量或者三维反对称矩阵；
-2. 李括号是： $[\phi_1,\ \phi_2] =(\Phi_1 \Phi_2 - \Phi_2 \Phi_1)^&#123;\vee&#125;$ .
-3. 他与李群SO(3)的关系是 $\mathbf R = exp(\phi^&#123;\wedge&#125;)$ .
+2. 李括号是： $[\phi_1,\ \phi_2] =(\Phi_1 \Phi_2 - \Phi_2 \Phi_1)^{\vee}$ .
+3. 他与李群SO(3)的关系是 $\mathbf R = exp(\phi^{\wedge})$ .
 
-**李代数**$\mathfrak &#123;se&#125;(3)$
+**李代数**$\mathfrak {se}(3)$
 
 
 $$
@@ -73,8 +73,8 @@ $$
 
 
 1. 元素是六维向量，前三个是平移相关的量，后三个是旋转相关的量；
-2. 李括号为： $[\xi_1,\ \xi_2] =(\xi_1^&#123;\wedge&#125; \xi_2^&#123;\wedge&#125; - \xi_2^&#123;\wedge&#125; \xi_1^&#123;\wedge&#125; ) ^&#123; \vee&#125;$ ；
-3. 他与李群SE(3)的关系是 $\mathbf T = exp(\xi^&#123;\wedge&#125;)$ 。
+2. 李括号为： $[\xi_1,\ \xi_2] =(\xi_1^{\wedge} \xi_2^{\wedge} - \xi_2^{\wedge} \xi_1^{\wedge} ) ^{ \vee}$ ；
+3. 他与李群SE(3)的关系是 $\mathbf T = exp(\xi^{\wedge})$ 。
 
 ## **指数对数映射**
 

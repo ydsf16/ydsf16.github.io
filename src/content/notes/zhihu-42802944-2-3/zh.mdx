@@ -22,11 +22,17 @@ relatedProjects: [robotics-experiments]
 
 ## **三维空间的刚体运动**
 
-**向量的点积：** $\mathbf a \cdot \mathbf b = \sum_&#123;i=1&#125;^&#123;N&#125; a_i b_i = |a||b|cos&lt;\mathbf a, \mathbf b>$
+**向量的点积：** $\mathbf a \cdot \mathbf b = \sum_{i=1}^{N} a_i b_i = |a||b|cos<\mathbf a, \mathbf b>$
 
-**向量的外积，叉乘**： $\mathbf a \times \mathbf b = \mathbf a ^&#123;\wedge&#125;\mathbf b$ , $\mathbf a^&#123;\wedge&#125; = \begin&#123;bmatrix&#125; 0 & -a_3 & a_2 \\ a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 \end&#123;bmatrix&#125;$ ，
+**向量的外积，叉乘**： $\mathbf a \times \mathbf b = \mathbf a ^{\wedge}\mathbf b$ ,
 
-**外积的大小为**$|\mathbf a||\mathbf b|sin&lt;\mathbf a, \mathbf b>$ ，外积可以向量的旋转，想想一下转轴。
+$$
+\mathbf a^{\wedge} = \begin{bmatrix} 0 & -a_3 & a_2 \\ a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 \end{bmatrix}
+$$
+
+，
+
+**外积的大小为**$|\mathbf a||\mathbf b|sin<\mathbf a, \mathbf b>$ ，外积可以向量的旋转，想想一下转轴。
 
 **坐标系间的欧式变换**：同一个向量在不同坐标系下的表示
 
@@ -36,9 +42,20 @@ $$
 $$
 
 
-式子两边同时乘以 $\begin&#123;bmatrix&#125; e^T_1 \\ e^T_2 \\ e^T_3 \end&#123;bmatrix&#125;$ ,可以得到：
+式子两边同时乘以
 
-$\begin&#123;bmatrix&#125; a_1 \\ a_2 \\ a_3 \end&#123;bmatrix&#125; = \begin&#123;bmatrix&#125; e^T_1e'_1 & e^T_1e'_2 & e^T_1e'_3 \\ e^T_2e'_1 & e^T_2e'_2 & e^T_2e'_3 \\ e^T_3e'_1 & e^T_3e'_2 & e^T_3e'_3 \end&#123;bmatrix&#125; \begin&#123;bmatrix&#125; a'_1 \\ a'_2 \\ a'_3 \end&#123;bmatrix&#125; = \mathbf R \mathbf a' \\$ 从而引入了**旋转矩阵** $\mathbf R$ ，旋转矩阵是正交矩阵（逆为自身的转置矩阵），旋转矩阵的集合是特殊正交群(Special Orthogonal Group)：
+$$
+\begin{bmatrix} e^T_1 \\ e^T_2 \\ e^T_3 \end{bmatrix}
+$$
+
+,可以得到：
+
+
+$$
+\begin{bmatrix} a_1 \\ a_2 \\ a_3 \end{bmatrix} = \begin{bmatrix} e^T_1e'_1 & e^T_1e'_2 & e^T_1e'_3 \\ e^T_2e'_1 & e^T_2e'_2 & e^T_2e'_3 \\ e^T_3e'_1 & e^T_3e'_2 & e^T_3e'_3 \end{bmatrix} \begin{bmatrix} a'_1 \\ a'_2 \\ a'_3 \end{bmatrix} = \mathbf R \mathbf a' \\
+$$
+
+从而引入了**旋转矩阵** $\mathbf R$ ，旋转矩阵是正交矩阵（逆为自身的转置矩阵），旋转矩阵的集合是特殊正交群(Special Orthogonal Group)：
 
 
 $$

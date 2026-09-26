@@ -77,11 +77,11 @@ $$
 $$
 
 
-式中的 $\alpha_&#123;ij&#125;$ 称为(homogeneous barycentric coordinates)，本文称为hb坐标。(1)式还可写为，
+式中的 $\alpha_{ij}$ 称为(homogeneous barycentric coordinates)，本文称为hb坐标。(1)式还可写为，
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {{\mathbf{p}}_i^w} \\    1  \end{array}} \right] = \underbrace {\left[ {\begin{array}{*{20}{c}}   {{\mathbf{c}}_1^w}&{{\mathbf{c}}_2^w}&{{\mathbf{c}}_3^w}&{{\mathbf{c}}_4^w} \\    1&1&1&1  \end{array}} \right]}_{\mathbf{C}}\left[ {\begin{array}{*{20}{c}}   {{\alpha _{i1}}} \\    {{\alpha _{i2}}} \\    {{\alpha _{i3}}} \\    {{\alpha _{i4}}}  \end{array}} \right] \ (2) \\
+\left[ {\begin{array}{c}   {{\mathbf{p}}_i^w} \\    1  \end{array}} \right] = \underbrace {\left[ {\begin{array}{c}   {{\mathbf{c}}_1^w}&{{\mathbf{c}}_2^w}&{{\mathbf{c}}_3^w}&{{\mathbf{c}}_4^w} \\    1&1&1&1  \end{array}} \right]}_{\mathbf{C}}\left[ {\begin{array}{c}   {{\alpha _{i1}}} \\    {{\alpha _{i2}}} \\    {{\alpha _{i3}}} \\    {{\alpha _{i4}}}  \end{array}} \right] \ (2) \\
 $$
 
 
@@ -89,7 +89,7 @@ $$
 
 
 $$
-\mathbf c^c_j = [\mathbf R | \mathbf t]\left[ {\begin{array}{*{20}{c}}   {{\mathbf{c}}_j^w} \\    1  \end{array}} \right] \ (3)\\
+\mathbf c^c_j = [\mathbf R | \mathbf t]\left[ {\begin{array}{c}   {{\mathbf{c}}_j^w} \\    1  \end{array}} \right] \ (3)\\
 $$
 
 
@@ -97,11 +97,11 @@ $$
 
 
 $$
-\mathbf p_i^c = [\mathbf R | \mathbf t]\left[ {\begin{array}{*{20}{c}}   {{\mathbf{p}}_i^w} \\    1  \end{array}} \right] =\left[ {{\mathbf{R|t}}} \right]\left[ {\begin{array}{*{20}{c}}   {\sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^w} } \\    {\sum\limits_{j = 1}^4 {{\alpha _{ij}}} }  \end{array}} \right] = \sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^c}  \ (4) \\
+\mathbf p_i^c = [\mathbf R | \mathbf t]\left[ {\begin{array}{c}   {{\mathbf{p}}_i^w} \\    1  \end{array}} \right] =\left[ {{\mathbf{R|t}}} \right]\left[ {\begin{array}{c}   {\sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^w} } \\    {\sum\limits_{j = 1}^4 {{\alpha _{ij}}} }  \end{array}} \right] = \sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^c}  \ (4) \\
 $$
 
 
-仔细看一下（4）式，发现在同一3D点在世界坐标系下的**hb坐标**与其在相机坐标系下的相同。***这意味着，我们可以预先在世界坐标系下求取hb坐标***$\alpha_&#123;ij&#125;$***，然后将其作为已知量拿到相机坐标系下使用。***
+仔细看一下（4）式，发现在同一3D点在世界坐标系下的**hb坐标**与其在相机坐标系下的相同。***这意味着，我们可以预先在世界坐标系下求取hb坐标***$\alpha_{ij}$***，然后将其作为已知量拿到相机坐标系下使用。***
 
 ## **1.2 如何选择控制点呢？**
 
@@ -117,7 +117,7 @@ $$
 
 
 $$
-{\mathbf{A}} = \left[ {\begin{array}{*{20}{c}}   {{{\left( {{\mathbf{p}}_1^w} \right)}^T} - {{\left( {{\mathbf{c}}_1^w} \right)}^T}} \\     \cdots  \\    {{{\left( {{\mathbf{p}}_n^w} \right)}^T} - {{\left( {{\mathbf{c}}_1^w} \right)}^T}}  \end{array}} \right] \ (6) \\
+{\mathbf{A}} = \left[ {\begin{array}{c}   {{{\left( {{\mathbf{p}}_1^w} \right)}^T} - {{\left( {{\mathbf{c}}_1^w} \right)}^T}} \\     \cdots  \\    {{{\left( {{\mathbf{p}}_n^w} \right)}^T} - {{\left( {{\mathbf{c}}_1^w} \right)}^T}}  \end{array}} \right] \ (6) \\
 $$
 
 
@@ -131,7 +131,7 @@ $$
 
 ***上述操作实际上是找到点云的重心，以及点云的三个主方向，可以参考***[主成分分析(PCA)](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Principal_component_analysis)***。***
 
-到目前为止，我们已知可以知道4个控制点在世界坐标系下的坐标 $\mathbf c_j$ ，每一个3D点的hd坐标 $\alpha_&#123;ij&#125;$ 。如果我们能把4个控制点在相机坐标系下的坐标求解出来，就可以计算出3D点在相机坐标系下的坐标，就可以求解出外参数 $[\mathbf R | \mathbf t]$ ，下面就沿着这个思路展开。
+到目前为止，我们已知可以知道4个控制点在世界坐标系下的坐标 $\mathbf c_j$ ，每一个3D点的hd坐标 $\alpha_{ij}$ 。如果我们能把4个控制点在相机坐标系下的坐标求解出来，就可以计算出3D点在相机坐标系下的坐标，就可以求解出外参数 $[\mathbf R | \mathbf t]$ ，下面就沿着这个思路展开。
 
 ## **1.3 控制点在相机坐标系下的坐标**
 
@@ -141,7 +141,7 @@ $$
 
 
 $$
-{\omega _i}\left[ {\begin{array}{*{20}{c}}   {{{\mathbf{u}}_i}} \\    1  \end{array}} \right] = {\mathbf{Kp}}_i^c = {\mathbf{K}}\sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^c}  = \left[ {\begin{array}{*{20}{c}}   {{f_x}}&0&{{c_x}} \\    0&{{f_y}}&{{c_y}} \\    0&0&1  \end{array}} \right]\sum\limits_{j = 1}^4 {{\alpha _{ij}}\left[ {\begin{array}{*{20}{c}}   {x_j^c} \\    {y_j^c} \\    {z_j^c}  \end{array}} \right]} \ (8) \\
+{\omega _i}\left[ {\begin{array}{c}   {{{\mathbf{u}}_i}} \\    1  \end{array}} \right] = {\mathbf{Kp}}_i^c = {\mathbf{K}}\sum\limits_{j = 1}^4 {{\alpha _{ij}}{\mathbf{c}}_j^c}  = \left[ {\begin{array}{c}   {{f_x}}&0&{{c_x}} \\    0&{{f_y}}&{{c_y}} \\    0&0&1  \end{array}} \right]\sum\limits_{j = 1}^4 {{\alpha _{ij}}\left[ {\begin{array}{c}   {x_j^c} \\    {y_j^c} \\    {z_j^c}  \end{array}} \right]} \ (8) \\
 $$
 
 
@@ -149,11 +149,11 @@ $$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {\sum\limits_{j = 1}^4 {\left( {{\alpha _{ij}}{f_x}x_j^c + {\alpha _{ij}}\left( {{c_x} - {u_i}} \right)z_j^c} \right) = 0} } \\    {\sum\limits_{j = 1}^4 {\left( {{\alpha _{ij}}{f_y}y_j^c + {\alpha _{ij}}\left( {{c_y} - {v_i}} \right)z_j^c} \right) = 0} }  \end{array}} \right.  \ (9) \\
+\left\{ {\begin{array}{l}   {\sum\limits_{j = 1}^4 {\left( {{\alpha _{ij}}{f_x}x_j^c + {\alpha _{ij}}\left( {{c_x} - {u_i}} \right)z_j^c} \right) = 0} } \\    {\sum\limits_{j = 1}^4 {\left( {{\alpha _{ij}}{f_y}y_j^c + {\alpha _{ij}}\left( {{c_y} - {v_i}} \right)z_j^c} \right) = 0} }  \end{array}} \right.  \ (9) \\
 $$
 
 
-仔细看一哈，（9）式中hd坐标 $\alpha_&#123;ij&#125;$ ，摄像机内参数 $f_x$ 、 $f_y$ 、 $c_x$ 、 $c_y$ ，以及2D点的坐标 $u_i$ , $v_i$ 都是已知变量，未知变量是4个控制点在摄像机坐标系下的坐标 $x_j^c$ 、 $y_j^c$ 和 $z_i^c$ ，共计12个未知参数。一个点可以确定2个方程，把所有$n$ 个点对都用上，可以形成一个线性方程
+仔细看一哈，（9）式中hd坐标 $\alpha_{ij}$ ，摄像机内参数 $f_x$ 、 $f_y$ 、 $c_x$ 、 $c_y$ ，以及2D点的坐标 $u_i$ , $v_i$ 都是已知变量，未知变量是4个控制点在摄像机坐标系下的坐标 $x_j^c$ 、 $y_j^c$ 和 $z_i^c$ ，共计12个未知参数。一个点可以确定2个方程，把所有$n$ 个点对都用上，可以形成一个线性方程
 
 
 $$
@@ -191,7 +191,7 @@ $$
 $$
 
 
-其中， $\[&#123;&#123;&#123;\mathbf&#123;v&#125;&#125;^&#123;\left[ i \right]&#125;&#125;&#125;\]$ 表示 $\mathbf v$ 中第 $i$ 个控制点所占据的3个元素组成的向量。4个控制点，可以得到 $\beta$ 的一个闭式解
+其中， ${{{\mathbf{v}}^{\left[ i \right]}}}$ 表示 $\mathbf v$ 中第 $i$ 个控制点所占据的3个元素组成的向量。4个控制点，可以得到 $\beta$ 的一个闭式解
 
 
 $$
@@ -213,7 +213,7 @@ $$
 
 
 $$
-\begin{array}{*{20}{c}}   {||{\beta _1}\underbrace {\left( {{\mathbf{v}}_1^{[i]} - {\mathbf{v}}_1^{[j]}} \right)}_{{{\mathbf{S}}_1}}{\text{ + }}{\beta _2}\underbrace {\left( {{\mathbf{v}}_2^{[i]} - {\mathbf{v}}_2^{[j]}} \right)}_{{{\mathbf{S}}_2}}|{|^2} = \underbrace {{{\left\| {{\mathbf{c}}_i^w - {\mathbf{c}}_j^w} \right\|}^2}}_c} \\     \Downarrow  \\    {{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1} + 2{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2} + {\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} = c}  \end{array} \ (16) \\
+\begin{array}{c}   {||{\beta _1}\underbrace {\left( {{\mathbf{v}}_1^{[i]} - {\mathbf{v}}_1^{[j]}} \right)}_{{{\mathbf{S}}_1}}{\text{ + }}{\beta _2}\underbrace {\left( {{\mathbf{v}}_2^{[i]} - {\mathbf{v}}_2^{[j]}} \right)}_{{{\mathbf{S}}_2}}|{|^2} = \underbrace {{{\left\| {{\mathbf{c}}_i^w - {\mathbf{c}}_j^w} \right\|}^2}}_c} \\     \Downarrow  \\    {{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1} + 2{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2} + {\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} = c}  \end{array} \ (16) \\
 $$
 
 
@@ -229,19 +229,19 @@ $$
 
 
 $$
-\mathbf L \bm\beta = \bm \rho \ (18) \\
+\mathbf L \bm\beta = \mathbf \rho \ (18) \\
 $$
 
 
-其中， $\bm &#123;\beta&#125; = [\beta_&#123;11&#125;, \beta_&#123;12&#125;, \beta_&#123;22&#125;]^T$ ，$\mathbf L$ 中为（16）式左边的系数大小为 $6\times 3$ ， $\bm&#123;\rho&#125;$ 中为（16）式右边的系数，大小为 $6\times 1$ 。解出 $\bm \beta$ 后，再结合（17）式，可以获得两组 $\beta_1,\ \beta_2$ 的解。再加上一个条件，控制点在摄像机的前端，即 $\bm&#123;c&#125;_j^c$ 的 $z$ 分量要大于0，从而$\beta_1,\ \beta_2$唯一确定。
+其中， $\mathbf {\beta} = [\beta_{11}, \beta_{12}, \beta_{22}]^T$ ，$\mathbf L$ 中为（16）式左边的系数大小为 $6\times 3$ ， $\bm{\rho}$ 中为（16）式右边的系数，大小为 $6\times 1$ 。解出 $\mathbf \beta$ 后，再结合（17）式，可以获得两组 $\beta_1,\ \beta_2$ 的解。再加上一个条件，控制点在摄像机的前端，即 $\bm{c}_j^c$ 的 $z$ 分量要大于0，从而$\beta_1,\ \beta_2$唯一确定。
 
 **Case**$N=3$
 
-与Case $N=2$ 的解法相同。这里的 $\bm \beta = [\beta_&#123;11&#125;, \beta_&#123;12&#125;,\beta_&#123;13&#125;, \beta_&#123;22&#125;, \beta_&#123;23&#125;, \beta_&#123;33&#125;]^T$ ， $\mathbf L$的大小为 $6\times6$ 。
+与Case $N=2$ 的解法相同。这里的 $\mathbf \beta = [\beta_{11}, \beta_{12},\beta_{13}, \beta_{22}, \beta_{23}, \beta_{33}]^T$ ， $\mathbf L$的大小为 $6\times6$ 。
 
 **Case**$N =4$
 
-再次使用Case $N=2$ 的解法试一下，此时 $\bm \beta = [\beta_&#123;11&#125;, \beta_&#123;12&#125;, \beta_&#123;13&#125;, \beta_&#123;14&#125;, \beta_&#123;22&#125;, \beta_&#123;23&#125;, \beta_&#123;24&#125;, \beta_&#123;33&#125;, \beta_&#123;34&#125;, \beta_&#123;44&#125;]^T$ ， $\mathbf L$ 的大小为 $6\times 10$ 。显然，无法得到唯一解。这次，就不能直接使用Case $N=2，N=3$ 的解法了。因为，方程的数量少于待求解变量。看一下中间变量法，引入中间变量的同时，也增加了变量的个数。比如，Case $N=3$ 的时候，引入中间变量后，变量个数由3个变成了6个。多出了3个变量 $\beta_&#123;ab&#125;$ 。原文[1]提到，再引入约束，使用"Reinearization"的方法求解。（这个我也没看明白额）
+再次使用Case $N=2$ 的解法试一下，此时 $\mathbf \beta = [\beta_{11}, \beta_{12}, \beta_{13}, \beta_{14}, \beta_{22}, \beta_{23}, \beta_{24}, \beta_{33}, \beta_{34}, \beta_{44}]^T$ ， $\mathbf L$ 的大小为 $6\times 10$ 。显然，无法得到唯一解。这次，就不能直接使用Case $N=2，N=3$ 的解法了。因为，方程的数量少于待求解变量。看一下中间变量法，引入中间变量的同时，也增加了变量的个数。比如，Case $N=3$ 的时候，引入中间变量后，变量个数由3个变成了6个。多出了3个变量 $\beta_{ab}$ 。原文[1]提到，再引入约束，使用"Reinearization"的方法求解。（这个我也没看明白额）
 
 > 实际上，
 >
@@ -259,9 +259,9 @@ $$
 
 至此， $\beta_1 \sim \beta_4$ 的初值求解完毕。
 
-**1.3.2 参数**$\bm \beta$ **优化**
+**1.3.2 参数**$\mathbf \beta$ **优化**
 
-下面，优化 $\bm \beta$ 。需要注意，这里的 $\bm \beta = [\beta_1, \beta_2, \beta_2, \beta_3]^T$ 。 $N=1,2,3$ 的情况中，剩余的 $\beta$ 直接补0。同样，还是优化两个坐标系下控制点间距的差。
+下面，优化 $\mathbf \beta$ 。需要注意，这里的 $\mathbf \beta = [\beta_1, \beta_2, \beta_2, \beta_3]^T$ 。 $N=1,2,3$ 的情况中，剩余的 $\beta$ 直接补0。同样，还是优化两个坐标系下控制点间距的差。
 
 
 $$
@@ -273,23 +273,23 @@ $$
 
 
 $$
-\begin{aligned}   cc &  = {\left\| {\left( {{\beta _1}{\mathbf{v}}_1^{[i]} + {\beta _2}{\mathbf{v}}_2^{[i]} + {\beta _3}{\mathbf{v}}_3^{[i]} + {\beta _4}{\mathbf{v}}_4^{[i]}} \right) - \left( {{\beta _1}{\mathbf{v}}_1^{[j]} + {\beta _2}{\mathbf{v}}_2^{[j]} + {\beta _3}{\mathbf{v}}_3^{[j]} + {\beta _4}{\mathbf{v}}_4^{[j]}} \right)} \right\|^2} \\     & {\text{ = }}||{\beta _1}\underbrace {\left( {{\mathbf{v}}_1^{[i]} - {\mathbf{v}}_1^{[j]}} \right)}_{{{\mathbf{S}}_1}} + {\beta _2}\underbrace {\left( {{\mathbf{v}}_2^{[i]} - {\mathbf{v}}_2^{[j]}} \right)}_{{{\mathbf{S}}_2}} + {\beta _3}\underbrace {\left( {{\mathbf{v}}_3^{[i]} - {\mathbf{v}}_3^{[j]}} \right)}_{{{\mathbf{S}}_3}} + {\beta _4}\underbrace {\left( {{\mathbf{v}}_4^{[i]} - {\mathbf{v}}_4^{[j]}} \right)}_{{{\mathbf{S}}_4}}|{|^2} \\     & {\text{ = }}{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _1}{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _1}{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _2}{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _2}{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _3}^2{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _3}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _3}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _4}^2{{\mathbf{S}}_4}^T{{\mathbf{S}}_4} \\     & {\text{ = }}{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1}{\text{ + 2}}{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + 2}}{\beta _1}{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _1}{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} + 2{\beta _2}{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3} + 2{\beta _2}{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _3}^2{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _3}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _4}^2{{\mathbf{S}}_4}^T{{\mathbf{S}}_4} \\  \end{aligned} \ (20)\\
+\begin{aligned}   cc &  = {\left\| {\left( {{\beta _1}{\mathbf{v}}_1^{[i]} + {\beta _2}{\mathbf{v}}_2^{[i]} + {\beta _3}{\mathbf{v}}_3^{[i]} + {\beta _4}{\mathbf{v}}_4^{[i]}} \right) - \left( {{\beta _1}{\mathbf{v}}_1^{[j]} + {\beta _2}{\mathbf{v}}_2^{[j]} + {\beta _3}{\mathbf{v}}_3^{[j]} + {\beta _4}{\mathbf{v}}_4^{[j]}} \right)} \right\|^2} \\     & {\text{ = }}||{\beta _1}\underbrace {\left( {{\mathbf{v}}_1^{[i]} - {\mathbf{v}}_1^{[j]}} \right)}_{{{\mathbf{S}}_1}} + {\beta _2}\underbrace {\left( {{\mathbf{v}}_2^{[i]} - {\mathbf{v}}_2^{[j]}} \right)}_{{{\mathbf{S}}_2}} + {\beta _3}\underbrace {\left( {{\mathbf{v}}_3^{[i]} - {\mathbf{v}}_3^{[j]}} \right)}_{{{\mathbf{S}}_3}} + {\beta _4}\underbrace {\left( {{\mathbf{v}}_4^{[i]} - {\mathbf{v}}_4^{[j]}} \right)}_{{{\mathbf{S}}_4}}|{|^2} \\     & {\text{ = }}{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _1}{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _1}{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _2}{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _2}{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _3}^2{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _3}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4} \\     &  + {\beta _1}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_1}{\text{ + }}{\beta _2}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_2}{\text{ + }}{\beta _3}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_3}{\text{ + }}{\beta _4}^2{{\mathbf{S}}_4}^T{{\mathbf{S}}_4} \\     & {\text{ = }}{\beta _1}^2{{\mathbf{S}}_1}^T{{\mathbf{S}}_1}{\text{ + 2}}{\beta _1}{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + 2}}{\beta _1}{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _1}{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _2}^2{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} + 2{\beta _2}{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3} + 2{\beta _2}{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _3}^2{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _3}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4} \\     & {\text{ + }}{\beta _4}^2{{\mathbf{S}}_4}^T{{\mathbf{S}}_4} \\  \end{aligned}
 $$
 
 
-下面，利用Gauss-Newton求解式（19）。首先求解 $\[Error(&#123;\bm&#123;\beta &#125;&#125;)\]$ 相对于 $\bm \beta$ 的雅克比
+下面，利用Gauss-Newton求解式（19）。首先求解 $Error({\bm{\beta }})$ 相对于 $\mathbf \beta$ 的雅克比
 
 
 $$
-\begin{aligned}   {{\mathbf{J}}_{i,j}} &  = \frac{{\partial \left[ {Erro{r_{i,j}}({\mathbf{\beta }})} \right]}}{{\partial {\mathbf{\beta }}}} \\     & {\text{ = }}{\left[ {\begin{array}{*{20}{c}}   {2{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_1} + 2{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}2{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3} + 2{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} + 2{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3} + 2{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3} + 2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} + 2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4}{\text{ + 2}}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4}{\text{ + 2}}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_4}}  \end{array}} \right]^{\text{T}}} \\  \end{aligned} \ (21)\\
+\begin{aligned}   {{\mathbf{J}}_{i,j}} &  = \frac{{\partial \left[ {Erro{r_{i,j}}({\mathbf{\beta }})} \right]}}{{\partial {\mathbf{\beta }}}} \\     & {\text{ = }}{\left[ {\begin{array}{c}   {2{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_1} + 2{\beta _2}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}2{\beta _3}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3} + 2{\beta _4}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_2}{\text{ + }}2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_2} + 2{\beta _3}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3} + 2{\beta _4}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_3} + 2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_3}{\text{ + 2}}{\beta _4}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4}} \\    {{\text{2}}{\beta _1}{{\mathbf{S}}_1}^T{{\mathbf{S}}_4} + 2{\beta _2}{{\mathbf{S}}_2}^T{{\mathbf{S}}_4}{\text{ + 2}}{\beta _3}{{\mathbf{S}}_3}^T{{\mathbf{S}}_4}{\text{ + 2}}{\beta _4}{{\mathbf{S}}_4}^T{{\mathbf{S}}_4}}  \end{array}} \right]^{\text{T}}} \\  \end{aligned}
 $$
 
 
-将六个小雅克比 $\bm J_&#123;i,j&#125;$ 合成为 $6\times 4$ 的大雅克比
+将六个小雅克比 $\mathbf J_{i,j}$ 合成为 $6\times 4$ 的大雅克比
 
 
 $$
-{\mathbf{J}} = \left[ {\begin{array}{*{20}{l}}   {{{\mathbf{J}}_{1,2}}} \\    {{{\mathbf{J}}_{1,3}}} \\    {{{\mathbf{J}}_{1,4}}} \\    {{{\mathbf{J}}_{2,3}}} \\    {{{\mathbf{J}}_{2,4}}} \\    {{{\mathbf{J}}_{3,4}}}  \end{array}} \right] \\
+{\mathbf{J}} = \left[ {\begin{array}{l}   {{{\mathbf{J}}_{1,2}}} \\    {{{\mathbf{J}}_{1,3}}} \\    {{{\mathbf{J}}_{1,4}}} \\    {{{\mathbf{J}}_{2,3}}} \\    {{{\mathbf{J}}_{2,4}}} \\    {{{\mathbf{J}}_{3,4}}}  \end{array}} \right] \\
 $$
 
 
@@ -297,7 +297,7 @@ $$
 
 
 $$
-{\mathbf{r}} = \left[ {\begin{array}{*{20}{l}}   {Erro{r_{1,2}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{1,3}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{1,4}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{2,3}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{2,4}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{3,4}}\left( {\bm{\beta }} \right)}  \end{array}} \right] \\
+{\mathbf{r}} = \left[ {\begin{array}{l}   {Erro{r_{1,2}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{1,3}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{1,4}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{2,3}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{2,4}}\left( {\bm{\beta }} \right)} \\    {Erro{r_{3,4}}\left( {\bm{\beta }} \right)}  \end{array}} \right] \\
 $$
 
 
@@ -319,7 +319,7 @@ $$
 
 迭代计算。上面其实就是标准的最小二乘优化，高博[十四讲](https://www.zhihu.com/question/56630075/answer/150010023)中就有详细的介绍。
 
-至此， $\bm \beta$ 就解完了。那么，控制点在摄像机坐标系下的坐标$\mathbf c_j$ 也全部解出来了。下面开始求解 $[\mathbf R | \mathbf t]$ 。
+至此， $\mathbf \beta$ 就解完了。那么，控制点在摄像机坐标系下的坐标$\mathbf c_j$ 也全部解出来了。下面开始求解 $[\mathbf R | \mathbf t]$ 。
 
 ## **1.4  求解**$[\mathbf R | \mathbf t]$
 
@@ -343,13 +343,13 @@ $$
 
 
 $$
-{{\mathbf{P}}^c}{\text{ = }}\left[ {\begin{array}{*{20}{c}}   {({\mathbf{p}}_1^c)^T - ({\mathbf{p}}_c^c})^T \\     \cdots  \\    {({\mathbf{p}}_n^c)^T - ({\mathbf{p}}_c^c})^T  \end{array}} \right] \\
+{{\mathbf{P}}^c}{\text{ = }}\left[ {\begin{array}{c}   {({\mathbf{p}}_1^c)^T - ({\mathbf{p}}_c^c})^T \\     \cdots  \\    {({\mathbf{p}}_n^c)^T - ({\mathbf{p}}_c^c})^T  \end{array}} \right] \\
 $$
 
 
 
 $$
-{{\mathbf{P}}^w}{\text{ = }}\left[ {\begin{array}{*{20}{c}}   { ({\mathbf{p}}_1^w)^T - ({\mathbf{p}}_c^w})^T \\     \cdots  \\    {({\mathbf{p}}_n^w)^T - ({\mathbf{p}}_c^w})^T  \end{array}} \right] \\
+{{\mathbf{P}}^w}{\text{ = }}\left[ {\begin{array}{c}   { ({\mathbf{p}}_1^w)^T - ({\mathbf{p}}_c^w})^T \\     \cdots  \\    {({\mathbf{p}}_n^w)^T - ({\mathbf{p}}_c^w})^T  \end{array}} \right] \\
 $$
 
 
@@ -373,7 +373,7 @@ $$
 $$
 
 
-如果 $|\mathbf R | &lt; 0$ ， $\mathbf R(2,:) = - \mathbf R(2,:)$ 。
+如果 $|\mathbf R | < 0$ ， $\mathbf R(2,:) = - \mathbf R(2,:)$ 。
 
 **Step 4. 计算平移**$\mathbf t$
 
@@ -383,7 +383,7 @@ $$
 $$
 
 
-请注意，因为 $\bm \beta$ 有四种情况的解。所以，这里的 $\mathbf &#123;[R|t]&#125;$ 实际上计算了四次，最终选择重投影误差最小的解。
+请注意，因为 $\mathbf \beta$ 有四种情况的解。所以，这里的 $\mathbf {[R|t]}$ 实际上计算了四次，最终选择重投影误差最小的解。
 
 ## **2. 工程实现&实验**
 

@@ -30,19 +30,19 @@ relatedProjects: [robotics-experiments]
 
 **1.1 地图点的参数化方式**
 
-地图点的参数化方式主要有两种：一种是用三维向量 $\mathbf&#123;X&#125;= [x,y,z]^T$ 表达；另一种采用逆深度表达。为了简单和直观，我们这里还是使用比较传统的**三维向量表达**。
+地图点的参数化方式主要有两种：一种是用三维向量 $\mathbf{X}= [x,y,z]^T$ 表达；另一种采用逆深度表达。为了简单和直观，我们这里还是使用比较传统的**三维向量表达**。
 
 **1.2 相机模型**
 
-相机模型也有很多啦，这里我们同样是使用最简单的一种：**针孔相机模型**。一个3D地图点 $\bf&#123;X&#125;$ 投影到图像上形成2D像素点 $\bf&#123;u&#125;$ （**3D-2D投影**）可以表示为
+相机模型也有很多啦，这里我们同样是使用最简单的一种：**针孔相机模型**。一个3D地图点 $\bf{X}$ 投影到图像上形成2D像素点 $\bf{u}$ （**3D-2D投影**）可以表示为
 
 
 $$
-\lambda {\mathbf{u}} = {\mathbf{KTX}} = \left[ {\begin{array}{*{20}{c}}   {{f_x}}&0&{{c_x}} \\    0&{{f_y}}&{{c_y}} \\    0&0&1  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   \bf R& \bf t  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (1) \\
+\lambda {\mathbf{u}} = {\mathbf{KTX}} = \left[ {\begin{array}{c}   {{f_x}}&0&{{c_x}} \\    0&{{f_y}}&{{c_y}} \\    0&0&1  \end{array}} \right]\left[ {\begin{array}{c}   \bf R& \bf t  \end{array}} \right]\left[ {\begin{array}{c}   x \\    y \\    z \\    1  \end{array}} \right] \ (1) \\
 $$
 
 
-其中 $\bf&#123;K&#125;$ 为内参矩阵， $\mathbf&#123;T&#125;$ 为相机的位姿， $\bf&#123;X&#125;$ 为3D地图点的齐次坐标。我们设定摄像机内参数是已知的，将上述方程简写为
+其中 $\bf{K}$ 为内参矩阵， $\mathbf{T}$ 为相机的位姿， $\bf{X}$ 为3D地图点的齐次坐标。我们设定摄像机内参数是已知的，将上述方程简写为
 
 
 $$
@@ -60,11 +60,11 @@ $$
 $$
 
 
-需要优化的量为相机的位姿 $\mathbf&#123;T&#125;_i$ 和地图点的位置 $\mathbf&#123;X&#125;_j$ ， $\chi$ 包含了所有的**3D-2D投影。** $\mathbf e$ 为**cost function**， $\rho$ 为鲁棒核函数，我们这里也是用最常用的**Huber函数**：
+需要优化的量为相机的位姿 $\mathbf{T}_i$ 和地图点的位置 $\mathbf{X}_j$ ， $\chi$ 包含了所有的**3D-2D投影。** $\mathbf e$ 为**cost function**， $\rho$ 为鲁棒核函数，我们这里也是用最常用的**Huber函数**：
 
 
 $$
-\rho  = \left\{ {\begin{array}{*{20}{l}}   x \\    {2b\sqrt x  - {b^2}}  \end{array}\begin{array}{*{20}{l}}   {,if\sqrt x  < b} \\    {,else}  \end{array}} \right.  \ (4)\\
+\rho  = \left\{ {\begin{array}{l}   x \\    {2b\sqrt x  - {b^2}}  \end{array}\begin{array}{l}   {,if\sqrt x  < b} \\    {,else}  \end{array}} \right.  \ (4)\\
 $$
 
 
@@ -94,13 +94,13 @@ $$
 
 **1.4 雅克比Jacobian**
 
-求解最小二乘问题，需要提供cost function：$\[&#123;\mathbf&#123;e&#125;&#125; = z - \pi \left( &#123;&#123;\mathbf&#123;T&#125;&#125;,&#123;\mathbf&#123;X&#125;&#125;&#125; \right)\]$ 相对于优化量 $\[&#123;&#123;\mathbf&#123;T&#125;&#125;,&#123;\mathbf&#123;X&#125;&#125;&#125;\]$ 的**雅克比**。（可参考高博十四讲）
+求解最小二乘问题，需要提供cost function：${\mathbf{e}} = z - \pi \left( {{\mathbf{T}},{\mathbf{X}}} \right)$ 相对于优化量 ${{\mathbf{T}},{\mathbf{X}}}$ 的**雅克比**。（可参考高博十四讲）
 
-**1）**cost function关于相机位姿 $\bf&#123;T&#125;$ 的雅克比，我们采用李代数扰动模型计算，为
+**1）**cost function关于相机位姿 $\bf{T}$ 的雅克比，我们采用李代数扰动模型计算，为
 
 
 $$
-{{\mathbf{J}}_{\mathbf{T}}} =  - \left[ {\begin{array}{*{20}{c}}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}}&{ - \frac{{{f_x}x'y'}}{{{{z'}^2}}}}&{{f_x} + \frac{{{f_x}{{x'}^2}}}{{{{z'}^2}}}}&{ - \frac{{{f_x}y'}}{{z'}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}&{ - {f_y} - \frac{{{f_y}{{y'}^2}}}{{{{z'}^2}}}}&{\frac{{{f_y}x'y'}}{{{{z'}^2}}}}&{\frac{{{f_y}x'}}{{z'}}}  \end{array}} \right] \ (8)\\
+{{\mathbf{J}}_{\mathbf{T}}} =  - \left[ {\begin{array}{c}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}}&{ - \frac{{{f_x}x'y'}}{{{{z'}^2}}}}&{{f_x} + \frac{{{f_x}{{x'}^2}}}{{{{z'}^2}}}}&{ - \frac{{{f_x}y'}}{{z'}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}&{ - {f_y} - \frac{{{f_y}{{y'}^2}}}{{{{z'}^2}}}}&{\frac{{{f_y}x'y'}}{{{{z'}^2}}}}&{\frac{{{f_y}x'}}{{z'}}}  \end{array}} \right] \ (8)\\
 $$
 
 
@@ -108,15 +108,15 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {x'} \\    {y'} \\    {z'}  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {\mathbf{R}}&{\mathbf{t}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (9)\\
+\left[ {\begin{array}{c}   {x'} \\    {y'} \\    {z'}  \end{array}} \right] = \left[ {\begin{array}{c}   {\mathbf{R}}&{\mathbf{t}}  \end{array}} \right]\left[ {\begin{array}{c}   x \\    y \\    z \\    1  \end{array}} \right] \ (9)\\
 $$
 
 
-**2）**cost function关于地图点 $\bf&#123;X&#125;$ 的雅克比为
+**2）**cost function关于地图点 $\bf{X}$ 的雅克比为
 
 
 $$
-{{\mathbf{J}}_{\mathbf{X}}} =  - \left[ {\begin{array}{*{20}{c}}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}  \end{array}} \right]{\mathbf{R}} \ (10)\\
+{{\mathbf{J}}_{\mathbf{X}}} =  - \left[ {\begin{array}{c}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}  \end{array}} \right]{\mathbf{R}} \ (10)\\
 $$
 
 
@@ -130,7 +130,7 @@ $$
 $$
 
 
-Bundle Adjustment中的 $\mathbf&#123;H&#125;$ 矩阵，具有特殊的稀疏结构，如下图所示。利用这种稀疏结构可以加速求解过程。我们这里的实现使用了舒尔补的方法求解。（TODO，其他求解方法）
+Bundle Adjustment中的 $\mathbf{H}$ 矩阵，具有特殊的稀疏结构，如下图所示。利用这种稀疏结构可以加速求解过程。我们这里的实现使用了舒尔补的方法求解。（TODO，其他求解方法）
 
 ![文章配图](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-01.jpg)H矩阵的稀疏结构
 
@@ -138,11 +138,11 @@ Bundle Adjustment中的 $\mathbf&#123;H&#125;$ 矩阵，具有特殊的稀疏结
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {\mathbf{C}}&{\mathbf{{\rm E}}} \\    {{{\mathbf{E}}^T}}&{\mathbf{M}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {\Delta {{\mathbf{x}}_{\mathbf{c}}}} \\    {\Delta {{\mathbf{x}}_{\mathbf{m}}}}  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {{{\mathbf{b}}_{\mathbf{c}}}} \\    {{{\mathbf{b}}_{\mathbf{m}}}}  \end{array}} \right] \ (12) \\
+\left[ {\begin{array}{c}   {\mathbf{C}}&{\mathbf{{\rm E}}} \\    {{{\mathbf{E}}^T}}&{\mathbf{M}}  \end{array}} \right]\left[ {\begin{array}{c}   {\Delta {{\mathbf{x}}_{\mathbf{c}}}} \\    {\Delta {{\mathbf{x}}_{\mathbf{m}}}}  \end{array}} \right] = \left[ {\begin{array}{c}   {{{\mathbf{b}}_{\mathbf{c}}}} \\    {{{\mathbf{b}}_{\mathbf{m}}}}  \end{array}} \right] \ (12) \\
 $$
 
 
-利用舒尔补消元，我们首先求解 $\Delta \mathbf&#123;x&#125;_c$ ：
+利用舒尔补消元，我们首先求解 $\Delta \mathbf{x}_c$ ：
 
 
 $$
@@ -150,7 +150,7 @@ $$
 $$
 
 
-然后，再去求解 $\Delta \mathbf&#123;x_p&#125;$ :
+然后，再去求解 $\Delta \mathbf{x_p}$ :
 
 
 $$
@@ -158,7 +158,7 @@ $$
 $$
 
 
-由于 $\[&#123;\mathbf&#123;M&#125;&#125;\]$ 为对角块矩阵，求逆比较快。上述过程就是利用了这一特性，实现了求解的加速。
+由于 ${\mathbf{M}}$ 为对角块矩阵，求逆比较快。上述过程就是利用了这一特性，实现了求解的加速。
 
 **1.6 固定部分状态**
 

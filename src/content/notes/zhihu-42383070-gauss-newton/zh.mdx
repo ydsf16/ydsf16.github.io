@@ -24,7 +24,7 @@ relatedProjects: [robotics-experiments]
 
 对于一个非线性最小二乘问题：
 
-$x = \mathrm&#123;arg&#125;\min_&#123;x&#125;\frac&#123;1&#125;&#123;2&#125;\parallel f(x) \parallel^2.\ \ \ \ (1)$
+$x = \mathrm{arg}\min_{x}\frac{1}{2}\parallel f(x) \parallel^2.\ \ \ \ (1)$
 
 高斯牛顿的思想是把 $f(x)$ 利用泰勒展开，取一阶线性项近似。
 
@@ -32,7 +32,7 @@ $f(x+\Delta x)=f(x) +f'(x)\Delta x = f(x) +J(x)\Delta x.\ \ \ \ (2)$
 
 带入到(1)式：
 
-$\frac&#123;1&#125;&#123;2&#125;\parallel f(x+\Delta x) \parallel^2 = \frac&#123;1&#125;&#123;2&#125; \&#123; f(x)^Tf(x) + 2f(x)^TJ(x)\Delta x +\Delta x^TJ(x)^TJ(x)\Delta x\&#125;. \ \ \ \ (3)$
+$\frac{1}{2}\parallel f(x+\Delta x) \parallel^2 = \frac{1}{2} \{ f(x)^Tf(x) + 2f(x)^TJ(x)\Delta x +\Delta x^TJ(x)^TJ(x)\Delta x\}. \ \ \ \ (3)$
 
 对上式求导，令导数为0。
 
@@ -70,23 +70,28 @@ $H\Delta x = B.\ \ \ \ (5)$
 
 ## **编程实现**
 
-**问题：**非线性方程: $y=exp(ax^2+bx+c)$ ，给定n组观测数据 $\&#123;x,y\&#125;$ ，求系数 $X=[ a,b,c ]^T$ .
+**问题：**非线性方程: $y=exp(ax^2+bx+c)$ ，给定n组观测数据 $\{x,y\}$ ，求系数 $X=[ a,b,c ]^T$ .
 
 **分析：令** $f(X)=y-exp(ax^2+bx+c)$ ,N组数据可以组成一个大的非线性方程组
 
 
 $$
-F(X)=\left[\begin{array}[c]{c} y_1-exp(ax_1^2+bx_1+c)\\ \dots\\ y_N-exp(ax_N^2+bx_N+c)\end{array} \right]
+F(X)=\left[\begin{array}{c} y_1-exp(ax_1^2+bx_1+c)\\ \dots\\ y_N-exp(ax_N^2+bx_N+c)\end{array} \right]
 $$
 
 
 我们可以构建一个最小二乘问题：
 
-$x = \mathrm&#123;arg&#125;\min_&#123;x&#125;\frac&#123;1&#125;&#123;2&#125;\parallel F(X) \parallel^2$ .
+$x = \mathrm{arg}\min_{x}\frac{1}{2}\parallel F(X) \parallel^2$ .
 
 要求解这个问题，根据推导部分可知，需要求解雅克比。
 
-## $J(X)=\left[\begin&#123;matrix&#125; -x_1^2exp(ax_1^2+bx_1+c) & -x_1exp(ax_1^2+bx_1+c) &-exp(ax_1^2+bx_1+c) \\ \dots & \dots & \dots \\ -x_N^2exp(ax_N^2+bx_N+c) & -x_Nexp(ax_N^2+bx_N+c) &-exp(ax_N^2+bx_N+c) \end&#123;matrix&#125; \right]$
+##
+
+$$
+J(X)=\left[\begin{matrix} -x_1^2exp(ax_1^2+bx_1+c) & -x_1exp(ax_1^2+bx_1+c) &-exp(ax_1^2+bx_1+c) \\ \dots & \dots & \dots \\ -x_N^2exp(ax_N^2+bx_N+c) & -x_Nexp(ax_N^2+bx_N+c) &-exp(ax_N^2+bx_N+c) \end{matrix} \right]
+$$
+
 
 使用推导部分所述的步骤就可以进行解算。代码实现：
 

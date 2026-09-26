@@ -94,11 +94,17 @@ $$
 $$
 
 
-虽然$\begin&#123;bmatrix&#125; \mathbf R | \mathbf t \end&#123;bmatrix&#125;$ 有6个自由度， $\mathbf R$ 虽然有9个参数，但是只有3个自由度，因为旋转矩阵具有正交约束。在**DLT**算法中，首先忽略掉 $\mathbf R$ 的正交约束，按照$\begin&#123;bmatrix&#125; \mathbf R | \mathbf t \end&#123;bmatrix&#125;$ 有12个未知参数 $\mathbf x=[a_1, \cdots,a_&#123;12&#125;]^&#123;T&#125;$ 计算，（1）式可变为
+虽然
+
+$$
+\begin{bmatrix} \mathbf R | \mathbf t \end{bmatrix}
+$$
+
+有6个自由度， $\mathbf R$ 虽然有9个参数，但是只有3个自由度，因为旋转矩阵具有正交约束。在**DLT**算法中，首先忽略掉 $\mathbf R$ 的正交约束，按照$\begin{bmatrix} \mathbf R | \mathbf t \end{bmatrix}$ 有12个未知参数 $\mathbf x=[a_1, \cdots,a_{12}]^{T}$ 计算，（1）式可变为
 
 
 $$
-\lambda {\text{ = }}\left[ {\begin{array}{*{20}{c}}   u \\    v \\    1  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {{f_x}}&{}&{{c_x}} \\    {}&{{f_y}}&{{c_y}} \\    {}&{}&1  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{a_1}}&{{a_2}}&{{a_3}}&{{a_4}} \\    {{a_5}}&{{a_6}}&{{a_7}}&{{a_8}} \\    {{a_9}}&{{a_{10}}}&{{a_{11}}}&{{a_{12}}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (2) \\
+\lambda {\text{ = }}\left[ {\begin{array}{c}   u \\    v \\    1  \end{array}} \right] = \left[ {\begin{array}{c}   {{f_x}}&{}&{{c_x}} \\    {}&{{f_y}}&{{c_y}} \\    {}&{}&1  \end{array}} \right]\left[ {\begin{array}{c}   {{a_1}}&{{a_2}}&{{a_3}}&{{a_4}} \\    {{a_5}}&{{a_6}}&{{a_7}}&{{a_8}} \\    {{a_9}}&{{a_{10}}}&{{a_{11}}}&{{a_{12}}}  \end{array}} \right]\left[ {\begin{array}{c}   x \\    y \\    z \\    1  \end{array}} \right] \ (2) \\
 $$
 
 
@@ -106,7 +112,7 @@ $$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {\lambda u = x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}}} \\    {\lambda v = x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}}} \\    {\lambda  = x{a_9} + y{a_{10}} + z{a_{11}} + {a_{12}}}  \end{array}} \right. \ (3) \\
+\left\{ {\begin{array}{l}   {\lambda u = x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}}} \\    {\lambda v = x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}}} \\    {\lambda  = x{a_9} + y{a_{10}} + z{a_{11}} + {a_{12}}}  \end{array}} \right. \ (3) \\
 $$
 
 
@@ -114,7 +120,7 @@ $$
 
 
 $$
-\left\{ {\begin{array}{*{20}{l}}   {x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}} - ux{a_9} - uy{a_{10}} - uz{a_{11}} - u{a_{12}} = 0} \\    {x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}} - vx{a_9} - vy{a_{10}} - vz{a_{11}} - v{a_{12}} = 0}  \end{array}} \right. \ (4) \\
+\left\{ {\begin{array}{l}   {x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}} - ux{a_9} - uy{a_{10}} - uz{a_{11}} - u{a_{12}} = 0} \\    {x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}} - vx{a_9} - vy{a_{10}} - vz{a_{11}} - v{a_{12}} = 0}  \end{array}} \right. \ (4) \\
 $$
 
 
@@ -122,7 +128,7 @@ $$
 
 
 $$
-\left[ {\begin{array}{*{20}{c}}   {x{f_x}}&{y{f_x}}&{z{f_x}}&{{f_x}}&0&0&0&0&{x{c_x} - ux}&{y{c_x} - uy}&{z{c_x} - uz}&{{c_x} - u} \\    0&0&0&0&{x{f_y}}&{y{f_y}}&{z{f_y}}&{{f_y}}&{x{c_y} - vx}&{y{c_y} - vy}&{z{c_y} - vz}&{{c_y} - v}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{a_1}} \\    {{a_2}} \\     \vdots  \\    {{a_{12}}}  \end{array}} \right] =\mathbf 0 \ (5) \\
+\left[ {\begin{array}{c}   {x{f_x}}&{y{f_x}}&{z{f_x}}&{{f_x}}&0&0&0&0&{x{c_x} - ux}&{y{c_x} - uy}&{z{c_x} - uz}&{{c_x} - u} \\    0&0&0&0&{x{f_y}}&{y{f_y}}&{z{f_y}}&{{f_y}}&{x{c_y} - vx}&{y{c_y} - vy}&{z{c_y} - vz}&{{c_y} - v}  \end{array}} \right]\left[ {\begin{array}{c}   {{a_1}} \\    {{a_2}} \\     \vdots  \\    {{a_{12}}}  \end{array}} \right] =\mathbf 0 \ (5) \\
 $$
 
 
@@ -134,7 +140,7 @@ $$
 $$
 
 
-其中， $\mathbf A$ 的大小为 $2n\times 12$ 。这个方程无法求出精确解，但是可以获得一个 $|\mathbf x| =1$ 约束下的最小二乘解 $\text&#123;argmin&#125; || \mathbf A \mathbf x||^2$ （这部分可以参考：[Ax=0求解](https://link.zhihu.com/?target=https%3A//blog.csdn.net/zhyh1435589631/article/details/62218421)以及[MVG 教程](https://link.zhihu.com/?target=http%3A//www.robots.ox.ac.uk/~az/tutorials/tutoriala.pdf)）。具体的，对 $\mathbf A$ 进行[SVD](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Singular_value_decomposition)分解，可得
+其中， $\mathbf A$ 的大小为 $2n\times 12$ 。这个方程无法求出精确解，但是可以获得一个 $|\mathbf x| =1$ 约束下的最小二乘解 $\text{argmin} || \mathbf A \mathbf x||^2$ （这部分可以参考：[Ax=0求解](https://link.zhihu.com/?target=https%3A//blog.csdn.net/zhyh1435589631/article/details/62218421)以及[MVG 教程](https://link.zhihu.com/?target=http%3A//www.robots.ox.ac.uk/~az/tutorials/tutoriala.pdf)）。具体的，对 $\mathbf A$ 进行[SVD](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Singular_value_decomposition)分解，可得
 
 
 $$
@@ -142,7 +148,7 @@ $$
 $$
 
 
-$\mathbf V$ 矩阵的最后一列 $\mathbf &#123;\bar x&#125;$ ,便为式（6）的解。注意，求解的结果是没有尺度的，也就是说实际的解为
+$\mathbf V$ 矩阵的最后一列 $\mathbf {\bar x}$ ,便为式（6）的解。注意，求解的结果是没有尺度的，也就是说实际的解为
 
 
 $$
@@ -150,11 +156,11 @@ $$
 $$
 
 
-其中， $\beta$ 为比例系数， $\mathbf &#123;\bar x&#125;=[\bar a_1, \cdots,\bar a_&#123;12&#125;]^&#123;T&#125;$ 。 旋转部分为
+其中， $\beta$ 为比例系数， $\mathbf {\bar x}=[\bar a_1, \cdots,\bar a_{12}]^{T}$ 。 旋转部分为
 
 
 $$
-{\mathbf{\bar R}}{\text{ = }}\left[ {\begin{array}{*{20}{c}}   {{{\bar a}_1}}&{{{\bar a}_2}}&{{{\bar a}_3}} \\    {{{\bar a}_4}}&{{{\bar a}_5}}&{{{\bar a}_6}} \\    {{{\bar a}_7}}&{{{\bar a}_8}}&{{{\bar a}_9}}  \end{array}} \right]\\
+{\mathbf{\bar R}}{\text{ = }}\left[ {\begin{array}{c}   {{{\bar a}_1}}&{{{\bar a}_2}}&{{{\bar a}_3}} \\    {{{\bar a}_4}}&{{{\bar a}_5}}&{{{\bar a}_6}} \\    {{{\bar a}_7}}&{{{\bar a}_8}}&{{{\bar a}_9}}  \end{array}} \right]\\
 $$
 
 

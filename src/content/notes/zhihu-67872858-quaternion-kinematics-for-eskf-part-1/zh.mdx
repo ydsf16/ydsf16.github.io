@@ -36,7 +36,7 @@ $$
 
 
 $$
-Q = q_w + \bm q_v =<q_w, \bm q_v> = [q_w, q_x, q_y, q_z]^T \\
+Q = q_w + \mathbf q_v =<q_w, \mathbf q_v> = [q_w, q_x, q_y, q_z]^T \\
 $$
 
 
@@ -48,7 +48,7 @@ $$
 
 
 $$
-\bm p + \bm q = \left[\begin{array}{c}       p_w + q_w\\       \bm p_v +\bm q_v\\     \end{array} \right]   \\
+\mathbf p + \mathbf q = \left[\begin{array}{c}       p_w + q_w\\       \mathbf p_v +\mathbf q_v\\     \end{array} \right]   \\
 $$
 
 
@@ -56,19 +56,19 @@ $$
 
 
 $$
-\bm p \otimes \bm q =  \left[ \begin{array}{c}  p_w q_w - \bm p_v^T \bm q_v \\ p_w \bm q_v + q_w \bm p_v + \bm p_v \times \bm q_v \end{array} \right] \\
+\mathbf p \otimes \mathbf q =  \left[ \begin{array}{c}  p_w q_w - \mathbf p_v^T \mathbf q_v \\ p_w \mathbf q_v + q_w \mathbf p_v + \mathbf p_v \times \mathbf q_v \end{array} \right] \\
 $$
 
 
-product not commutative: $\bm p \otimes \bm q \ne \bm q \otimes \bm p$
+product not commutative: $\mathbf p \otimes \mathbf q \ne \mathbf q \otimes \mathbf p$
 
-但是associativie:  $(\bm p \otimes \bm q)\otimes \bm r =\bm p \otimes (\bm q \otimes \bm r)$
+但是associativie:  $(\mathbf p \otimes \mathbf q)\otimes \mathbf r =\mathbf p \otimes (\mathbf q \otimes \mathbf r)$
 
 distributive over the sum:
 
 
 $$
-\bm p \otimes (\bm q +\bm r) = \bm p \otimes \bm q +\bm p \otimes \bm r \\ (\bm p +\bm q) \otimes \bm r = \bm p \otimes \bm r+ \bm q \otimes \bm r
+\mathbf p \otimes (\mathbf q +\mathbf r) = \mathbf p \otimes \mathbf q +\mathbf p \otimes \mathbf r \\ (\mathbf p +\mathbf q) \otimes \mathbf r = \mathbf p \otimes \mathbf r+ \mathbf q \otimes \mathbf r
 $$
 
 
@@ -76,13 +76,13 @@ product 可以转换为矩阵乘法：
 
 
 $$
-\bm q_1 \otimes \bm q_2  = [\bm q_1]_L \bm q_2  = [\bm q_2]_R \bm q_1 \\
+\mathbf q_1 \otimes \mathbf q_2  = [\mathbf q_1]_L \mathbf q_2  = [\mathbf q_2]_R \mathbf q_1 \\
 $$
 
 
 
 $$
-[\bm q]_L = q_w \bm I + \left[ \begin{array}{cc} 0 && -\bm q_v^T \\ \bm q_v && [\bm q_v]_\times \\ \end{array} \right] \\ [\bm q]_R = q_w \bm I + \left[ \begin{array}{cc} 0 && -\bm q_v^T \\ \bm q_v && -[\bm q_v]_\times \\ \end{array} \right] \\ [\bm p]_R [\bm q]_L= [\bm q]_L [\bm p]_R \\
+[\mathbf q]_L = q_w \mathbf I + \left[ \begin{array}{cc} 0 && -\mathbf q_v^T \\ \mathbf q_v && [\mathbf q_v]_\times \\ \end{array} \right] \\ [\mathbf q]_R = q_w \mathbf I + \left[ \begin{array}{cc} 0 && -\mathbf q_v^T \\ \mathbf q_v && -[\mathbf q_v]_\times \\ \end{array} \right] \\ [\mathbf p]_R [\mathbf q]_L= [\mathbf q]_L [\mathbf p]_R \\
 $$
 
 
@@ -90,7 +90,7 @@ corss-product matrix, 叉乘也可以转换为矩阵相乘：
 
 
 $$
-[\bm a]_\times = \left[\begin{array}{ccc} 0 && -a_z && a_y \\ a_z && 0 && -a_x \\ -a_y && a_x && 0 \\ \end{array} \right] \\ \bm a \times \bm b = [\bm a]_\times \bm b,  \forall \bm a, \bm b \in \mathbb R^3
+[\mathbf a]_\times = \left[\begin{array}{ccc} 0 && -a_z && a_y \\ a_z && 0 && -a_x \\ -a_y && a_x && 0 \\ \end{array} \right] \\ \mathbf a \times \mathbf b = [\mathbf a]_\times \mathbf b,  \forall \mathbf a, \mathbf b \in \mathbb R^3
 $$
 
 
@@ -98,7 +98,7 @@ $$
 
 
 $$
-\bm q_1 = 1 = \left[\begin{array}{c} 1 \\ \bm 0_v \end{array} \right] \\
+\mathbf q_1 = 1 = \left[\begin{array}{c} 1 \\ \mathbf 0_v \end{array} \right] \\
 $$
 
 
@@ -106,7 +106,7 @@ $$
 
 
 $$
-\bm q^\ast = q_w - \bm q_v = \left[\begin{array}{c} q_w \\ -\bm q_v \end{array}\right] \\ \bm q^\ast \otimes \bm q = \bm q \otimes \bm q^\ast = q_w^2 +q_x^2 +q_y^2 + q_z^2 \\ (\bm p \otimes \bm q)^\ast = \bm q^\ast \otimes \bm p ^\ast
+\mathbf q^\ast = q_w - \mathbf q_v = \left[\begin{array}{c} q_w \\ -\mathbf q_v \end{array}\right] \\ \mathbf q^\ast \otimes \mathbf q = \mathbf q \otimes \mathbf q^\ast = q_w^2 +q_x^2 +q_y^2 + q_z^2 \\ (\mathbf p \otimes \mathbf q)^\ast = \mathbf q^\ast \otimes \mathbf p ^\ast
 $$
 
 
@@ -114,7 +114,7 @@ $$
 
 
 $$
-\|q\| = \sqrt {\bm q \otimes \bm q^\ast} = \sqrt{\bm q^\ast \otimes \bm q} = \sqrt{q_w^2 + q_x^2 + q_y^2 + q_z^2}  \in \mathbb R \\ \|\bm p \otimes \bm q\| = \|\bm q \otimes \bm p \| = \|\bm p\| \|\bm q\|
+\|q\| = \sqrt {\mathbf q \otimes \mathbf q^\ast} = \sqrt{\mathbf q^\ast \otimes \mathbf q} = \sqrt{q_w^2 + q_x^2 + q_y^2 + q_z^2}  \in \mathbb R \\ \|\mathbf p \otimes \mathbf q\| = \|\mathbf q \otimes \mathbf p \| = \|\mathbf p\| \|\mathbf q\|
 $$
 
 
@@ -122,7 +122,7 @@ $$
 
 
 $$
-\bm q \otimes \bm q^{-1} = \bm q^{-1} \otimes \bm q_1 = \bm q_1 \\ \bm q^{-1} = \bm q^\ast / \|\bm q\|
+\mathbf q \otimes \mathbf q^{-1} = \mathbf q^{-1} \otimes \mathbf q_1 = \mathbf q_1 \\ \mathbf q^{-1} = \mathbf q^\ast / \|\mathbf q\|
 $$
 
 
@@ -132,7 +132,7 @@ $$
 
 
 $$
-\bm q^{-1} = \bm q^\ast \\ \bm q = \left[\begin{array}{c} cos \theta \\ \bm u sin \theta \end {array}\right].
+\mathbf q^{-1} = \mathbf q^\ast \\ \mathbf q = \left[\begin{array}{c} cos \theta \\ \mathbf u sin \theta \end {array}\right].
 $$
 
 
@@ -144,7 +144,7 @@ Quaternion commutator:
 
 
 $$
-\bm p \otimes \bm q - \bm q \otimes \bm p = 2 \bm p_v \times \bm q_v \\ \bm p_v \otimes \bm q_v - \bm q_v \otimes \bm p_v = 2 \bm p_v \otimes \bm q_v
+\mathbf p \otimes \mathbf q - \mathbf q \otimes \mathbf p = 2 \mathbf p_v \times \mathbf q_v \\ \mathbf p_v \otimes \mathbf q_v - \mathbf q_v \otimes \mathbf p_v = 2 \mathbf p_v \otimes \mathbf q_v
 $$
 
 
@@ -152,7 +152,7 @@ Product of pure quaternions
 
 
 $$
-\bm p_v \otimes \bm q_v = -\bm p_v^T \bm q_v + \bm p_v \times \bm q_v = \left[\begin{array}{c} -\bm p_v^T \bm q_v \\ \bm p_v \times \bm q_v \end{array}\right] \\ 对于纯四元数： \bm q_v \otimes \bm q_v = - \|\bm q_v\|^2
+\mathbf p_v \otimes \mathbf q_v = -\mathbf p_v^T \mathbf q_v + \mathbf p_v \times \mathbf q_v = \left[\begin{array}{c} -\mathbf p_v^T \mathbf q_v \\ \mathbf p_v \times \mathbf q_v \end{array}\right] \\ 对于纯四元数： \mathbf q_v \otimes \mathbf q_v = - \|\mathbf q_v\|^2
 $$
 
 
@@ -160,7 +160,7 @@ natural powers of pur quaternions， 用于推到指数函数的泰勒展开
 
 
 $$
-\bm v = \bm u \theta \\ \bm v^2 = -\theta^2; \bm v^3 = -\bm u \theta^3; \bm v^4 = \theta^4; \bm v^5 = \bm u \theta^5; \bm v^6 = -\theta^6.
+\mathbf v = \mathbf u \theta \\ \mathbf v^2 = -\theta^2; \mathbf v^3 = -\mathbf u \theta^3; \mathbf v^4 = \theta^4; \mathbf v^5 = \mathbf u \theta^5; \mathbf v^6 = -\theta^6.
 $$
 
 
@@ -168,7 +168,7 @@ Exponential of pure quaternions，指数函数的泰勒展开：
 
 
 $$
-e^{\bm v} = e^{\bm u \theta} = \sum_{k=0}^{\infty}\frac{1}{k!} \bm v^k=\left(1 - \frac{\theta^2}{2!} + \frac {\theta^4} {4!}+\cdots\right) + \left(\bm u \theta - \frac{\bm u \theta^3}{3!} + \frac{\bm u \theta^5}{5!} + \cdots\right) \\ = cos\theta + \bm u sin\theta
+e^{\mathbf v} = e^{\mathbf u \theta} = \sum_{k=0}^{\infty}\frac{1}{k!} \mathbf v^k=\left(1 - \frac{\theta^2}{2!} + \frac {\theta^4} {4!}+\cdots\right) + \left(\mathbf u \theta - \frac{\mathbf u \theta^3}{3!} + \frac{\mathbf u \theta^5}{5!} + \cdots\right) \\ = cos\theta + \mathbf u sin\theta
 $$
 
 
@@ -178,7 +178,7 @@ Exponential of general quaternions:
 
 
 $$
-e^\bm q = e^{q_w + \bm q_v} = e^{q_w}e^{\bm q_v} \\ = e^{q_w} \left[\begin{array}{c} cos {\|q_v\|} \\ \frac{\bm q_v}{\|q_v\|} sin{\|q_v\|} \end{array}\right]
+e^\mathbf q = e^{q_w + \mathbf q_v} = e^{q_w}e^{\mathbf q_v} \\ = e^{q_w} \left[\begin{array}{c} cos {\|q_v\|} \\ \frac{\mathbf q_v}{\|q_v\|} sin{\|q_v\|} \end{array}\right]
 $$
 
 
@@ -186,7 +186,7 @@ Logarithm of unit quaternions
 
 
 $$
-log \bm q = log(cos\theta +\bm u sin\theta)+ log(e^{\bm u \theta})=\bm u \theta = \left[\begin{array}{c} 0 \\ \bm u \theta \end{array}\right] \\ \bm u = \bm q_v / \|\bm q_v\|; \theta = arctan2(\|\bm q_v\|, q_w).
+log \mathbf q = log(cos\theta +\mathbf u sin\theta)+ log(e^{\mathbf u \theta})=\mathbf u \theta = \left[\begin{array}{c} 0 \\ \mathbf u \theta \end{array}\right] \\ \mathbf u = \mathbf q_v / \|\mathbf q_v\|; \theta = arctan2(\|\mathbf q_v\|, q_w).
 $$
 
 
@@ -194,15 +194,15 @@ Logarithm of general quaternions:
 
 
 $$
-log(\bm q)=log(\|\bm q\| \frac{\bm q}{\|\bm q\|})= log(\|\bm q\|) +\log(\frac{\bm q}{\|\bm q\|}) \\ =log(\|\bm q\|) + \bm u \theta
+log(\mathbf q)=log(\|\mathbf q\| \frac{\mathbf q}{\|\mathbf q\|})= log(\|\mathbf q\|) +\log(\frac{\mathbf q}{\|\mathbf q\|}) \\ =log(\|\mathbf q\|) + \mathbf u \theta
 $$
 
 
-Exponential forms of the type of $q^t$ :  $\bm q^t = exp(log(\bm q^t))=exp(t \cdot log(\bm q))$ ，对于单位四元数：
+Exponential forms of the type of $q^t$ :  $\mathbf q^t = exp(log(\mathbf q^t))=exp(t \cdot log(\mathbf q))$ ，对于单位四元数：
 
 
 $$
-\bm q^t = exp(t \cdot \bm u \theta) = \left[\begin{array}{c} cos t \theta \\ \bm u \sin t \theta \end{array}\right] \\
+\mathbf q^t = exp(t \cdot \mathbf u \theta) = \left[\begin{array}{c} cos t \theta \\ \mathbf u \sin t \theta \end{array}\right] \\
 $$
 
 
@@ -216,7 +216,7 @@ The rotation group SO(3)，表达刚体旋转，需要满足三个性质：
 
 
 $$
-\|r(\bm v)\|=\|\bm v\| \\
+\|r(\mathbf v)\|=\|\mathbf v\| \\
 $$
 
 
@@ -224,7 +224,7 @@ $$
 
 
 $$
-<r(\bm v), r(\bm w)> =<\bm v, \bm w>=\|\bm v\|\|\bm w\|cos\alpha \\
+<r(\mathbf v), r(\mathbf w)> =<\mathbf v, \mathbf w>=\|\mathbf v\|\|\mathbf w\|cos\alpha \\
 $$
 
 
@@ -232,7 +232,7 @@ $$
 
 
 $$
-\bm u \times \bm v = \bm w \Leftrightarrow r(\bm u) \times r(\bm v) = r(\bm w) \\
+\mathbf u \times \mathbf v = \mathbf w \Leftrightarrow r(\mathbf u) \times r(\mathbf v) = r(\mathbf w) \\
 $$
 
 
@@ -240,7 +240,7 @@ SO3定义：
 
 
 $$
-SO(3) : \left\{r: \mathbb R^3 \rightarrow \mathbb R^3 / \forall \bm v, \bm w \in \mathbb R^3, \|r(\bm v)\|=\|\bm v\|, r(\bm v)\times r(\bm w)=r(\bm v \times \bm w) \right\} \\
+SO(3) : \left\{r: \mathbb R^3 \rightarrow \mathbb R^3 / \forall \mathbf v, \mathbf w \in \mathbb R^3, \|r(\mathbf v)\|=\|\mathbf v\|, r(\mathbf v)\times r(\mathbf w)=r(\mathbf v \times \mathbf w) \right\} \\
 $$
 
 
@@ -248,7 +248,7 @@ $$
 
 
 $$
-r(\bm v) = \bm R \bm v \\ (\bm R \bm v )^T(\bm R \bm v )=\bm v^T \bm v \\ \bm R^T \bm R = \bm I = \bm R \bm R^T \ orthogonal \\ \bm R^{-1} = \bm R^T \\ det (\bm R) = 1 \ special\\
+r(\mathbf v) = \mathbf R \mathbf v \\ (\mathbf R \mathbf v )^T(\mathbf R \mathbf v )=\mathbf v^T \mathbf v \\ \mathbf R^T \mathbf R = \mathbf I = \mathbf R \mathbf R^T \ orthogonal \\ \mathbf R^{-1} = \mathbf R^T \\ det (\mathbf R) = 1 \ special\\
 $$
 
 
@@ -256,7 +256,7 @@ $$
 
 
 $$
-\bm R = e^{[\bm v]_\times} \\ exp: \mathfrak{so}(3) \rightarrow SO(3); [\bm v]_\times \rightarrow exp([\bm v]_\times)\\
+\mathbf R = e^{[\mathbf v]_\times} \\ exp: \mathfrak{so}(3) \rightarrow SO(3); [\mathbf v]_\times \rightarrow exp([\mathbf v]_\times)\\
 $$
 
 
@@ -264,7 +264,7 @@ $$
 
 
 $$
-Exp: \mathbb R^3 \rightarrow SO(3); \bm v \rightarrow Exp(\bm v)=e^{[\bm v]_\times} \\
+Exp: \mathbb R^3 \rightarrow SO(3); \mathbf v \rightarrow Exp(\mathbf v)=e^{[\mathbf v]_\times} \\
 $$
 
 
@@ -272,7 +272,7 @@ $$
 
 
 $$
-\bm R = \bm I +sin \phi [\bm u]_\times +(1-cos\phi)[\bm u]_\times^2 \\ =\bm I cos\phi +[\bm u]_\times sin \phi + \bm u \bm u^T(1-cos\phi).
+\mathbf R = \mathbf I +sin \phi [\mathbf u]_\times +(1-cos\phi)[\mathbf u]_\times^2 \\ =\mathbf I cos\phi +[\mathbf u]_\times sin \phi + \mathbf u \mathbf u^T(1-cos\phi).
 $$
 
 
@@ -280,7 +280,7 @@ $$
 
 
 $$
-log: SO(3) \rightarrow \mathfrak{so}(3); \bm R \rightarrow log(\bm R)=[\bm u \phi]_\times;\\ \phi = arccos\left(\frac{trace(\bm R)-1}{2}\right), \\ \bm u = \frac{(\bm R - \bm R^T)^\vee}{2sin\phi}
+log: SO(3) \rightarrow \mathfrak{so}(3); \mathbf R \rightarrow log(\mathbf R)=[\mathbf u \phi]_\times;\\ \phi = arccos\left(\frac{trace(\mathbf R)-1}{2}\right), \\ \mathbf u = \frac{(\mathbf R - \mathbf R^T)^\vee}{2sin\phi}
 $$
 
 
@@ -288,7 +288,7 @@ $$
 
 
 $$
-Log: SO(3) \rightarrow \mathbb{R^3};  \bm R \rightarrow Log(\bm R) = \bm u \phi \\ Log(\bm R) = log(\bm R)^\vee
+Log: SO(3) \rightarrow \mathbb{R^3};  \mathbf R \rightarrow Log(\mathbf R) = \mathbf u \phi \\ Log(\mathbf R) = log(\mathbf R)^\vee
 $$
 
 
@@ -298,7 +298,7 @@ $$
 
 
 $$
-\bm q = e^{\bm V} \\ exp: \mathbb H_p \rightarrow S^3; \bm V \rightarrow exp(\bm V)
+\mathbf q = e^{\mathbf V} \\ exp: \mathbb H_p \rightarrow S^3; \mathbf V \rightarrow exp(\mathbf V)
 $$
 
 
@@ -308,7 +308,7 @@ $$
 
 
 $$
-Exp: \mathbb R^3 \rightarrow S^3; \bm v = Exp(\bm v)= e^{\bm v/2} \\ \dot {\bm q} = \frac{1}{2} \bm q \otimes \bm \omega \\ \bm q = e^{\bm \omega t / 2}
+Exp: \mathbb R^3 \rightarrow S^3; \mathbf v = Exp(\mathbf v)= e^{\mathbf v/2} \\ \dot {\mathbf q} = \frac{1}{2} \mathbf q \otimes \mathbf \omega \\ \mathbf q = e^{\mathbf \omega t / 2}
 $$
 
 
@@ -316,7 +316,7 @@ $$
 
 
 $$
-\bm q = Exp(\phi \bm u) =  exp(\phi \bm u /2) =e^{\phi \bm u /2} = cos(\phi/2) +\bm u sin(\phi/2) = \left[\begin{array}{c} cos(\phi/2) \\ \bm u sin(\phi/2) \end{array}\right] \\
+\mathbf q = Exp(\phi \mathbf u) =  exp(\phi \mathbf u /2) =e^{\phi \mathbf u /2} = cos(\phi/2) +\mathbf u sin(\phi/2) = \left[\begin{array}{c} cos(\phi/2) \\ \mathbf u sin(\phi/2) \end{array}\right] \\
 $$
 
 
@@ -324,7 +324,7 @@ $$
 
 
 $$
-log:S^3 \rightarrow \mathbb H_p; \bm q \rightarrow log(\bm q) = \bm u \theta \\ Log: S^3 \rightarrow \mathbb R^3; \bm q \rightarrow Log(\bm q) = \bm u \phi \\ Log(\bm q) = 2log(\bm q) \\ \phi = 2arctan(\|\bm q_v\|, q_w) \\ \bm u = \bm q_v / \|\bm q_v\| \\
+log:S^3 \rightarrow \mathbb H_p; \mathbf q \rightarrow log(\mathbf q) = \mathbf u \theta \\ Log: S^3 \rightarrow \mathbb R^3; \mathbf q \rightarrow Log(\mathbf q) = \mathbf u \phi \\ Log(\mathbf q) = 2log(\mathbf q) \\ \phi = 2arctan(\|\mathbf q_v\|, q_w) \\ \mathbf u = \mathbf q_v / \|\mathbf q_v\| \\
 $$
 
 
@@ -336,7 +336,7 @@ $$
 
 
 $$
-\bm q(t) = \bm q_0 \otimes(\bm q^{\ast} \otimes \bm q_1)^t = \bm q_0 \otimes \left[\begin{array}{c} cos(t \Delta \phi/2) \\ \bm u sin(t \Delta \phi/2) \end{array}\right] \\ \bm R(t) = \bm R_0 Exp(tLog(\bm R_0^T \bm R_1)) = \bm R_0(\bm R_0^T \bm R_1)^t \\
+\mathbf q(t) = \mathbf q_0 \otimes(\mathbf q^{\ast} \otimes \mathbf q_1)^t = \mathbf q_0 \otimes \left[\begin{array}{c} cos(t \Delta \phi/2) \\ \mathbf u sin(t \Delta \phi/2) \end{array}\right] \\ \mathbf R(t) = \mathbf R_0 Exp(tLog(\mathbf R_0^T \mathbf R_1)) = \mathbf R_0(\mathbf R_0^T \mathbf R_1)^t \\
 $$
 
 
@@ -358,7 +358,7 @@ The plus operator
 
 
 $$
-S = \bm R \oplus \bm \theta = \bm R \circ Exp(\bm \theta)\ \ \ R,S \in SO(3), \bm \theta \in \mathbb R^3 \\ \bm q_s = \bm q_r \oplus \bm \theta = \bm q_r \otimes Exp(\bm \theta)\\ \bm R_s = \bm R_R \oplus \bm \theta = \bm R_R \cdot Exp(\bm \theta) \\
+S = \mathbf R \oplus \mathbf \theta = \mathbf R \circ Exp(\mathbf \theta)\ \ \ R,S \in SO(3), \mathbf \theta \in \mathbb R^3 \\ \mathbf q_s = \mathbf q_r \oplus \mathbf \theta = \mathbf q_r \otimes Exp(\mathbf \theta)\\ \mathbf R_s = \mathbf R_R \oplus \mathbf \theta = \mathbf R_R \cdot Exp(\mathbf \theta) \\
 $$
 
 
@@ -366,7 +366,7 @@ The minus operator
 
 
 $$
-\bm \theta = \bm S \ominus \bm R = Log(\bm R^{-1} \bm S) \ \ \ \bm{R}, \bm S, \bm \theta \in \mathbb R^3 \\ \bm\theta = \bm q_s \ominus \bm q_R = Log(\bm q_R^{\ast} \otimes \bm q_s) \\ \bm \theta = \bm R_s \ominus \bm R_R = Log(\bm R_R^T \bm R_s) \\
+\mathbf \theta = \mathbf S \ominus \mathbf R = Log(\mathbf R^{-1} \mathbf S) \ \ \ \bm{R}, \mathbf S, \mathbf \theta \in \mathbb R^3 \\ \bm\theta = \mathbf q_s \ominus \mathbf q_R = Log(\mathbf q_R^{\ast} \otimes \mathbf q_s) \\ \mathbf \theta = \mathbf R_s \ominus \mathbf R_R = Log(\mathbf R_R^T \mathbf R_s) \\
 $$
 
 
@@ -376,7 +376,7 @@ Functions from vector space to vector space
 
 
 $$
-\frac{\partial f(\bm x)}{\partial \bm x} = \mathop {\lim }\limits_{\delta x \to 0} \frac{f(\bm x +\delta \bm x) - f(\bm x)}{\delta \bm x} \\ f(\bm x +\Delta \bm x) \approx f(\bm x) + \frac{f(\bm x)}{\partial \bm x} \Delta\bm x
+\frac{\partial f(\mathbf x)}{\partial \mathbf x} = \mathop {\lim }\limits_{\delta x \to 0} \frac{f(\mathbf x +\delta \mathbf x) - f(\mathbf x)}{\delta \mathbf x} \\ f(\mathbf x +\Delta \mathbf x) \approx f(\mathbf x) + \frac{f(\mathbf x)}{\partial \mathbf x} \Delta\mathbf x
 $$
 
 
@@ -384,7 +384,7 @@ Functions from SO(3) to SO(3)
 
 
 $$
-\frac{\partial f(\bm R)}{\partial \bm \theta} = \mathop {\lim }\limits_{\delta \bm \theta \to 0} \frac{f(\bm R \oplus \delta \bm \theta) \ominus f(\bm R)}{\delta \bm \theta} \\ = \mathop {\lim }\limits_{\delta \bm \theta \to 0} \frac{Log(f^{-1}(\bm R)f(\bm R Exp(\delta \bm \theta))}{\delta \bm \theta} \\ f(\bm R \oplus \Delta \bm \theta) \approx f(\bm R) Exp(\frac{\partial f(\bm R)}{\partial \bm \theta}\Delta \bm \theta)
+\frac{\partial f(\mathbf R)}{\partial \mathbf \theta} = \mathop {\lim }\limits_{\delta \mathbf \theta \to 0} \frac{f(\mathbf R \oplus \delta \mathbf \theta) \ominus f(\mathbf R)}{\delta \mathbf \theta} \\ = \mathop {\lim }\limits_{\delta \mathbf \theta \to 0} \frac{Log(f^{-1}(\mathbf R)f(\mathbf R Exp(\delta \mathbf \theta))}{\delta \mathbf \theta} \\ f(\mathbf R \oplus \Delta \mathbf \theta) \approx f(\mathbf R) Exp(\frac{\partial f(\mathbf R)}{\partial \mathbf \theta}\Delta \mathbf \theta)
 $$
 
 
@@ -392,7 +392,7 @@ Functions from vector space to SO(3)
 
 
 $$
-\frac{\partial f(\bm x)}{\partial \bm x} = \mathop {\lim }\limits_{\delta x \to 0} \frac{f(\bm x + \delta \bm x) \ominus f(\bm x)}{\delta \bm x} \\ \mathop {\lim }\limits_{\delta x \to 0} \frac{Log(f^{-1}(\bm x)f(\bm x + \delta \bm x))}{\delta \bm x} \\ f(\bm x + \Delta \bm  x) \approx f(\bm x) Exp(\frac{\partial f(\bm x)}{\bm \partial x} \Delta \bm x)\\
+\frac{\partial f(\mathbf x)}{\partial \mathbf x} = \mathop {\lim }\limits_{\delta x \to 0} \frac{f(\mathbf x + \delta \mathbf x) \ominus f(\mathbf x)}{\delta \mathbf x} \\ \mathop {\lim }\limits_{\delta x \to 0} \frac{Log(f^{-1}(\mathbf x)f(\mathbf x + \delta \mathbf x))}{\delta \mathbf x} \\ f(\mathbf x + \Delta \mathbf  x) \approx f(\mathbf x) Exp(\frac{\partial f(\mathbf x)}{\mathbf \partial x} \Delta \mathbf x)\\
 $$
 
 
@@ -400,7 +400,7 @@ Function from SO(3) to vector space
 
 
 $$
-\frac{\partial f(\bm R)}{\partial \bm \theta} = \mathop {\lim }\limits_{\delta \bm \theta \to 0} \frac{f(\bm R \oplus \delta \bm \theta) - f(\bm R)}{\delta \bm \theta} \\ = \mathop {\lim }\limits_{\delta \bm \theta \to 0} \frac{f(\bm R Exp(\delta \bm \theta))-f(\bm R)}{\delta \bm \theta} \\ f(\bm R \oplus \Delta \bm \theta) \approx f(\bm R) + \frac{\partial f(\bm R)}{\partial \bm \theta}\Delta \bm \theta
+\frac{\partial f(\mathbf R)}{\partial \mathbf \theta} = \mathop {\lim }\limits_{\delta \mathbf \theta \to 0} \frac{f(\mathbf R \oplus \delta \mathbf \theta) - f(\mathbf R)}{\delta \mathbf \theta} \\ = \mathop {\lim }\limits_{\delta \mathbf \theta \to 0} \frac{f(\mathbf R Exp(\delta \mathbf \theta))-f(\mathbf R)}{\delta \mathbf \theta} \\ f(\mathbf R \oplus \Delta \mathbf \theta) \approx f(\mathbf R) + \frac{\partial f(\mathbf R)}{\partial \mathbf \theta}\Delta \mathbf \theta
 $$
 
 
@@ -410,7 +410,7 @@ Jacobian with respect to the vector
 
 
 $$
-\frac{\partial (\bm q \otimes \bm a \otimes \bm q^{\ast})}{\partial \bm a} = \frac{\bm R \bm a}{\partial \bm a} = \bm R. \\
+\frac{\partial (\mathbf q \otimes \mathbf a \otimes \mathbf q^{\ast})}{\partial \mathbf a} = \frac{\mathbf R \mathbf a}{\partial \mathbf a} = \mathbf R. \\
 $$
 
 
@@ -418,7 +418,7 @@ Jacobian with respect to the quaternion.
 
 
 $$
-\frac{\partial (\bm q \otimes \bm a \otimes \bm q^{\ast})}{\partial \bm q} = 2 \left[\begin{array}{c} \omega \bm a + \bm v \times \bm a && | && \bm v^T \bm a \bm I +\bm v \bm a^T - \bm a \bm v^T - \omega [a]_\times \end{array}\right] \in \mathbb R^3. \\
+\frac{\partial (\mathbf q \otimes \mathbf a \otimes \mathbf q^{\ast})}{\partial \mathbf q} = 2 \left[\begin{array}{c} \omega \mathbf a + \mathbf v \times \mathbf a && | && \mathbf v^T \mathbf a \mathbf I +\mathbf v \mathbf a^T - \mathbf a \mathbf v^T - \omega [a]_\times \end{array}\right] \in \mathbb R^3. \\
 $$
 
 
@@ -426,7 +426,7 @@ Right jacobian of SO(3)
 
 
 $$
-\bm J_r = \lim_{\delta \bm \theta \to \bm 0} \frac{Exp(\bm \theta + \delta \bm \theta) \ominus Exp(\bm \theta)}{\delta \bm \theta} \\ =\lim_{\bm \delta \theta \to 0} \frac{Log(Exp(\bm \theta)^TExp(\bm \theta +\delta \bm \theta))}{\delta \bm \theta}\ if\ using \ \bm R;\\ = \lim_{\bm \delta \theta \to 0} \frac{Log(Exp(\bm \theta)^{\ast} \otimes Exp(\bm \theta +\delta \bm \theta))}{\delta \bm \theta} \ \ if \ using \ \bm q.
+\mathbf J_r = \lim_{\delta \mathbf \theta \to \mathbf 0} \frac{Exp(\mathbf \theta + \delta \mathbf \theta) \ominus Exp(\mathbf \theta)}{\delta \mathbf \theta} \\ =\lim_{\mathbf \delta \theta \to 0} \frac{Log(Exp(\mathbf \theta)^TExp(\mathbf \theta +\delta \mathbf \theta))}{\delta \mathbf \theta}\ if\ using \ \mathbf R;\\ = \lim_{\mathbf \delta \theta \to 0} \frac{Log(Exp(\mathbf \theta)^{\ast} \otimes Exp(\mathbf \theta +\delta \mathbf \theta))}{\delta \mathbf \theta} \ \ if \ using \ \mathbf q.
 $$
 
 
@@ -434,7 +434,7 @@ $$
 
 
 $$
-Exp(\bm \theta + \delta \bm \theta) \approx Exp(\bm \theta)Exp(\bm J_r(\bm \theta)\delta \bm \theta) \\ Exp(\bm \theta) Exp(\delta \bm \theta) \approx Exp(\bm \theta + \bm J_r^{-1}(\bm \theta)\delta \bm \theta) \\ Log(Exp(\bm \theta) Exp(\delta \bm \theta)) \approx  \bm \theta + \bm J_r^{-1}(\bm \theta)\delta \bm \theta
+Exp(\mathbf \theta + \delta \mathbf \theta) \approx Exp(\mathbf \theta)Exp(\mathbf J_r(\mathbf \theta)\delta \mathbf \theta) \\ Exp(\mathbf \theta) Exp(\delta \mathbf \theta) \approx Exp(\mathbf \theta + \mathbf J_r^{-1}(\mathbf \theta)\delta \mathbf \theta) \\ Log(Exp(\mathbf \theta) Exp(\delta \mathbf \theta)) \approx  \mathbf \theta + \mathbf J_r^{-1}(\mathbf \theta)\delta \mathbf \theta
 $$
 
 
@@ -442,7 +442,7 @@ Jacobian with respect to the rotation vector
 
 
 $$
-\frac{\partial (\bm q\otimes \bm a \otimes \bm q^{\ast})}{\partial \bm a} = \frac{\partial\bm R\bm a}{\partial \bm a} = -\bm R \{\bm \theta\}[a]_\times \bm J_r(\bm \theta). \\
+\frac{\partial (\mathbf q\otimes \mathbf a \otimes \mathbf q^{\ast})}{\partial \mathbf a} = \frac{\partial\mathbf R\mathbf a}{\partial \mathbf a} = -\mathbf R \{\mathbf \theta\}[a]_\times \mathbf J_r(\mathbf \theta). \\
 $$
 
 
@@ -450,7 +450,7 @@ $$
 
 
 $$
-\dot {\bm q} = \frac 1 2 \Omega(\bm \omega_L)\bm q = \frac 1 2 \bm q \otimes \bm \omega_L; \ \ \ \ \ \ \dot{\bm R} = \bm R[\bm \omega_L]_\times. \\
+\dot {\mathbf q} = \frac 1 2 \Omega(\mathbf \omega_L)\mathbf q = \frac 1 2 \mathbf q \otimes \mathbf \omega_L; \ \ \ \ \ \ \dot{\mathbf R} = \mathbf R[\mathbf \omega_L]_\times. \\
 $$
 
 
@@ -458,15 +458,15 @@ $$
 
 **Zeroth order intergration**
 
-Forward     $\bm q_&#123;n+1&#125; \approx \bm q_n \otimes \bm q\&#123;\bm \omega_n \Delta t\&#125;.$
+Forward     $\mathbf q_{n+1} \approx \mathbf q_n \otimes \mathbf q\{\mathbf \omega_n \Delta t\}.$
 
-Backward    $\bm q_&#123;n+1&#125;  \approx \bm q_n \otimes \bm q\&#123;\bm \omega_&#123;n+1&#125; \Delta t\&#125;.$
+Backward    $\mathbf q_{n+1}  \approx \mathbf q_n \otimes \mathbf q\{\mathbf \omega_{n+1} \Delta t\}.$
 
-Midward    $\bar&#123;\bm \omega&#125; = \frac&#123;\bm \omega_&#123;n+1&#125; + \bm \omega_&#123;n&#125;&#125;&#123;2&#125;, \ \ \ \ \  \bm q_&#123;n+1&#125;  \approx \bm q_n \otimes \bm q\&#123; \bar&#123;\bm \omega&#125; \Delta t\&#125;.$
+Midward    $\bar{\mathbf \omega} = \frac{\mathbf \omega_{n+1} + \mathbf \omega_{n}}{2}, \ \ \ \ \  \mathbf q_{n+1}  \approx \mathbf q_n \otimes \mathbf q\{ \bar{\mathbf \omega} \Delta t\}.$
 
 **First order integration**
 
 
 $$
-\bm q_{n+1}\approx \bm q_n \otimes \left( \bm q\{\bar{\bm \omega} \Delta t\} + \frac{\Delta t^2}{24} \left[\begin{array}{c} 0 \\ \bm \omega_n \times \bm \omega_{n+1} \end{array}\right] \right) \\
+\mathbf q_{n+1}\approx \mathbf q_n \otimes \left( \mathbf q\{\bar{\mathbf \omega} \Delta t\} + \frac{\Delta t^2}{24} \left[\begin{array}{c} 0 \\ \mathbf \omega_n \times \mathbf \omega_{n+1} \end{array}\right] \right) \\
 $$

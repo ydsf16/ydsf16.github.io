@@ -51,17 +51,17 @@ nominal可以认为是大信号，不考虑噪声。噪声全部放到error-stat
 
 
 $$
-\dot{\bm p}_t = \bm v_t \\ \dot{\bm v}_t = \bm a_t \\ \dot{\bm q}_t = \frac{1}{2} \bm q_t \otimes \bm{\omega}_t \\ \dot{\bm a}_{bt} = \bm a_w \\ \dot{\bm \omega}_{bt} = \bm \omega_w \\ \dot{\bm g}_t = 0\\
+\dot{\mathbf p}_t = \mathbf v_t \\ \dot{\mathbf v}_t = \mathbf a_t \\ \dot{\mathbf q}_t = \frac{1}{2} \mathbf q_t \otimes \bm{\omega}_t \\ \dot{\mathbf a}_{bt} = \mathbf a_w \\ \dot{\mathbf \omega}_{bt} = \mathbf \omega_w \\ \dot{\mathbf g}_t = 0\\
 $$
 
 
-$&#123;\bm a&#125;_&#123;bt&#125;$ 为accelerator的bias， $\bm &#123;\omega&#125;_&#123;bt&#125;$ 为gyro的bias。
+${\mathbf a}_{bt}$ 为accelerator的bias， $\mathbf {\omega}_{bt}$ 为gyro的bias。
 
 我们的IMU传感器的量测为，都是在局部坐标系下，且受到bias和噪声的影响。
 
 
 $$
-\bm a_m = \bm R_t^T(\bm a_t - \bm g_t) +\bm a _{bt} + \bm a_n \\ \bm \omega_m = \bm \omega_t +\bm \omega_{bt} +\bm \omega_n
+\mathbf a_m = \mathbf R_t^T(\mathbf a_t - \mathbf g_t) +\mathbf a _{bt} + \mathbf a_n \\ \mathbf \omega_m = \mathbf \omega_t +\mathbf \omega_{bt} +\mathbf \omega_n
 $$
 
 
@@ -69,7 +69,7 @@ $$
 
 
 $$
-\dot{\bm p}_t = \bm v_t \\ \dot{\bm v}_t = \bm R_t(\bm a_m - \bm a_{bt} - \bm a_n) \\ \dot{\bm q}_t = \frac{1}{2} \bm q_t \otimes (\bm  \omega_m - \bm \omega_{bt} - \bm \omega_n) \\ \dot{\bm a}_{bt} = \bm a_w \\ \dot{\bm \omega}_{bt} = \bm \omega_w \\ \dot{\bm g}_t = 0 \\
+\dot{\mathbf p}_t = \mathbf v_t \\ \dot{\mathbf v}_t = \mathbf R_t(\mathbf a_m - \mathbf a_{bt} - \mathbf a_n) \\ \dot{\mathbf q}_t = \frac{1}{2} \mathbf q_t \otimes (\mathbf  \omega_m - \mathbf \omega_{bt} - \mathbf \omega_n) \\ \dot{\mathbf a}_{bt} = \mathbf a_w \\ \dot{\mathbf \omega}_{bt} = \mathbf \omega_w \\ \dot{\mathbf g}_t = 0 \\
 $$
 
 
@@ -83,7 +83,7 @@ nominal-state中不包含噪声。
 
 
 $$
-\dot{\bm p} = \bm v \\ \dot{\bm v} = \bm R(\bm a_m - \bm a_{b}) \\ \dot{\bm q} = \frac{1}{2} \bm q \otimes (\bm  \omega_m - \bm \omega_{b}) \\ \dot{\bm a}_{b} = 0\\ \dot{\bm \omega}_{b} = 0\\ \dot{\bm g} = 0 \\
+\dot{\mathbf p} = \mathbf v \\ \dot{\mathbf v} = \mathbf R(\mathbf a_m - \mathbf a_{b}) \\ \dot{\mathbf q} = \frac{1}{2} \mathbf q \otimes (\mathbf  \omega_m - \mathbf \omega_{b}) \\ \dot{\mathbf a}_{b} = 0\\ \dot{\mathbf \omega}_{b} = 0\\ \dot{\mathbf g} = 0 \\
 $$
 
 
@@ -93,7 +93,7 @@ $$
 
 
 $$
-\dot{\delta \bm p} = \delta \bm v \\ \dot{\delta \bm v} = -\bm R[\bm a_m - \bm a_b]_\times \delta \bm \theta - \bm R \delta \bm a_b +\delta \bm g - \bm R \bm a_n \\ \dot{\delta \theta} = -[\bm \omega_m - \bm \omega_b]_\times \delta \bm \theta -\delta \bm \omega_b -\bm \omega_n \\ \dot{\delta \bm a_b} = \bm a_w \\ \dot{\delta \bm \omega_b} = \bm \omega_w \\ \dot{\bm \delta g} = 0
+\dot{\delta \mathbf p} = \delta \mathbf v \\ \dot{\delta \mathbf v} = -\mathbf R[\mathbf a_m - \mathbf a_b]_\times \delta \mathbf \theta - \mathbf R \delta \mathbf a_b +\delta \mathbf g - \mathbf R \mathbf a_n \\ \dot{\delta \theta} = -[\mathbf \omega_m - \mathbf \omega_b]_\times \delta \mathbf \theta -\delta \mathbf \omega_b -\mathbf \omega_n \\ \dot{\delta \mathbf a_b} = \mathbf a_w \\ \dot{\delta \mathbf \omega_b} = \mathbf \omega_w \\ \dot{\mathbf \delta g} = 0
 $$
 
 
@@ -103,7 +103,7 @@ $$
 
 
 $$
-\dot{(\bm v +\delta \bm v)} = (\bm R \delta \bm R)(\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) + \bm g + \delta \bm g \\ \dot{\bm v} + \dot{\delta \bm v} = \bm R(\bm I +\delta \bm \theta _ \times)(\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) + \bm g + \delta \bm g \\ \dot{\bm v} + \dot{\delta \bm v} = \bm R ( \bm a_m - \bm a_b) + \bm g - \bm R(\delta \bm a_b + \bm a_n) +\bm R \delta \bm \theta_\times (\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) +\delta \bm g \\
+\dot{(\mathbf v +\delta \mathbf v)} = (\mathbf R \delta \mathbf R)(\mathbf a_m - \mathbf a_b - \delta \mathbf a_b - \mathbf a_n) + \mathbf g + \delta \mathbf g \\ \dot{\mathbf v} + \dot{\delta \mathbf v} = \mathbf R(\mathbf I +\delta \mathbf \theta _ \times)(\mathbf a_m - \mathbf a_b - \delta \mathbf a_b - \mathbf a_n) + \mathbf g + \delta \mathbf g \\ \dot{\mathbf v} + \dot{\delta \mathbf v} = \mathbf R ( \mathbf a_m - \mathbf a_b) + \mathbf g - \mathbf R(\delta \mathbf a_b + \mathbf a_n) +\mathbf R \delta \mathbf \theta_\times (\mathbf a_m - \mathbf a_b - \delta \mathbf a_b - \mathbf a_n) +\delta \mathbf g \\
 $$
 
 
@@ -111,7 +111,7 @@ $$
 
 
 $$
-\dot{\delta \bm v} = - \bm R \delta \bm a_b  -\bm R (\bm a_m - \bm a_b)  \delta  \bm \theta_\times+\delta \bm g - \bm R \bm a_n \\
+\dot{\delta \mathbf v} = - \mathbf R \delta \mathbf a_b  -\mathbf R (\mathbf a_m - \mathbf a_b)  \delta  \mathbf \theta_\times+\delta \mathbf g - \mathbf R \mathbf a_n \\
 $$
 
 
@@ -119,7 +119,7 @@ $$
 
 
 $$
-\dot{(\bm  q \otimes \delta \bm q)} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\   \dot{\bm q} \otimes \delta \bm q + \bm q \otimes \dot{\delta \bm q} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \frac{1}{2} \bm  q \otimes (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q + \bm q \otimes \dot{\delta \bm q} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \frac{1}{2} (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q + \dot{\delta \bm q} = \frac{1}{2} \otimes \delta \bm q \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \dot{\delta \bm q} = \frac{1}{2} \delta \bm q \otimes (\bm \omega_m - \bm \omega_b)  - \frac{1}{2} (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q - \frac{1}{2} \delta \bm q \otimes  (\delta \bm \omega_b + \bm \omega_n) \\  \left[\begin{array}{c} 0 \\  \frac{1}{2} \dot{\delta \bm \theta} \end{array} \right] = \frac {1}{2} \delta \bm \theta \times  (\bm \omega_m - \bm \omega_b) -  \frac {1}{2} (\delta \bm \omega_b + \bm \omega_n) - \frac{1}{2} \delta \bm \theta \times (\delta \bm \omega_b + \bm \omega_n) \\
+\dot{(\mathbf  q \otimes \delta \mathbf q)} = \frac{1}{2} (\mathbf  q \otimes \delta \mathbf q) \otimes (\mathbf \omega_m - \mathbf \omega_b - \delta \mathbf \omega_b - \mathbf \omega_n) \\   \dot{\mathbf q} \otimes \delta \mathbf q + \mathbf q \otimes \dot{\delta \mathbf q} = \frac{1}{2} (\mathbf  q \otimes \delta \mathbf q) \otimes (\mathbf \omega_m - \mathbf \omega_b - \delta \mathbf \omega_b - \mathbf \omega_n) \\  \frac{1}{2} \mathbf  q \otimes (\mathbf \omega_m - \mathbf \omega_b) \otimes \delta \mathbf q + \mathbf q \otimes \dot{\delta \mathbf q} = \frac{1}{2} (\mathbf  q \otimes \delta \mathbf q) \otimes (\mathbf \omega_m - \mathbf \omega_b - \delta \mathbf \omega_b - \mathbf \omega_n) \\  \frac{1}{2} (\mathbf \omega_m - \mathbf \omega_b) \otimes \delta \mathbf q + \dot{\delta \mathbf q} = \frac{1}{2} \otimes \delta \mathbf q \otimes (\mathbf \omega_m - \mathbf \omega_b - \delta \mathbf \omega_b - \mathbf \omega_n) \\  \dot{\delta \mathbf q} = \frac{1}{2} \delta \mathbf q \otimes (\mathbf \omega_m - \mathbf \omega_b)  - \frac{1}{2} (\mathbf \omega_m - \mathbf \omega_b) \otimes \delta \mathbf q - \frac{1}{2} \delta \mathbf q \otimes  (\delta \mathbf \omega_b + \mathbf \omega_n) \\  \left[\begin{array}{c} 0 \\  \frac{1}{2} \dot{\delta \mathbf \theta} \end{array} \right] = \frac {1}{2} \delta \mathbf \theta \times  (\mathbf \omega_m - \mathbf \omega_b) -  \frac {1}{2} (\delta \mathbf \omega_b + \mathbf \omega_n) - \frac{1}{2} \delta \mathbf \theta \times (\delta \mathbf \omega_b + \mathbf \omega_n) \\
 $$
 
 
@@ -127,7 +127,7 @@ $$
 
 
 $$
-\dot{\delta \bm \theta} =-  (\bm \omega_m - \bm \omega_b) \times \delta \bm \theta  -  \delta \bm \omega_b - \bm \omega_n \\
+\dot{\delta \mathbf \theta} =-  (\mathbf \omega_m - \mathbf \omega_b) \times \delta \mathbf \theta  -  \delta \mathbf \omega_b - \mathbf \omega_n \\
 $$
 
 
@@ -142,7 +142,7 @@ Intergration need to be don for the following sub-systems.
 
 
 $$
-\bm p \leftarrow \bm p + \bm v \Delta t + \frac 1 2 (\bm R(\bm a_m - \bm a_b) + \bm g) \Delta t^2 \\ \bm v \leftarrow \bm v +(\bm R (\bm a_m + \bm a_b) + \bm g)\Delta t \\ \bm q \leftarrow \bm q \otimes \bm q\{(\bm \omega_m - \bm \omega_b)\Delta t\} \\ \bm a_b \leftarrow \bm a_b \\ \bm \omega_b \leftarrow \bm \omega b \\ \bm g \leftarrow \bm g \\
+\mathbf p \leftarrow \mathbf p + \mathbf v \Delta t + \frac 1 2 (\mathbf R(\mathbf a_m - \mathbf a_b) + \mathbf g) \Delta t^2 \\ \mathbf v \leftarrow \mathbf v +(\mathbf R (\mathbf a_m + \mathbf a_b) + \mathbf g)\Delta t \\ \mathbf q \leftarrow \mathbf q \otimes \mathbf q\{(\mathbf \omega_m - \mathbf \omega_b)\Delta t\} \\ \mathbf a_b \leftarrow \mathbf a_b \\ \mathbf \omega_b \leftarrow \mathbf \omega b \\ \mathbf g \leftarrow \mathbf g \\
 $$
 
 
@@ -150,15 +150,15 @@ $$
 
 
 $$
-\delta \bm p \leftarrow \delta \bm p + \delta \bm v \Delta t \\ \delta \bm v \leftarrow \delta \bm v + (-\bm R[\bm a_m -\bm a_b]_\times \delta \theta - \bm R \delta \bm a_b + \delta \bm g) \Delta t +\bm v_i \\ \delta \theta \leftarrow \bm R^T\{(\bm \omega_m - \bm \omega_b)\Delta t\}\delta \theta - \delta \bm \omega \Delta t +\bm \theta_i \\ \delta \bm a_b \leftarrow \delta \bm a_b + \bm a_i \\ \delta \bm \omega_b \leftarrow \delta \bm \omega_b + \bm \omega_i \\ \delta \bm g \leftarrow \delta \bm g \\
+\delta \mathbf p \leftarrow \delta \mathbf p + \delta \mathbf v \Delta t \\ \delta \mathbf v \leftarrow \delta \mathbf v + (-\mathbf R[\mathbf a_m -\mathbf a_b]_\times \delta \theta - \mathbf R \delta \mathbf a_b + \delta \mathbf g) \Delta t +\mathbf v_i \\ \delta \theta \leftarrow \mathbf R^T\{(\mathbf \omega_m - \mathbf \omega_b)\Delta t\}\delta \theta - \delta \mathbf \omega \Delta t +\mathbf \theta_i \\ \delta \mathbf a_b \leftarrow \delta \mathbf a_b + \mathbf a_i \\ \delta \mathbf \omega_b \leftarrow \delta \mathbf \omega_b + \mathbf \omega_i \\ \delta \mathbf g \leftarrow \delta \mathbf g \\
 $$
 
 
-噪声项 $\bm v_i, \ \bm \theta_i, \ \bm a_i, \ \bm \omega_i$ 的协方差为：
+噪声项 $\mathbf v_i, \ \mathbf \theta_i, \ \mathbf a_i, \ \mathbf \omega_i$ 的协方差为：
 
 
 $$
-\bm V_i = \sigma^2_{a_n} \Delta t^2 \bm I \\ \bm \Theta_i = \sigma^2_{\omega_n} \Delta t^2 \bm I \\ \bm A_i = \sigma^2_{a_\omega} \Delta t \bm I \\ \bm \Omega_i = \sigma^2_{\omega_\omega} \Delta t \bm I
+\mathbf V_i = \sigma^2_{a_n} \Delta t^2 \mathbf I \\ \mathbf \Theta_i = \sigma^2_{\omega_n} \Delta t^2 \mathbf I \\ \mathbf A_i = \sigma^2_{a_\omega} \Delta t \mathbf I \\ \mathbf \Omega_i = \sigma^2_{\omega_\omega} \Delta t \mathbf I
 $$
 
 
@@ -168,7 +168,7 @@ ESKF预测部分的协方差传播方程为：
 
 
 $$
-\bm P \leftarrow \bm F_x\bm P\bm F_x^T +\bm F_i \bm Q_i \bm F_i^T \\
+\mathbf P \leftarrow \mathbf F_x\mathbf P\mathbf F_x^T +\mathbf F_i \mathbf Q_i \mathbf F_i^T \\
 $$
 
 
@@ -176,13 +176,13 @@ $$
 
 
 $$
-\bm F_x = \frac{\partial f}{\partial \delta x} = \left[\begin{array}{cccccc}      \bm I & \bm I\Delta t & 0 & 0 & 0 & 0 \\ 0 & \bm I & -\bm R[\bm a_m - \bm a_b]_\times \Delta t & - \bm R\Delta t & 0 & \bm I \Delta t \\ 0 & 0 & \bm R^T\{(\bm\omega_m -\bm \omega_b)\Delta t\} & 0 & -\bm I \Delta t & 0 \\ 0 & 0 & 0 & \bm I & 0 & 0 \\ 0 & 0 & 0 & 0 & \bm I & 0 \\ 0 & 0 & 0 & 0 & 0 & \bm I \end{array} \right]
+\mathbf F_x = \frac{\partial f}{\partial \delta x} = \left[\begin{array}{cccccc}      \mathbf I & \mathbf I\Delta t & 0 & 0 & 0 & 0 \\ 0 & \mathbf I & -\mathbf R[\mathbf a_m - \mathbf a_b]_\times \Delta t & - \mathbf R\Delta t & 0 & \mathbf I \Delta t \\ 0 & 0 & \mathbf R^T\{(\bm\omega_m -\mathbf \omega_b)\Delta t\} & 0 & -\mathbf I \Delta t & 0 \\ 0 & 0 & 0 & \mathbf I & 0 & 0 \\ 0 & 0 & 0 & 0 & \mathbf I & 0 \\ 0 & 0 & 0 & 0 & 0 & \mathbf I \end{array} \right]
 $$
 
 
 
 $$
-\bm F_i = \frac{\partial f}{\partial \bm i} = \left[\begin{array}{cccc}      0 & 0 & 0 & 0 \\ \bm I & 0 & 0 & 0 \\ 0 & \bm I & 0 & 0 \\ 0 & 0 & \bm I & 0 \\ 0 & 0 & 0 & \bm I \\ 0 & 0 & 0 & 0  \end{array} \right] , \bm Q_I = \left[ \begin{array}{cc} \bm V_i & 0 & 0 & 0 \\ 0 & \bm \Theta_i & 0 & 0 \\ 0 & 0 & \bm A_i & 0 \\ 0 & 0 & 0 & \bm \Omega_i \\ \end{array}\right] \\
+\mathbf F_i = \frac{\partial f}{\partial \mathbf i} = \left[\begin{array}{cccc}      0 & 0 & 0 & 0 \\ \mathbf I & 0 & 0 & 0 \\ 0 & \mathbf I & 0 & 0 \\ 0 & 0 & \mathbf I & 0 \\ 0 & 0 & 0 & \mathbf I \\ 0 & 0 & 0 & 0  \end{array} \right] , \mathbf Q_I = \left[ \begin{array}{cc} \mathbf V_i & 0 & 0 & 0 \\ 0 & \mathbf \Theta_i & 0 & 0 \\ 0 & 0 & \mathbf A_i & 0 \\ 0 & 0 & 0 & \mathbf \Omega_i \\ \end{array}\right] \\
 $$
 
 
@@ -200,21 +200,21 @@ $$
 
 
 $$
-y = h(\bm x_t)+ v \\
+y = h(\mathbf x_t)+ v \\
 $$
 
 
-观测噪声： $v \sim \mathcal N (0, \bm V)$
+观测噪声： $v \sim \mathcal N (0, \mathbf V)$
 
 **Correction equations:**
 
 
 $$
-\bm K \leftarrow \bm P \bm H^T(\bm H \bm P \bm H^T +\bm V)^{-1} \\ \hat{\delta \bm x} \leftarrow \bm K(y-h(\hat {\bm x_t})) \\ \bm P \leftarrow (\bm I - \bm K \bm H)\bm P  \\  or \bm P \leftarrow \ (\bm I - \bm K \bm H) \bm P  (\bm I - \bm K \bm H)^T + \bm K \bm V \bm K^T\\
+\mathbf K \leftarrow \mathbf P \mathbf H^T(\mathbf H \mathbf P \mathbf H^T +\mathbf V)^{-1} \\ \hat{\delta \mathbf x} \leftarrow \mathbf K(y-h(\hat {\mathbf x_t})) \\ \mathbf P \leftarrow (\mathbf I - \mathbf K \mathbf H)\mathbf P  \\  or \mathbf P \leftarrow \ (\mathbf I - \mathbf K \mathbf H) \mathbf P  (\mathbf I - \mathbf K \mathbf H)^T + \mathbf K \mathbf V \mathbf K^T\\
 $$
 
 
-其中，雅克比 $\bm H = \frac&#123;\partial h&#125;&#123;\partial \delta \bm x&#125;$ ，可以用链式法则计算： $\bm H = \frac&#123;\partial h&#125;&#123;\partial \delta x&#125; = \frac&#123;\partial h&#125;&#123;\partial x&#125; \frac&#123;\partial x&#125;&#123;\partial \delta x&#125;$ .
+其中，雅克比 $\mathbf H = \frac{\partial h}{\partial \delta \mathbf x}$ ，可以用链式法则计算： $\mathbf H = \frac{\partial h}{\partial \delta x} = \frac{\partial h}{\partial x} \frac{\partial x}{\partial \delta x}$ .
 
 **4.2 Injection of the observaed error into the nominal state.**
 

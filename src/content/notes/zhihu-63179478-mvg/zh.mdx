@@ -26,11 +26,11 @@ relatedProjects: [robotics-experiments]
 
 
 $$
-\begin{array}{*{20}{c}}   {\lambda \left[ {\begin{array}{*{20}{c}}   u \\    v \\    1  \end{array}} \right] = \underbrace {{\mathbf{K}}\left[ {{\mathbf{R}}|{\mathbf{t}}} \right]}_{\mathbf{P}}\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right]} \\     \Downarrow  \\    {\lambda {\mathbf{u}} = {\mathbf{PX}}}  \end{array} \\
+\begin{array}{c}   {\lambda \left[ {\begin{array}{c}   u \\    v \\    1  \end{array}} \right] = \underbrace {{\mathbf{K}}\left[ {{\mathbf{R}}|{\mathbf{t}}} \right]}_{\mathbf{P}}\left[ {\begin{array}{c}   x \\    y \\    z \\    1  \end{array}} \right]} \\     \Downarrow  \\    {\lambda {\mathbf{u}} = {\mathbf{PX}}}  \end{array} \\
 $$
 
 
-两边同时左叉乘 $\bf&#123;u&#125;$ ， 有
+两边同时左叉乘 $\bf{u}$ ， 有
 
 
 $$
@@ -42,7 +42,7 @@ $$
 
 
 $$
-\begin{array}{*{20}{c}}   {\left[ {\begin{array}{*{20}{c}}   0&{ - 1}&v \\    1&0&{ - u} \\    { - v}&u&0  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{{\mathbf{P}}_1}} \\    {{{\mathbf{P}}_2}} \\    {{{\mathbf{P}}_3}}  \end{array}} \right]{\mathbf{X}} = 0} \\     \Downarrow  \\    {\left\{ \begin{gathered}   \left( {v{{\mathbf{P}}_3} - {{\mathbf{P}}_2}} \right){\mathbf{X}} = 0 \hfill \\   \left( {{{\mathbf{P}}_1} - u{{\mathbf{P}}_3}} \right){\mathbf{X}} = 0 \hfill \\   \left( {u{{\mathbf{P}}_2} - v{{\mathbf{P}}_1}} \right){\mathbf{X}} = 0 \hfill \\  \end{gathered}  \right.}  \end{array} \\
+\begin{array}{c}   {\left[ {\begin{array}{c}   0&{ - 1}&v \\    1&0&{ - u} \\    { - v}&u&0  \end{array}} \right]\left[ {\begin{array}{c}   {{{\mathbf{P}}_1}} \\    {{{\mathbf{P}}_2}} \\    {{{\mathbf{P}}_3}}  \end{array}} \right]{\mathbf{X}} = 0} \\     \Downarrow  \\    {\left\{ \begin{gathered}   \left( {v{{\mathbf{P}}_3} - {{\mathbf{P}}_2}} \right){\mathbf{X}} = 0 \hfill \\   \left( {{{\mathbf{P}}_1} - u{{\mathbf{P}}_3}} \right){\mathbf{X}} = 0 \hfill \\   \left( {u{{\mathbf{P}}_2} - v{{\mathbf{P}}_1}} \right){\mathbf{X}} = 0 \hfill \\  \end{gathered}  \right.}  \end{array} \\
 $$
 
 
@@ -52,11 +52,11 @@ $$
 
 
 $$
-\underbrace {\left[ {\begin{array}{*{20}{c}}   {{v_1}{\mathbf{P}}_3^1 - {\mathbf{P}}_2^1} \\    {{\mathbf{P}}_1^1 - {u_1}{\mathbf{P}}_3^1} \\    {{v_2}{\mathbf{P}}_3^2 - {\mathbf{P}}_2^2} \\    {{\mathbf{P}}_1^2 - {u_2}{\mathbf{P}}_3^2}  \end{array}} \right]}_{\mathbf{H}}{\mathbf{X}} = 0 \\
+\underbrace {\left[ {\begin{array}{c}   {{v_1}{\mathbf{P}}_3^1 - {\mathbf{P}}_2^1} \\    {{\mathbf{P}}_1^1 - {u_1}{\mathbf{P}}_3^1} \\    {{v_2}{\mathbf{P}}_3^2 - {\mathbf{P}}_2^2} \\    {{\mathbf{P}}_1^2 - {u_2}{\mathbf{P}}_3^2}  \end{array}} \right]}_{\mathbf{H}}{\mathbf{X}} = 0 \\
 $$
 
 
-这里可以使用SVD求解（参考MVG），齐次坐标 $\[&#123;\mathbf&#123;X&#125;&#125;\]$ 即为 $\bf&#123;H&#125;$ 的最小奇异值的奇异向量。
+这里可以使用SVD求解（参考MVG），齐次坐标 ${\mathbf{X}}$ 即为 $\bf{H}$ 的最小奇异值的奇异向量。
 
 下面给出代码
 
