@@ -121,7 +121,16 @@ $$
 
 
 $$
-\begin{gathered}   \left[ {\begin{array}{c}   {{A^ * }} \\    {{B^ * }}  \end{array}} \right] = {\left[ {\begin{array}{c}   {{X_1}}&{{Y_1}} \\    {{X_2}}&{{Y_2}}  \end{array}} \right]^{ - 1}}\left[ {\begin{array}{c}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{c}   {{Y_2}}&{ - {Y_1}} \\    { - {X_2}}&{{X_1}}  \end{array}} \right]\left[ {\begin{array}{c}   { - 1} \\    { - 1}  \end{array}} \right] \hfill \\    = \frac{1}{{{X_1}{Y_2} - {X_2}{Y_1}}}\left[ {\begin{array}{c}   {{Y_1} - {Y_2}} \\    {{X_2} - {X_1}}  \end{array}} \right] \hfill \\  \end{gathered} \\
+\begin{aligned}
+\left[\begin{array}{c}A^*\\B^*\end{array}\right]
+&= \left[\begin{array}{cc}X_1&Y_1\\X_2&Y_2\end{array}\right]^{-1}
+\left[\begin{array}{c}-1\\-1\end{array}\right] \\
+&= \frac{1}{X_1Y_2-X_2Y_1}
+\left[\begin{array}{cc}Y_2&-Y_1\\-X_2&X_1\end{array}\right]
+\left[\begin{array}{c}-1\\-1\end{array}\right] \\
+&= \frac{1}{X_1Y_2-X_2Y_1}
+\left[\begin{array}{c}Y_1-Y_2\\X_2-X_1\end{array}\right]
+\end{aligned}
 $$
 
 
@@ -129,7 +138,11 @@ $$
 
 
 $$
-\begin{gathered}   A = {Y_1} - {Y_2} \hfill \\   B = {X_2} - {X_1} \hfill \\   C = {X_1}{Y_2} - {X_2}{Y_1} \hfill \\  \end{gathered}  \\
+\begin{aligned}
+A &= Y_1-Y_2 \\
+B &= X_2-X_1 \\
+C &= X_1Y_2-X_2Y_1
+\end{aligned}
 $$
 
 
