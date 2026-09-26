@@ -65,7 +65,7 @@ const pageTitle = `${title} · TinyGrape Lab`;
       </nav>
     </header>
     <main><slot /></main>
-    <footer class="site-footer"><div class="shell footer-inner"><span>© {new Date().getFullYear()} TinyGrape Lab</span><span>{copy.footer}</span><div class="footer-links"><a href="https://github.com/ydsf16">GitHub</a><a href={localizedPath('/privacy', locale as Locale)}>Privacy</a><a href={localizedPath('/support', locale as Locale)}>Support</a></div></div></footer>
+    <footer class="site-footer"><div class="shell footer-inner"><span>© {new Date().getFullYear()} TinyGrape Lab</span><div class="footer-links"><a href="https://github.com/ydsf16">GitHub</a><a href={localizedPath('/privacy', locale as Locale)}>Privacy</a><a href={localizedPath('/support', locale as Locale)}>Support</a></div></div></footer>
     <script is:inline>
       const menuButton = document.querySelector('.menu-toggle');
       const mobileMenu = document.querySelector('#mobile-menu');
