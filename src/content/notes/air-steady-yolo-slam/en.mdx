@@ -1,0 +1,220 @@
+---
+type: note
+title: "Building an Aviation Video Stabilizer with YOLO and SLAM Ideas"
+lang: en
+date: 2026-09-26
+updated: 2026-09-26
+status: "in progress"
+featured: false
+priority: -2
+tags: [aviation photography, video stabilization, YOLO, SLAM, optical flow, computer vision]
+categories: [Vision experiments, Technical notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/2029435060424569328
+relatedProducts: [roamshot]
+relatedProjects: [robotics-experiments]
+---
+
+import VideoEmbed from '../../../components/VideoEmbed.astro';
+
+> For people who film aircraft, scale models, or birds: make long-lens footage with camera shake and a drifting subject look as though it were shot on a gimbal.
+
+## Motivation: a recurring problem in aviation photography
+
+I am an aviation enthusiast and often visit air shows, including Zhuhai, Changchun, and Singapore. Every trip produces a great deal of video.
+
+One problem keeps returning: **aviation footage shakes badly**. Ideally, the aircraft stays at a chosen position in the frame instead of wandering around with the camera.
+
+There are usually two conventional approaches:
+
+1. **Hardware before capture**: a heavy tripod, excellent panning technique, and expensive equipment.
+2. **Software after capture**: professional tools such as DaVinci Resolve or After Effects.
+
+Post-processing tools have a steep learning curve and still require substantial manual intervention. A typical workflow is to pick a tracking point on the aircraft, pause and select another point when tracking fails, and repeat. The choice of point matters as well: an edge of the fuselage is easy to lose, while a point on the wing may not track reliably.
+
+After an air show I began asking: **could an algorithm solve this automatically?** A demo confirmed that professional tools already address parts of the problem, but their interaction model raised a further question: could a tool be more automated and more specific to aviation footage?
+
+## Demonstration videos
+
+### Product demonstration
+
+<VideoEmbed src="https://www.bilibili.com/video/BV1AodfByEnP/" title="AirSteady product demonstration" />
+
+If the player does not load, [open the Bilibili video directly](https://www.bilibili.com/video/BV1AodfByEnP/).
+
+### F-22 before-and-after comparison
+
+<VideoEmbed src="https://www.bilibili.com/video/BV1ivmaBvE4q/" title="F-22 before-and-after comparison" />
+
+If the player does not load, [open the Bilibili video directly](https://www.bilibili.com/video/BV1ivmaBvE4q/).
+
+More work: Douyin [@AirSteady](https://www.douyin.com/user/MS4wLjABAAAAkB0g12Ry0z-bBjHmGffv-JpfWJpEF_BR2wQumAR2grnhn1S4SuS7KmV761Bi8Iid?from_tab_name=main)  
+Open-source code: [GitHub @ydsf16/AirSteady](https://github.com/ydsf16/AirSteady)
+
+## Technical approach: from object tracking to trajectory optimization
+
+### What stabilization means
+
+When filming an aircraft, we want it to remain visually stationary in the frame.
+
+If the aircraft motion in image coordinates can be tracked reliably and compensated in the opposite direction, the aircraft appears fixed in the output video:
+
+```text
+stabilized output frame = original frame - aircraft displacement
+```
+
+The central challenge is therefore **reliable aircraft-motion tracking**.
+
+### Approaches used by professional tools
+
+Professional tools generally use one of two strategies.
+
+**Approach 1: single-point optical-flow tracking**
+
+Choose a point on the aircraft and track it with Patch Match or KLT optical flow. When the aircraft maneuvers, however, its appearance rotates relative to the camera and a single point is easy to lose.
+
+**Approach 2: multi-point optical-flow tracking**
+
+Scatter many points over the aircraft, track them jointly, and replenish points as they disappear. This is more robust because losing an individual point does not invalidate the estimate. The remaining question is how to ensure that points are placed on the aircraft rather than on the background.
+
+### My approach: YOLO segmentation, optical flow, and graph optimization
+
+The proposed pipeline combines the advantages of both approaches:
+
+```text
+input video
+    ↓
+YOLO segmentation detection  → coarse global aircraft coordinates (bbox / mask)
+    ↓
+sample points inside the mask → GFTT feature extraction
+    ↓
+KLT optical flow             → relative inter-frame displacement (odom)
+    ↓
+PoseGraph optimization       → global trajectory (detection center as a constraint)
+    ↓
+smooth trajectory → inverse compensation → stabilized video
+```
+
+The key idea is:
+
+- **Optical-flow tracking** supplies inter-frame displacement, analogous to odometry in SLAM.
+- **YOLO detection centers** supply global position constraints, analogous to loop closures in SLAM.
+- **Graph optimization** fuses the two with sparse least squares and produces a global, drift-free trajectory.
+
+That trajectory is then used to translate each image in the opposite direction. A smoothing factor controls the trade-off between closely following the subject and achieving stronger stabilization.
+
+## Implementation details and open problems
+
+### 1. Single-aircraft tracking ✅
+
+A single-target scene is comparatively simple: continually track the aircraft and compensate its motion. The current implementation is stable for this case.
+
+### 2. What about multiple aircraft? 🔧
+
+In formation flight, a user may want to track different aircraft and switch between a lead aircraft and a wingman.
+
+Planned work includes:
+
+- A UI for choosing the target at different points in time.
+- Least-squares smoothing for trajectory transitions.
+- Multi-target locking with user-defined priority.
+
+These features are still in development. Contributions are welcome.
+
+### 3. YOLO model fine-tuning 🔧
+
+The standard COCO-pretrained model is only moderately effective for aircraft, particularly for small distant targets, cloud or ground backgrounds, and side or top-down viewpoints.
+
+The next steps are:
+
+- Collect aviation, RC-model, and bird-photography video datasets.
+- Fine-tune a YOLO model.
+- Support user-provided models.
+
+### 4. The trade-off between stabilization and crop 🔧
+
+This is a classic problem:
+
+- More stabilization means larger image displacement.
+- Avoiding black borders requires a larger crop.
+
+Professional tools often use keyframes, applying different scale and translation at different frames to adapt the crop region dynamically. Integrating that capability into AirSteady requires further research.
+
+## Engineering challenges
+
+### Multi-threaded pipeline
+
+4K decoding, YOLO inference, and optical-flow tracking are all demanding, so the pipeline needs parallel stages:
+
+```text
+thread 1: video decoding → frame buffer
+thread 2: YOLO detection (every N frames)
+thread 3: KLT optical flow (every frame)
+thread 4: trajectory optimization + preview rendering
+thread 5: video export (separate FFmpeg process)
+```
+
+The C++ version already implements most of this pipeline, but there is still room for optimization.
+
+### Cross-platform GPU deployment
+
+YOLO inference must adapt to different GPUs:
+
+- NVIDIA: CUDA / TensorRT
+- AMD: ROCm
+- Intel: OpenVINO
+- Apple: CoreML / Metal
+
+The current version uses DirectML for broad Windows support, but performance and compatibility can be improved further.
+
+### Audio and video decode performance
+
+4K decoding is resource intensive. GPU hardware decoding (NVDEC / D3D11VA) should be preferred, with CPU software decoding as a fallback. GPU-to-CPU memory-copy overhead also needs attention. The current implementation uses FFmpeg; its performance tuning is a separate topic worth documenting.
+
+## Project status and invitation to collaborate
+
+The project currently has a C++ prototype that can process basic aviation footage. If you are interested in aviation photography, computer vision, or open source, I would be glad to collaborate.
+
+### Completed
+
+- ✅ Video loading and proxy-video generation
+- ✅ YOLO detection accelerated with DirectML
+- ✅ KLT optical flow and RANSAC tracking
+- ✅ IRLS trajectory optimization
+- ✅ Real-time preview and video export
+
+### Planned work
+
+| Feature | Description | Priority |
+| --- | --- | --- |
+| Multi-target tracking | Automatically track multiple aircraft and support formation-flight scenarios | 🔴 High |
+| UI interaction model | Allow users to select targets and switch tracked objects | 🔴 High |
+| Keyframe cropping | Dynamically balance stabilization and field of view while avoiding black borders | 🟡 Medium |
+
+### How to participate
+
+If you love aviation and enjoy technology, feel free to get in touch through GitHub or direct message.
+
+### Long-term vision
+
+- Build open-source software for aviation-photography enthusiasts.
+- Add batch processing so that a full day of footage can be imported, processed, and reviewed the following day.
+- Explore an automatic tracking gimbal for long lenses by combining software with hardware.
+
+## Appendix: technology stack
+
+| Area | Technology |
+| --- | --- |
+| UI framework | Qt6 (Widgets) |
+| Language | C++17 |
+| Video processing | FFmpeg (hardware decoding) |
+| Inference backend | ONNX Runtime + DirectML |
+| Object detection | YOLO Segmentation |
+| Feature tracking | OpenCV KLT optical flow |
+| Trajectory optimization | IRLS + Huber kernel |
+| Build system | CMake + vcpkg |
+
+If aviation photography, computer vision, and open-source collaboration interest you, let’s talk. The goal is to help aircraft photographers obtain gimbal-like stabilization with less effort.

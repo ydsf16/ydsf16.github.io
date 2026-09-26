@@ -1,0 +1,64 @@
+---
+type: note
+title: "Solving an Overdetermined Homogeneous System Ax = 0"
+lang: en
+date: 2020-05-05
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 9
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/138232238
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Many engineering problems reduce to solving an overdetermined homogeneous system, where $\mathbf A$ is a matrix and the unknown is $\mathbf x$. Examples include map-point triangulation in SLAM and some PnP formulations. The system clearly has the zero solution, but that is not the solution we seek; we want a nonzero $\mathbf x$.
+
+To obtain a nonzero solution, constrain $\mathbf x$ with $\|\mathbf x\|^2=1$. In other words, constrain its length to one and form the following constrained least-squares problem:
+
+$$
+\hat{\mathbf x} = \text{arg} \min \|\mathbf{Ax}\|^2,\text{ subject to } \|\mathbf x\|^2=1 \tag{1}　\\
+$$
+
+This is a constrained least-squares problem, so introduce a Lagrange multiplier:
+
+$$
+\begin{align} L(\mathbf x, \lambda) &= \|\mathbf {Ax}\|^2 + \lambda(1 - \|\mathbf x\|^2) \\ &= \mathbf{x}^T\mathbf{A}^T\mathbf {Ax} + \lambda(1-\mathbf x^T \mathbf x) \end{align} \tag{2}\\
+$$
+
+To find an extremum, differentiate with respect to $\mathbf x$ and $\lambda$, then set both derivatives to zero:
+
+$$
+\begin{align} \frac{\partial L(\mathbf x, \lambda)}{\partial \mathbf x} &= 2\mathbf A^T \mathbf {Ax} - 2\lambda \mathbf x = 0 \tag{3}\\ \frac{\partial L(\mathbf x, \lambda)}{\partial \lambda} &=  1- \mathbf x^T\mathbf x = 0 \tag{4} \end{align} \\
+$$
+
+Rearranging equation (3) gives:
+
+$$
+\begin{align} (\mathbf A^T \mathbf{A} - \lambda \mathbf I) \mathbf x = 0 \tag{5} \\ \mathbf A^T \mathbf{Ax}  = \lambda \mathbf x \tag{6} \end{align}
+$$
+
+Therefore $\lambda$ and $\mathbf x$ are, respectively, an eigenvalue and eigenvector of $\mathbf A^T\mathbf A$. The solution to (1) must be one of these eigenvectors.
+
+Which eigenvector should we choose? Expand $\|\mathbf {Ax}\|^2$:
+
+$$
+\|\mathbf {Ax}\|^2 = \mathbf x^T\mathbf A^T \mathbf A \mathbf x = \mathbf x^T \lambda\mathbf x = \lambda \mathbf x^T\mathbf x = \lambda \tag{7}\\
+$$
+
+> The derivation of (7) uses equation (6) and the unit-norm constraint.
+
+To minimize $\|\mathbf {Ax}\|^2$, we need the smallest $\lambda$.
+
+**Thus, the nonzero solution of equation (1) is the eigenvector of $\mathbf A^T\mathbf A$ associated with its smallest eigenvalue $\lambda$.**
+
+## **References**
+
+1. Karel Zimmermann. Lecture notes: overdetermined homogeneous linear system.
+2. Richard Hartley and Andrew Zisserman. Multiple View Geometry in Computer Vision.

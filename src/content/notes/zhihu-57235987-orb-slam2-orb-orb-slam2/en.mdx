@@ -1,0 +1,82 @@
+---
+type: note
+title: "[ORB-SLAM2] How ORB Extraction Strategy Affects ORB-SLAM2"
+lang: en
+date: 2019-02-22
+updated: 2019-02-22
+status: "published"
+featured: false
+priority: 29
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/57235987
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> The ORB-SLAM(2) paper describes a method for distributing extracted ORB features more evenly across an image. Does that strategy improve SLAM performance? Why did the authors not use OpenCV's ORB implementation? This article compares the impact of the two extractors on ORB-SLAM2 through experiments.
+
+## **Comparing the two ORB extractors**
+
+Using one image from the TUM dataset, I extracted 1,000 ORB features with OpenCV and with the ORB-SLAM2 implementation. The OpenCV points are visibly clustered, whereas ORB-SLAM2 distributes points more evenly.
+
+Intuitively, if features are too concentrated—at the limit, all at one point—the camera pose cannot be recovered. Such concentration may reduce SLAM accuracy. The following experiments test that intuition.
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-01.jpg)
+
+## **Experimental setup**
+
+> Dataset: six sequences from TUM RGB-D (strictly speaking, the conclusions below apply only to RGB-D; monocular and stereo were not tested). System: Ubuntu 16.04. CPU: Intel® Core™ i7-8700 @ 3.20 GHz × 12. OpenCV: 3.3.1. ORB-SLAM2 configuration: the original settings.
+
+## **Trajectory-accuracy comparison**
+
+The metric is absolute trajectory error (ATE) RMSE. For most sequences, the ORB-SLAM2 extractor gives higher accuracy. On `fr1_xyz`, OpenCV is marginally better, though the difference is small. In `fr2_3h`, however, the OpenCV version loses tracking and never recovers, so its accuracy is measured over only a small initial part of the sequence and appears artificially high. That sequence has faster motion, more distant scene content, and poorer light. The ORB-SLAM version does not lose tracking on any sequence and is therefore more robust. Overall, **ORB-SLAM2's uniform feature-extraction strategy improves both accuracy and robustness.**
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-02.jpg)
+Trajectory error comparison, ATE RMSE (m). Abbreviations: freiburg1_xyz (`fr1_xyz`), freiburg1_desk (`fr1_desk`), freiburg2_360_hemisphere (`fr2_3h`), freiburg2_desk (`fr2_desk`), freiburg3_long_office_household (`fr3_loh`), and freiburg3_sitting_halfsphere (`fr3_sh`).
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-03.jpg)
+Trajectory error.
+
+## **Map comparison**
+
+For the ORB-SLAM2 version, map points are more evenly distributed and sparse, and there are relatively fewer edges between keyframes. **This seems to suggest that uniform extraction lowers feature repeatability, making it harder for the same feature to be extracted across many frames.**
+
+OpenCV map points are more concentrated because it selects the strongest responses. Its keyframe graph is denser, suggesting that high-response ORB points are more repeatable and can be tracked across more consecutive frames. Yet these points are clustered; even with a stronger graph, the estimate is less accurate than ORB-SLAM2's. **A uniform spatial distribution of features can improve system accuracy.**
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-04.jpg)
+Map for the `fr2_desk` sequence.
+
+For `fr2_desk`, ORB-SLAM2 tracks fewer map points per frame than OpenCV, consistent with OpenCV's denser keyframe network. That alone does not mean the ORB-SLAM2 tracks are poorer: it may simply have fewer map points. Counting keyframes and map points confirms that ORB-SLAM2 has more keyframes but fewer map points. Possible reasons are: (1) ORB features may be less repeatable across many frames, creating fewer map points; and (2) the uniform strategy may extract fewer features than OpenCV's original implementation. These two explanations have not yet been verified.
+
+It is worth noting that ORB-SLAM2 achieves high final trajectory accuracy despite tracking fewer features in each frame. This likely reflects the value of their more even distribution. OpenCV tracks more points, but they are spatially concentrated.
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-05.jpg)
+Histogram of tracked map points per frame in `fr2_desk`.
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-06.jpg)
+Keyframe count in each sequence map.
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-07.jpg)
+Map-point count in each sequence map.
+
+## **Map-point survival comparison**
+
+ORB features serve two purposes: creating map points and data association. A map point observed by more frames creates a stronger graph and can improve accuracy. In other words, ORB features should be repeatable between frames; the more keyframes that observe a map point, the better. I therefore counted the number of connected keyframes for each feature point. The plot shows little difference between the two extraction strategies, suggesting that the experimental environment and motion trajectory may dominate the result.
+
+![Article illustration](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-08.jpg)
+Number of keyframes observing a single map point.
+
+## **Feature-extraction time**
+
+ORB-SLAM2 takes **10.24 ± 2.64 ms** for feature extraction; OpenCV takes **9.11 ± 2.82 ms**. The difference is small.
+
+## **Summary**
+
+Compared with OpenCV's method, ORB-SLAM2's ORB extractor improves trajectory accuracy and robustness. Increasing the uniformity of extracted features can improve system accuracy, but may reduce feature repeatability.
+
+> Only six TUM RGB-D sequences were tested, so these conclusions are for reference only.

@@ -1,0 +1,61 @@
+---
+type: note
+title: "[Fourteen Lectures 1] Summary of Chapters 1–2"
+lang: en
+date: 2018-08-22
+updated: 2018-08-22
+status: "published"
+featured: false
+priority: 35
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42712851
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I have recently been reading *Sixteen Lectures on Visual SLAM*. Here are my notes on several key ideas.
+
+## **Chapter 1: Prerequisites**
+
+1. SLAM stands for Simultaneous Localization and Mapping.
+2. Its main task is to help a device—such as a robot or phone—enter an unknown environment and: (1) estimate its own position (localization), and (2) perceive and model its surroundings (mapping).
+3. What makes the problem distinctive is that it is usually real-time, has little or no prior knowledge of the environment, and solves localization and mapping together, with each reinforcing the other.
+4. It can use many sensors: cameras, LiDAR, IMU, encoders, ultrasonic sensors, and more. SLAM can be viewed as a specialized state-estimation or multi-sensor-fusion problem.
+
+> One exercise asks how a system should be solved, which is a recurring question. Different parameter states call for different techniques, such as SVD and QR decomposition; bundle adjustment also uses the Schur complement for speed. I will discuss this separately later.
+
+## **Chapter 2: A first look at SLAM**
+
+SLAM addresses localization together with environment modeling.
+
+> Compared with approaches that install external markers or sensors in an environment, SLAM is more general and flexible because it does not require modifying the environment. This is why modern AR localization systems, including Apple ARKit, Google ARCore, and Baidu DuMix, have sought to solve localization with SLAM.
+
+**Visual sensors**: monocular, stereo, multi-camera, depth, event-based, infrared, and more.
+
+1. A monocular camera lacks absolute scale.
+2. Stereo cameras provide scale, but accuracy depends on baseline and object distance; they are computationally heavier and matching is difficult.
+3. RGB-D cameras provide depth at a limited range and are generally used indoors.
+
+**The classic visual-SLAM architecture**
+
+![Article illustration](/media/notes/zhihu-42712851-1-1-2/image-01.jpg)
+
+1. **Front end**: abstracts sensor measurements, estimates the pose between successive frames as visual odometry, and builds a graph for back-end optimization. Because visual odometry estimates only frame-to-frame motion, drift accumulates; back-end optimization and loop closure address it.
+2. **Back end**: uses odometry and loop-closure information for global optimization, producing a globally consistent map and trajectory. It solves a maximum-a-posteriori estimation problem, mainly with filtering and nonlinear optimization.
+3. **Loop closure**: detects revisited places and supplies loop constraints.
+4. **Mapping**: constructs an environment model from the estimated trajectory. The kind of map is task-driven: metric, topological, semantic, or hybrid.
+
+> Classical SLAM commonly assumes: (1) a static environment; (2) a rigid environment; (3) limited lighting variation; and (4) no human interference.
+
+**A general mathematical expression**
+
+$$
+\left\{\begin{array}{c} x_k = f(x_{k-1},\ u_k, \omega_k) \\ z_{k,j} = h(y_j, x_k, v_{k,j}) \end{array} \right. \\
+$$
+
+> Different sensors and devices use different parameterizations.
