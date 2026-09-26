@@ -2,11 +2,11 @@
 type: note
 title: "[SINS]捷联惯导更新算法"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2021-12-12
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 2
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,9 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> 最近了解了一些高精捷联惯导的知识，在此做一些总结。
->
-> 因为自己刚接触这个领域，可能会有不少差错，欢迎指正。
+> 最近了解了一些高精捷联惯导的知识，在此做一些总结。 因为自己刚接触这个领域，可能会有不少差错，欢迎指正。
 
 本篇实现了一套北方位捷联惯导更新算法。在给定位置、姿态、速度初值的基础上，通过IMU积分来获取实时的位置姿态。主要参为严恭敏老师的《捷联惯导算法与组合导航原理》以及[PSINS](https://link.zhihu.com/?target=http%3A//www.psins.org.cn/sy)工具箱。
 
@@ -176,12 +174,7 @@ $\mathbf M_{m-1/2}$ 可以采用简单的外推法获得。
 
 ## 2. 代码
 
-https://
-
-github.com/ydsf16/TinyG
-
-rapeKit/tree/master/app/SINS/Core/InsUpdate
-
+[https://github.com/ydsf16/TinyGrapeKit/tree/master/app/SINS/Core/InsUpdate](https://github.com/ydsf16/TinyGrapeKit/tree/master/app/SINS/Core/InsUpdate)
 ## 3. 实验测试
 
 同样用上一篇[小葡萄：[SINS] 高精度捷联惯导初始对准](https://zhuanlan.zhihu.com/p/441031920) 相同的数据。

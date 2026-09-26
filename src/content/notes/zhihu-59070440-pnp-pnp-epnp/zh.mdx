@@ -2,11 +2,11 @@
 type: note
 title: "[PnP]PnP问题之EPnP解法"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-03-17
+updated: 2019-03-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 26
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,33 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> 接上一篇《
->
-> [PnP] PnP问题之DLT解法
->
-> 》，本文介绍PnP的另一种常用解法
->
-> EPnP
->
-> 。
->
-> EPnP
->
-> 也是
->
-> ORB-SLAM2
->
-> 中使用的方法。
->
-> 本文对
->
-> EPnP
->
-> 方法进行了详细的推导，
->
-> 并基于Eigen库给出了实现
->
-> 。
+> 接上一篇《 [PnP] PnP问题之DLT解法 》，本文介绍PnP的另一种常用解法 EPnP 。 EPnP 也是 ORB-SLAM2 中使用的方法。 本文对 EPnP 方法进行了详细的推导， 并基于Eigen库给出了实现 。
 
 - 与其他方法相比，EPnP方法的复杂度为O(n)。对于点对数量较多的PnP问题，非常高效。
 - 核心思想是将三维点表示为4个控制点的组合；优化也只针对4个控制点，所以速度很快；在求解 Mx = 0时，最多考虑了4个奇异向量，因此精度也很高。
@@ -129,13 +103,13 @@ $$
 $$
 
 
-***上述操作实际上是找到点云的重心，以及点云的三个主方向，可以参考***[主成分分析(PCA)](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Principal_component_analysis)***。***
+### 上述操作实际上是找到点云的重心，以及点云的三个主方向，可以参考***[主成分分析(PCA)](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Principal_component_analysis)***。
 
 到目前为止，我们已知可以知道4个控制点在世界坐标系下的坐标 $\mathbf c_j$ ，每一个3D点的hd坐标 $\alpha_{ij}$ 。如果我们能把4个控制点在相机坐标系下的坐标求解出来，就可以计算出3D点在相机坐标系下的坐标，就可以求解出外参数 $[\mathbf R | \mathbf t]$ ，下面就沿着这个思路展开。
 
 ## **1.3 控制点在相机坐标系下的坐标**
 
-**1.3.1 解析求解**
+### 1.3.1 解析求解
 
 把相机投影模型搬出来
 
@@ -243,19 +217,7 @@ $$
 
 再次使用Case $N=2$ 的解法试一下，此时 $\mathbf \beta = [\beta_{11}, \beta_{12}, \beta_{13}, \beta_{14}, \beta_{22}, \beta_{23}, \beta_{24}, \beta_{33}, \beta_{34}, \beta_{44}]^T$ ， $\mathbf L$ 的大小为 $6\times 10$ 。显然，无法得到唯一解。这次，就不能直接使用Case $N=2，N=3$ 的解法了。因为，方程的数量少于待求解变量。看一下中间变量法，引入中间变量的同时，也增加了变量的个数。比如，Case $N=3$ 的时候，引入中间变量后，变量个数由3个变成了6个。多出了3个变量 $\beta_{ab}$ 。原文[1]提到，再引入约束，使用"Reinearization"的方法求解。（这个我也没看明白额）
 
-> 实际上，
->
-> OpenCV中开源代码
->
-> 并没按照上述4个Case中的方法去求解，而是采用了近似的解法，具体的可以去看一下
->
-> 源码
->
-> 。
->
-> 但是为什么可以近似，我没搞太明白
->
-> 。我自己的实现目前也是按照OpenCV的方法去解的。
+> 实际上， OpenCV中开源代码 并没按照上述4个Case中的方法去求解，而是采用了近似的解法，具体的可以去看一下 源码 。 但是为什么可以近似，我没搞太明白 。我自己的实现目前也是按照OpenCV的方法去解的。
 
 至此， $\beta_1 \sim \beta_4$ 的初值求解完毕。
 
@@ -387,13 +349,13 @@ $$
 
 ## **2. 工程实现&实验**
 
-**2.1 实现**
+### 2.1 实现
 
 我这里基于**Eigen**进行了实现，与OpenCV库里的EPnP实现稍有不同。详细代码请见：
 
 ydsf16/PnP_Solver
 
-**2.2 实验**
+### 2.2 实验
 
 实验与上一篇《[[PnP] PnP问题之DLT解法](https://zhuanlan.zhihu.com/p/58648937)》相同，自己实现的EPnP（MY_EPnP）以及OpenCV自带的EnP（CV_EPnP）塞到了ORB-SLAM2的前端，与Motion Only BA（MOB）的方法和DLT的方法进行比较，结果如下图。
 

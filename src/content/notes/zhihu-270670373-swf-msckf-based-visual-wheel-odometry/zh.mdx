@@ -2,11 +2,11 @@
 type: note
 title: "[SWF] MSCKF-Based Visual-Wheel Odometry 轮速视觉融合里程计"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2020-11-22
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 6
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,15 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> Sliding Windows Filter（SWF）在VIO、SLAM这个领域应用非常广，比如MSCKF、OKVIS、VINS-Mono等等，几乎可以说是VIO的标配。
->
-> SWF可以分成基于滤波器的和基于优化的两种。最典型的基于滤波器的方法就是MSCKF算法了。它是基于EKF的算法，在marginalize state的时候处理比较简单，只需要把对应的covariance的对应行列直接丢弃就可以了。而基于优化的方法在边缘化时需要对Hessian矩阵做舒尔补，操作会复杂一些。
->
-> 为了尝试一下SWF，我们先从简单的基于滤波的方法入手。本文实现了一个基于MSCKF
->
-> [1]
->
-> 的Visual+Wheel融合的Odometry。
+> Sliding Windows Filter（SWF）在VIO、SLAM这个领域应用非常广，比如MSCKF、OKVIS、VINS-Mono等等，几乎可以说是VIO的标配。 SWF可以分成基于滤波器的和基于优化的两种。最典型的基于滤波器的方法就是MSCKF算法了。它是基于EKF的算法，在marginalize state的时候处理比较简单，只需要把对应的covariance的对应行列直接丢弃就可以了。而基于优化的方法在边缘化时需要对Hessian矩阵做舒尔补，操作会复杂一些。 为了尝试一下SWF，我们先从简单的基于滤波的方法入手。本文实现了一个基于MSCKF [1] 的Visual+Wheel融合的Odometry。
 
 下面是分别是仿真和用KAIST数据测试的结果。
 
@@ -327,35 +319,7 @@ $$
 
 **最后，总结一下，当一帧图像来了之后的处理步骤**
 
-> step1
->
-> ：增广状态
->
-> step2
->
-> ：做特征点跟踪。
->
-> step3
->
-> ：收集跟踪丢失的的所有特征点
->
-> step4
->
-> ：收集将要被边缘化的帧中的所有特征点：
->
-> step5
->
-> : 利用特征点
->
-> 和
->
-> 构造线性方程(20)，并执行EKF更新。
->
-> step6
->
-> : 边缘化操作：将
->
-> 中边缘化掉的pose去掉，将协方差矩阵中对应的行和列删除。
+> step1 ：增广状态 step2 ：做特征点跟踪。 step3 ：收集跟踪丢失的的所有特征点 step4 ：收集将要被边缘化的帧中的所有特征点： step5 : 利用特征点 和 构造线性方程(20)，并执行EKF更新。 step6 : 边缘化操作：将 中边缘化掉的pose去掉，将协方差矩阵中对应的行和列删除。
 
 ## 7.2 平面约束Update
 
@@ -421,12 +385,7 @@ VWO-MSCKF
 
 我们这里使用了**KAIST**数据集，链接是：
 
-https://
-
-irap.kaist.ac.kr/datase
-
-t/
-
+[https://irap.kaist.ac.kr/dataset/](https://irap.kaist.ac.kr/dataset/)
 同样的，相比纯Wheel odom，精度会有所提高。
 
 ![文章配图](/media/notes/zhihu-270670373-swf-msckf-based-visual-wheel-odometry/image-03.jpg)

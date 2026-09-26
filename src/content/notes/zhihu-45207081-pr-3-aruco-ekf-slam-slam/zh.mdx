@@ -2,11 +2,11 @@
 type: note
 title: "[PR-3]ArUco EKF SLAM 扩展卡尔曼SLAM"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2018-09-23
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 30
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -45,7 +45,7 @@ $$
 
 ## **1. 运动模型**
 
-**1.1 里程计模型**
+### 1.1 里程计模型
 
 我比较喜欢采用《自主移动机器人导论》中的里程计模型作为运动模型。具体的，如果t-1时刻机器人的位姿是 ${\xi _{t{\mathrm{ - }}1}} = \left[ {\begin{matrix}    x & y & \theta   \\    \end{matrix} } \right]_{t{\mathrm{ - }}1}^T$ ，那么t时刻的机器人位姿为：
 
@@ -69,7 +69,7 @@ $$
 $$
 
 
-**1.2 EKF-SLAM运动更新**
+### 1.2 EKF-SLAM运动更新
 
 上面说的还是只考虑机器人位姿的情况，但是SLAM系统还需要考虑路标点。扩展路标点之后，运动方程为：
 
@@ -183,7 +183,7 @@ $$
 $$
 
 
-**3.1 新地图点的协方差**
+### 3.1 新地图点的协方差
 
 地图点的协方差为：
 
@@ -193,7 +193,7 @@ $$
 
 ${{\bf{G}}_p}$ 是(17)式关于机器人位姿的雅克比： ${G_p} = \left[ {\begin{matrix}    1 & 0 & { - r\sin \left( {\theta  + \phi } \right)}  \\     0 & 1 & {r\cos \left( {\theta  + \phi } \right)}  \\    \end{matrix} } \right] \ \ (19) \\$ ${{\bf{G}}_z}$ 是(17)式关于观测 $z$ 的雅克比： ${G_z} = \left[ {\begin{matrix}    {\cos \left( {\theta  + \phi } \right)} & { - r\sin \left( {\theta  + \phi } \right)}  \\     {\sin \left( {\theta  + \phi } \right)} & {r\cos \left( {\theta  + \phi } \right)}  \\    \end{matrix} } \right] \ \ (20) \\$
 
-**3.2 新地图点与原状态之间的协方差**
+### 3.2 新地图点与原状态之间的协方差
 
 下面，还需要计算新加入的状态（地图点）与原状态（1个机器人位姿+N个地图点）之间的协方差。
 
@@ -221,20 +221,10 @@ $$
 
 - 全部工程代码：
 
-https://
-
-github.com/ydsf16/aruco
-
-_ekf_slam
-
+[https://github.com/ydsf16/aruco_ekf_slam](https://github.com/ydsf16/aruco_ekf_slam)
 - 我利用Falconbot机器人，采集了两组实验数据，大家可以在这里下载：
 
-https://
-
-pan.baidu.com/s/1EX9CYm
-
-dEUR2BJh7v5dTNfA
-
+[https://pan.baidu.com/s/1EX9CYmdEUR2BJh7v5dTNfA](https://pan.baidu.com/s/1EX9CYmdEUR2BJh7v5dTNfA)
 ## **5. 参考文献**
 
 《概率机器人》
@@ -243,8 +233,4 @@ dEUR2BJh7v5dTNfA
 
 Freiburg SLAM Course:
 
-http://
-
-ais.informatik.uni-freiburg.de
-
-/teaching/ws13/mapping/
+[http://ais.informatik.uni-freiburg.de/teaching/ws13/mapping/](http://ais.informatik.uni-freiburg.de/teaching/ws13/mapping/)

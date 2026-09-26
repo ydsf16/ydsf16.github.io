@@ -2,11 +2,11 @@
 type: note
 title: "[ORB-SLAM2] 回环&DBoW视觉词袋"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-04-10
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 22
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,9 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> 回环检测是SLAM中有效降低全局误差，构建全局一致地图的关键模块。跟踪丢失的时候，还可用于重定位。根据综述文献[1]，检测回环的方法有image-to-image, map-to-map, image-to-map三种方法。相比之下，image-to-image方法，也称为appearance-based基于外观的方法，具有更好的大场景适应性。现阶段，在image-to-image的方法中，常用的方法是基于视觉词袋方法（Bag of visual words）。针对BRIEF特征，文献[2]提出了词袋方法：DBoW2方法。之后又推出了改进版DBoW3。
->
-> 本文对DBoW，以及DBoW在ORB-SLAM中的使用细节进行了总结。
+> 回环检测是SLAM中有效降低全局误差，构建全局一致地图的关键模块。跟踪丢失的时候，还可用于重定位。根据综述文献[1]，检测回环的方法有image-to-image, map-to-map, image-to-map三种方法。相比之下，image-to-image方法，也称为appearance-based基于外观的方法，具有更好的大场景适应性。现阶段，在image-to-image的方法中，常用的方法是基于视觉词袋方法（Bag of visual words）。针对BRIEF特征，文献[2]提出了词袋方法：DBoW2方法。之后又推出了改进版DBoW3。 本文对DBoW，以及DBoW在ORB-SLAM中的使用细节进行了总结。
 
 ---
 
@@ -90,17 +88,7 @@ $$
 
 利用 $K$ 叉树的好处是什么呢？主要是加速。
 
-> 1. 可以加速判断一个特征属于哪个单词。如果不使用K叉树，就需要与每个单词比较（计算汉明距离），共计需要比较
->
-> 次。而使用K叉树之后，需要的比较次数变为
->
-> 次。大大提高了速度。这里利用了K叉树的快速查找特性。
->
-> 2. DBoW中存储了Direct Index，也就每个节点存储有一幅图像上所有归属与该节点的特征的index。在两帧进行特征匹配的时候，只需要针对每一个节点进行匹配就好了，大大缩小了匹配空间，加速了匹配速度。ORB-SLAM帧间匹配都使用了这个trick。
->
-> 3. 除此之外，如下图，DBoW的每个单词中还存储了Inverse index，每个Inverse Index中存储有所有有此单词的图像index，以及对应的权重：
->
-> 。在进行闭环搜索的时候，可以加快搜索过程的。具体的，我们只需要找与当前关键帧有相同单词的关键帧就可以了。
+> 1. 可以加速判断一个特征属于哪个单词。如果不使用K叉树，就需要与每个单词比较（计算汉明距离），共计需要比较 次。而使用K叉树之后，需要的比较次数变为 次。大大提高了速度。这里利用了K叉树的快速查找特性。 2. DBoW中存储了Direct Index，也就每个节点存储有一幅图像上所有归属与该节点的特征的index。在两帧进行特征匹配的时候，只需要针对每一个节点进行匹配就好了，大大缩小了匹配空间，加速了匹配速度。ORB-SLAM帧间匹配都使用了这个trick。 3. 除此之外，如下图，DBoW的每个单词中还存储了Inverse index，每个Inverse Index中存储有所有有此单词的图像index，以及对应的权重： 。在进行闭环搜索的时候，可以加快搜索过程的。具体的，我们只需要找与当前关键帧有相同单词的关键帧就可以了。
 
 ![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-03.jpg)
 

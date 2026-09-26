@@ -2,11 +2,11 @@
 type: note
 title: "[ORB-SLAM2] ORB-SLAM中的ORB特征（提取）"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-04-09
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 23
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,15 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> ORB-SLAM的一大创新点在于系统的所有模块都使用了同一种特征：ORB，这样构造的系统更加简单、稳健。
->
-> 本文首先介绍了原版的ORB特征，之后又介绍了ORB-SLAM对ORB特征的改进。
->
-> 相较与SIFT、SURF，ORB在CPU下就可以获得实时性能，并且具有尺度（一定的）、旋转不变性，而且提高了BRIEF描述子的抗噪能力。
->
-> ORB的速度是SIFT的100倍，SURF的10倍。
->
-> ORB: Oriented FAST and Rotated BRIEF
+> ORB-SLAM的一大创新点在于系统的所有模块都使用了同一种特征：ORB，这样构造的系统更加简单、稳健。 本文首先介绍了原版的ORB特征，之后又介绍了ORB-SLAM对ORB特征的改进。 相较与SIFT、SURF，ORB在CPU下就可以获得实时性能，并且具有尺度（一定的）、旋转不变性，而且提高了BRIEF描述子的抗噪能力。 ORB的速度是SIFT的100倍，SURF的10倍。 ORB: Oriented FAST and Rotated BRIEF
 
 1. 一定的尺度不变性：利用图像金子塔实现，由于金字塔层数有限，因此只能在一定范围保证尺度的不变性。
 2. 旋转不变性：首先利用灰度质心法计算出特征的方向，然后计算旋转后的BRIEF描述子。
@@ -171,15 +163,7 @@ BRIEF是一个二进制的描述子，计算和匹配的速度都很快。
 
 BEIFE的计算步骤如下
 
-> 首先，以关键点为中心，选择一个31×31的块
->
-> 然后，在这个块内按照一定的方法选择N对点，N一般取256
->
-> 对于点对
->
-> , 通过比较这两个点的灰度大小确定一个二值结果，0或者1.
->
-> 这样把256个点对的结果排起来，就形成了BRIEF描述子。
+> 首先，以关键点为中心，选择一个31×31的块 然后，在这个块内按照一定的方法选择N对点，N一般取256 对于点对 , 通过比较这两个点的灰度大小确定一个二值结果，0或者1. 这样把256个点对的结果排起来，就形成了BRIEF描述子。
 
 BRIEF的匹配采用汉明距离，非常快，简单说就是看一下不相同的位数有多少个。如下的两个描述子，不同的位数为4。实际上我们选择的点对数为256，那么距离范围就是0~256。
 

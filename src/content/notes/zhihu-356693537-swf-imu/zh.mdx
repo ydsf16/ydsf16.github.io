@@ -2,11 +2,11 @@
 type: note
 title: "[SWF] IMU使用方法总结"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2021-03-12
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 4
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,35 +18,13 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> IMU在定位、建图等系统中是非常核心的传感器。这篇文章总结了一下IMU使用的一些常用方法。
->
-> 使用IMU时，核心问题是建立IMU测量值
->
-> 与系统状态
->
-> 之间的关系
->
-> 。建立这种关系可以采用两种形式：
->
-> 1）积分，2）微分
->
-> 。
->
-> 还有一个有趣的现象，
->
-> 迭代形式的IMU预积分公式与直接积分公式，在重力为0的情况下，是相同的
->
-> 。这样在写代码时我们可以只实现直接积分方法，
->
-> 把重力设成0就变成了预积分
->
-> 。
+> IMU在定位、建图等系统中是非常核心的传感器。这篇文章总结了一下IMU使用的一些常用方法。 使用IMU时，核心问题是建立IMU测量值 与系统状态 之间的关系 。建立这种关系可以采用两种形式： 1）积分，2）微分 。 还有一个有趣的现象， 迭代形式的IMU预积分公式与直接积分公式，在重力为0的情况下，是相同的 。这样在写代码时我们可以只实现直接积分方法， 把重力设成0就变成了预积分 。
 
 ## 1. 积分形式的用法
 
 这种方式通过积分IMU数据的形式，建立IMU与State的关系。
 
-**1.1 IMU ODE**
+### 1.1 IMU ODE
 
 
 $$
@@ -58,7 +36,7 @@ $$
 
 Sola J. Quaternion kinematics for the error-state Kalman filter[J]. arXiv preprint arXiv:1711.02508, 2017.
 
-**1.2 在滤波算法中的用法**
+### 1.2 在滤波算法中的用法
 
 滤波算法中，如EKF，一般用IMU做状态预测。相关的系统如IMU&GPS惯导，MSCKF等。具体的就是对(1)式进行积分，将 $k$ 时刻的state predict到 $k+1$ 时刻。
 
@@ -80,11 +58,11 @@ $$
 
 IMU Propagation Derivations
 
-**1.3 在优化算法中的用法**
+### 1.3 在优化算法中的用法
 
 IMU的频率远高于相机/Lidar的帧率，基于优化的系统，如VIO/LIO中，一般将两个（关键）帧之间的IMU做积分，形成与两端state的关系方程。构造这个方程有两种办法。
 
-***1.3.1 直接积分法***
+### 1.3.1 直接积分法
 
 采用（2）式，对IMU进行直接积分，从上一个关键帧state推演到下一个关键帧。这样，我们可以建立下面的约束。
 
@@ -94,29 +72,11 @@ $$
 $$
 
 
-> 这种方法的
->
-> 缺点很明显
->
-> ，每次优化迭代之后，
->
-> 变化，积分
->
-> 就要重新计算。
->
-> 但是
->
-> 优势也很突出
->
-> ，每次都重新积分，意味着更高的精度。如果对精度要求高，又不在意计算量，建议采用过这种形式。
+> 这种方法的 缺点很明显 ，每次优化迭代之后， 变化，积分 就要重新计算。 但是 优势也很突出 ，每次都重新积分，意味着更高的精度。如果对精度要求高，又不在意计算量，建议采用过这种形式。
 
-***1.3.2 预积分***
+### 1.3.2 预积分
 
-> 预积分开始由
->
-> Lupton
->
-> 提出，后来由 Forster推广到了manifold上面。李明扬在MSCKF2.0中也有提到相关的思想。最关键的Paper是
+> 预积分开始由 Lupton 提出，后来由 Forster推广到了manifold上面。李明扬在MSCKF2.0中也有提到相关的思想。最关键的Paper是
 
 On-Manifold Preintegration for Real-Time Visual--Inertial Odometry
 
@@ -138,11 +98,7 @@ $$
 $$
 
 
-> 我们对比一下（6）式和（2）式可以发现一个很有意思的现象：
->
-> 把（2）式中的重力加速度
->
-> 设置成0，（2）和（6）两者在形式上是完全相同的。就是说，迭代形式的IMU预积分公式与IMU直接积分相同。这样我们在写代码的时候，只需要写个直接积分的代码。把重力设成0就可以直接当预积分去使用。
+> 我们对比一下（6）式和（2）式可以发现一个很有意思的现象： 把（2）式中的重力加速度 设置成0，（2）和（6）两者在形式上是完全相同的。就是说，迭代形式的IMU预积分公式与IMU直接积分相同。这样我们在写代码的时候，只需要写个直接积分的代码。把重力设成0就可以直接当预积分去使用。
 
 上面的与积分假设了IMU bias不变，但是实际优化过程中 IMU bias是会变的。因此需要进行补偿。具体的是采用一阶近似。
 
@@ -154,31 +110,18 @@ $$
 
 这种近似相对于直接积分的方法就有一些精度损失。
 
-> 预积分的好处是可以避免重复积分。
->
-> 但是因为有一些近似，比如（7）式，所以理论上精度上不如直接积分。
+> 预积分的好处是可以避免重复积分。 但是因为有一些近似，比如（7）式，所以理论上精度上不如直接积分。
 
 具体的预积分实现和论文请可以参考：
 
 borglab/gtsam
 
-https://
+[https://github.com/UZ-SLAMLab/ORB_SLAM3/blob/master/src/ImuTypes.cc](https://github.com/UZ-SLAMLab/ORB_SLAM3/blob/master/src/ImuTypes.cc)
 
-github.com/UZ-SLAMLab/O
-
-RB_SLAM3/blob/master/src/ImuTypes.cc
-
-https://
-
-github.com/HKUST-Aerial
-
--Robotics/VINS-Mono/blob/master/vins_estimator/src/factor/integration_base.h
-
+[https://github.com/HKUST-Aerial-Robotics/VINS-Mono/blob/master/vins_estimator/src/factor/integration_base.h](https://github.com/HKUST-Aerial-Robotics/VINS-Mono/blob/master/vins_estimator/src/factor/integration_base.h)
 ## 2. 微分形式的用法
 
-> 我们如果对IMU数据进行积分，就可以得到pose，从而可以建立IMU与state的关系。
->
-> 那么我们反过来想，对state进行微分，一阶微分就可以得到速度、角速度，二阶微分就可以得到加速度，这样也可以建立IMU的角速度、加速度与state的关系。
+> 我们如果对IMU数据进行积分，就可以得到pose，从而可以建立IMU与state的关系。 那么我们反过来想，对state进行微分，一阶微分就可以得到速度、角速度，二阶微分就可以得到加速度，这样也可以建立IMU的角速度、加速度与state的关系。
 
 关键是如何对state进行微分呢？而且state一般是离散分布的。常用的办法是插值，给定一些离散的state，可以通过插值获取任意时刻的pose。比较常用的插值方法是b-spline。如下图，我们可以在一个IMU采样时刻，插值一个state $\chi_i$ ，由与其相邻的四个state插值而来。
 

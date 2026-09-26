@@ -2,11 +2,11 @@
 type: note
 title: "解超定方程 Ax=0"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2020-05-05
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 9
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,29 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> 工程中很多问题会归结为求超定方程
->
-> ，
->
-> 是
->
-> 的矩阵，且
->
-> 。如
->
-> SLAM中三角化地图点
->
-> ，
->
-> PnP
->
-> 等一些问题都是求解这个方程。
->
-> 很显然，这个方程有一个0解，但这不是我们想要的，
->
-> 我们实际想求非零解
->
-> 。
+> 工程中很多问题会归结为求超定方程 ， 是 的矩阵，且 。如 SLAM中三角化地图点 ， PnP 等一些问题都是求解这个方程。 很显然，这个方程有一个0解，但这不是我们想要的， 我们实际想求非零解 。
 
 为了求非零解，我们对 $\mathbf x$ 加上一个约束 $\|\mathbf x\|^2=1$ 。也就是限制 $\mathbf x$ 的长度为１。并构建成一个最带约束的最小二乘问题：
 
@@ -84,9 +62,7 @@ $$
 $$
 
 
-> （7）式的推导，用到了式(6)和
->
-> 。
+> （7）式的推导，用到了式(6)和 。
 
 也就是说，我们想要 $\|\mathbf {Ax}\|^2$ 最小，就需要 $\lambda$ 最小。
 

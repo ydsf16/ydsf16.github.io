@@ -2,11 +2,11 @@
 type: note
 title: "[ORB-SLAM2]单目初始化"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-04-07
+updated: 2024-05-18
 status: "已发布"
 featured: false
-priority: 0
+priority: 24
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,11 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> ORB-SLAM提出一种自动初始化流程，能够根据场景自动的选择模型（Homography or Fundamental），当初始化质量不好的时候则延迟初始化。
->
-> 本文对初始化过程中的诸多细节进行了总结。
->
-> 本文属于个人记录，比较乱。
+> ORB-SLAM提出一种自动初始化流程，能够根据场景自动的选择模型（Homography or Fundamental），当初始化质量不好的时候则延迟初始化。 本文对初始化过程中的诸多细节进行了总结。 本文属于个人记录，比较乱。
 
 ## 1. 初始化流程
 
@@ -177,9 +173,7 @@ $$
 
 我们可以获得一个通解 $x=\eta \cdot \xi$ 。是一个up to scale的解。实际上我们的H矩阵也是up to scale的。其中 $\xi$ 就是M的对应与M的最小奇异值的奇异向量，可以通过SVD分解去求解。也就对应于 $M^TM$ 最小特征值的特征向量。**ORB-SLAM里面使用的就是这种解法。在ORB-SLAM中的RANSAC中使用了8对点进行计算，主要是为了与F矩阵的求解一致。**
 
-> 上述两种方法的结果没有太大差别，基本上是一致的。值得说明的是，ORB-SLAM在计算Homography的时候对2D特征点进行了归一化。
->
-> 变成均值为0，方差为1的标准正态分布。作用是什么呢？是不是为了计算稳定呢？可能是吧。
+> 上述两种方法的结果没有太大差别，基本上是一致的。值得说明的是，ORB-SLAM在计算Homography的时候对2D特征点进行了归一化。 变成均值为0，方差为1的标准正态分布。作用是什么呢？是不是为了计算稳定呢？可能是吧。
 
 ---
 

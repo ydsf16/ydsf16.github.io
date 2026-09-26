@@ -2,11 +2,11 @@
 type: note
 title: "Quaternion kinematics for ESKF总结[Part 2]"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-10-30
+updated: 2019-11-27
 status: "已发布"
 featured: false
-priority: 0
+priority: 12
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -47,7 +47,7 @@ nominal可以认为是大信号，不考虑噪声。噪声全部放到error-stat
 
 ## 2. System kinematics in continuous time
 
-**2.1 True state kinematics**
+### 2.1 True state kinematics
 
 
 $$
@@ -75,7 +75,7 @@ $$
 
 这就是把真实的IMU量测加进去的True state kinematic方程。需要注意的是，我们最终要建立的是error-state的运动学方程。
 
-**2.2 The nominal-state kinematics**
+### 2.2 The nominal-state kinematics
 
 > The nominal-state kinematics correspoinds to the modeled system without noise or perturbations.
 
@@ -87,7 +87,7 @@ $$
 $$
 
 
-**2.3 The error-state kinematics**
+### 2.3 The error-state kinematics
 
 将true-state部分的kinematics方程中减去nominal-state就可以得到error-state的kinematics方程。
 
@@ -138,7 +138,7 @@ Intergration need to be don for the following sub-systems.
 1. The nominal state
 2. The error-state. (a) The deterministic part. (b) The stochastic part.
 
-**3.1 The nominal state kinematics.**
+### 3.1 The nominal state kinematics.
 
 
 $$
@@ -146,7 +146,7 @@ $$
 $$
 
 
-**3.2 The error-state kinematics**
+### 3.2 The error-state kinematics
 
 
 $$
@@ -162,7 +162,7 @@ $$
 $$
 
 
-**3.3 The error-state Jacobian and perturbation matrices.**
+### 3.3 The error-state Jacobian and perturbation matrices.
 
 ESKF预测部分的协方差传播方程为：
 
@@ -194,7 +194,7 @@ $$
 2. injection of the observed errors into the nominal state, and
 3. reset of the error-state.
 
-**4.1 Observation of the error state via filter correction**
+### 4.1 Observation of the error state via filter correction
 
 观测方程为
 
@@ -216,10 +216,10 @@ $$
 
 其中，雅克比 $\mathbf H = \frac{\partial h}{\partial \delta \mathbf x}$ ，可以用链式法则计算： $\mathbf H = \frac{\partial h}{\partial \delta x} = \frac{\partial h}{\partial x} \frac{\partial x}{\partial \delta x}$ .
 
-**4.2 Injection of the observaed error into the nominal state.**
+### 4.2 Injection of the observaed error into the nominal state.
 
 注意旋转的加法。
 
-**4.3 ESKF reset**
+### 4.3 ESKF reset
 
 注意旋转，几乎可以忽略。

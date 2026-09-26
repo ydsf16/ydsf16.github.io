@@ -2,11 +2,11 @@
 type: note
 title: "[MVG] 三角化地图点"
 lang: zh
-date: 2026-09-26
-updated: 2026-09-26
+date: 2019-04-21
+updated: 2019-04-21
 status: "已发布"
 featured: false
-priority: 0
+priority: 20
 tags: [SLAM, VIO, 传感器融合]
 categories: [Spatial AI, 技术笔记]
 draft: false
@@ -18,9 +18,7 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
-> 在ORB-SLAM等基于特征点的V-SLAM算法中，地图点大都通过三角化的方法给出初值，再利用最小化重投影误差优化的方式进行细化。
->
-> 本篇给出了三角化的详细求解步骤。
+> 在ORB-SLAM等基于特征点的V-SLAM算法中，地图点大都通过三角化的方法给出初值，再利用最小化重投影误差优化的方式进行细化。 本篇给出了三角化的详细求解步骤。
 
 一个3D点的齐次坐标为 $[x, y, z, 1]^T$ ，它到图像上的投影为
 
