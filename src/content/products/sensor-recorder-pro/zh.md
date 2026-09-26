@@ -12,7 +12,8 @@ tags: [相机, IMU, GNSS, ARKit]
 githubUrl: https://github.com/ydsf16/ios_sensor_recorder
 appStoreUrl: https://apps.apple.com/us/app/sensor-recorder-pro/id6782758613?l=zh-Hans-CN
 xiaohongshuUrl: https://www.xiaohongshu.com/explore/6a3cf5a50000000008002d72?xsec_token=ABKAnFgq5dNEJy7pJfaQmuU0dRT4rjYWmzPoU96p0kuhE%3D&xsec_source=pc_user
-gallery: [/media/products/sensor-recorder-pro/latest-version.png, /media/products/sensor-recorder-pro/hero.png, /media/products/sensor-recorder-pro/features.png, /media/products/sensor-recorder-pro/session.png, /media/products/sensor-recorder-pro/use-cases.png]
+gallery: [/media/products/sensor-recorder-pro/hero.png, /media/products/sensor-recorder-pro/features.png, /media/products/sensor-recorder-pro/session.png, /media/products/sensor-recorder-pro/use-cases.png]
+releaseImage: /media/products/sensor-recorder-pro/latest-version.png
 relatedNotes: [sensor-recorder-data-contract]
 ---
 把 iPhone 变成一个低成本、可导出、可复现实验的真实世界数据采集器。同步记录相机、音频、IMU、Device Motion 与 GNSS，并导出结构清晰的文件，方便算法验证和二次开发。

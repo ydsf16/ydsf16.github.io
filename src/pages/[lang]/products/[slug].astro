@@ -17,7 +17,7 @@ const { item } = Astro.props; const locale = Astro.params.lang as Locale; const 
           {item.data.xiaohongshuUrl && <a class="button secondary" href={item.data.xiaohongshuUrl}>小红书 ↗</a>}
         </div>
       </div>
-      <div class="product-mark">{item.data.platforms[0] || 'LAB'}<strong>{item.data.status}</strong></div>
+      {item.data.releaseImage ? <img class="product-release-image" src={item.data.releaseImage} alt={`${item.data.title} latest release`} /> : <div class="product-mark">{item.data.platforms[0] || 'LAB'}<strong>{item.data.status}</strong></div>}
     </div>
     {item.data.gallery.length > 0 && <section class="product-gallery" aria-label="Product screenshots">{item.data.gallery.map((image, index) => <img src={image} alt={`${item.data.title} ${locale === 'zh' ? '产品展示' : 'product preview'} ${index + 1}`} loading={index === 0 ? 'eager' : 'lazy'} />)}</section>}
     <nav class="product-links" aria-label="Product resources"><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/privacy`}>Privacy ↗</a><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/support`}>Support ↗</a>{item.data.docsUrl && <a href={item.data.docsUrl}>Documentation ↗</a>}</nav>

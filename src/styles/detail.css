@@ -4,3 +4,5 @@
 .prose .katex-display{overflow-x:auto;overflow-y:hidden;padding:.45em 0}.prose .katex{font-size:1.04em}
 .product-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:68px}.product-gallery img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 30px rgba(30,20,80,.08)}
 @media(max-width:800px){.product-head{display:block}.product-mark{width:150px;margin-top:34px}.feature-grid,.use-case-list,.product-gallery{grid-template-columns:1fr}.product-section{margin-top:48px}}
+.product-release-image{display:block;width:220px;aspect-ratio:3/4;object-fit:cover;border:1px solid var(--line);border-radius:22px;box-shadow:0 12px 30px rgba(30,20,80,.1)}
+@media(max-width:800px){.product-release-image{width:150px;margin-top:34px}}

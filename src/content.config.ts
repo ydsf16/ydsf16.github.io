@@ -18,7 +18,8 @@ const products = defineCollection({
     githubUrl: z.string().url().optional(),
     appStoreUrl: z.string().url().optional(),
     xiaohongshuUrl: z.string().url().optional(),
-    gallery: z.array(z.string()).default([])
+    gallery: z.array(z.string()).default([]),
+    releaseImage: z.string().optional()
   })
 });
 
