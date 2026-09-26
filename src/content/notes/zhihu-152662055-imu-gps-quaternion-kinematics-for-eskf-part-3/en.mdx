@@ -1,0 +1,84 @@
+---
+type: note
+title: "IMU & GPS Localization: Quaternion Kinematics for ESKF, Part 3"
+lang: en
+date: 2020-07-01
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 8
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/152662055
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+I recently finished reading *Quaternion Kinematics for the Error-State Kalman Filter* and implemented an IMU+GPS integrated localization system using its method.
+
+## 1. Principles
+
+### 1.1 Coordinate frames
+
+The global frame is East-North-Up (ENU): X points east, Y points north, and Z points upward. Its origin is the initial position. There is an extrinsic transformation from GPS to IMU, namely the GPS position in the IMU frame, ${}^I \mathbf p_{Gps}$; this is the lever-arm value.
+
+### 1.2 Error state
+
+The filter maintains five state groups—position, velocity, orientation, accelerometer bias, and gyroscope bias—for a total of 15 dimensions:
+
+$$
+\left[\begin{matrix} \delta \mathbf p^T &  \delta \mathbf v^T &\delta \mathbf \theta^T & \delta \mathbf a_b ^T&\delta \mathbf \omega_b^T\end{matrix}\right]^T \\
+$$
+
+Gravity direction is not included in the state because the ENU frame is used directly; gravity is set along negative Z.
+
+As described in the book, the IMU performs EKF prediction. Both the nominal state and the error-state covariance are propagated (see pp. 58–59):
+
+$$
+\begin{align} \mathbf p &\leftarrow \mathbf p + \mathbf v\Delta t + \frac1 2 (\mathbf R (\mathbf a_m - \mathbf a_b) + \mathbf g) \Delta t^2 \\ \mathbf v &\leftarrow \mathbf v + (\mathbf R (\mathbf a_m - \mathbf a_b) + \mathbf g) \Delta t \\ \mathbf q &\leftarrow \mathbf q \otimes\mathbf q{(\mathbf \omega_m - \mathbf \omega_b)\Delta t} \\ \mathbf a_b &\leftarrow \mathbf a_b \\ \mathbf \omega_b &\leftarrow \mathbf  \omega_b \\ \mathbf P & \leftarrow \mathbf F_x \mathbf P \mathbf F_x^T + \mathbf F_i \mathbf Q_i \mathbf F_i^T \end{align} \\
+$$
+
+### 1.3 ESKF GPS update
+
+GPS provides position measurements. GPS normally reports WGS84 coordinates, while the state is expressed in ENU. Following the approach in VINS-Fusion, I use ***GeographicLib*** to convert GPS measurements to the ENU Cartesian frame, ${}^G \mathbf p_{Gps}$. The GPS position observation equation is then:
+
+$$
+{}^G \mathbf p_{Gps} = {}^G \mathbf p_{I} + {}^G _I \mathbf R \cdot {}^I \mathbf p_{Gps} \\
+$$
+
+The Jacobian with respect to the error state is:
+
+$$
+\mathbf H = \left[\begin{matrix} \mathbf I & \mathbf 0 & -{}^G_I \mathbf R[{}^I \mathbf p _{Gps}]_\times & \mathbf 0 & \mathbf 0\end{matrix}\right] \\
+$$
+
+The remaining step is the standard ESKF update (see p. 61 of the book).
+
+### 1.4 Initialization
+
+Initial position is zero. Roll and pitch are determined from the gravity direction measured by the accelerometer; biases start at zero.
+
+## 2. Implementation
+
+See GitHub:
+
+[ydsf16/imu_gps_localization](https://github.com/ydsf16/imu_gps_localization)
+
+## 3. Data
+
+[UTBM RoboCar Dataset](https://epan-utbm.github.io/utbm_robocar_dataset/)
+
+Recommended sequence:
+
+![Article illustration](/media/notes/zhihu-152662055-imu-gps-quaternion-kinematics-for-eskf-part-3/image-01.png)
+
+## 4. References
+
+1. Quaternion Kinematics for the Error-State Kalman Filter.
+2. Woosik Lee, *Intermittent GPS-aided VIO: Online Initialization and Calibration*.
+3. *A General Optimization-based Framework for Global Pose Estimation with Multiple Sensors*.
+4. *A General Optimization-based Framework for Local Odometry Estimation with Multiple Sensors*.

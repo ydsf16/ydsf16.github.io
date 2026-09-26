@@ -1,0 +1,101 @@
+---
+type: note
+title: "IMU Attitude Estimation: Quaternion Kinematics for ESKF, Part 4"
+lang: en
+date: 2020-08-02
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 7
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/166100648
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+Using the approach in *Quaternion Kinematics for ESKF*, I implemented an IMU attitude estimator: the gyroscope performs propagation and the accelerometer provides updates.
+
+## State
+
+The state contains the IMU attitude from the IMU frame to ENU and the gyroscope bias:
+
+$$
+\mathbf \chi = [\begin{matrix} {}^G_I  \mathbf R & \mathbf b_g \end{matrix}]   \\
+$$
+
+## Propagation
+
+The IMU kinematics from the book are:
+
+$$
+\begin{align*} {}^G_I \dot{\mathbf R} &= {}^G_I \mathbf R[\mathbf \omega_m - \mathbf b_g - \mathbf n_w]_\times \\ \dot{\mathbf b_g} &= \mathbf 0+ \mathbf n_g \end{align*} \\
+$$
+
+Define rotational error as:
+
+$$
+{}^G_I \mathbf R = {}^G_I \hat{\mathbf R} \text{Exp}(\delta \mathbf \theta)   \\
+$$
+
+The error-state kinematics are:
+
+$$
+\begin{align}  \dot{\delta \mathbf \theta} &= -[\mathbf \omega_m - \mathbf b_g]_\times \delta \mathbf \theta - \delta \mathbf b_g - \mathbf n_w  \\ \dot{\delta \mathbf b_g} &= \mathbf n_g  \end{align} \\
+$$
+
+With Euler integration:
+
+$$
+\begin{align*} \delta\mathbf \theta &\leftarrow \text{Exp}[(\mathbf \omega_m - \mathbf b_g)\Delta t]^T \delta \mathbf \theta - \delta b_g \Delta t +\mathbf \theta_i   \\  \delta \mathbf b_g &\leftarrow \delta \mathbf b_g +\bm\omega_i  \end{align*} \\
+$$
+
+In matrix form:
+
+$$
+\left[\begin{matrix} \delta \mathbf \theta \\ \delta \mathbf b_g \end{matrix}\right] = \underbrace{\left[\begin{matrix}  \text{Exp}[(\mathbf \omega_m - \mathbf b_g)\Delta t]^T & - \mathbf I \Delta t \\ \mathbf 0 & \mathbf I \end{matrix} \right]}_{\mathbf F_x} \left[\begin{matrix} \delta \mathbf \theta \\ \delta \mathbf b_g  \end{matrix}\right] +  \underbrace{ \left[ \begin{matrix} \mathbf I & \mathbf 0 \\ \mathbf 0  & \mathbf I \end{matrix} \right] }_{\mathbf F_i }\left[\begin{matrix} \mathbf \theta_i \\ \mathbf \omega_i \end{matrix}\right]         \\
+$$
+
+The covariance propagation is:
+
+$$
+\mathbf \Sigma_{k+1} = \mathbf F_x \mathbf \Sigma_k \mathbf F_x^T + \mathbf F_i \mathbf Q \mathbf F_i^T \\
+$$
+
+## Update
+
+When the IMU is moving at constant velocity, the accelerometer measures gravity direction. In practice, departures from constant velocity are treated as noise, yielding the measurement equation:
+
+$$
+\mathbf a =- {}^G_I \mathbf R^T \mathbf g + \mathbf n_a  \\
+$$
+
+where
+
+$$
+\mathbf g = \left[\begin{matrix} 0 &0 & -1 \end{matrix} \right]^T
+$$
+
+is the gravity direction in ENU.
+
+The Jacobian is:
+
+$$
+\mathbf H = \left[ \begin{matrix} [{}^G_I \mathbf R^T \mathbf g]_\times & \mathbf 0 \end{matrix} \right] \\
+$$
+
+## Initialization
+
+As in the [previous article](https://zhuanlan.zhihu.com/p/152662055), use the accelerometer to initialize roll and pitch, and set yaw to zero.
+
+## Implementation
+
+[ydsf16/IMUOrientationEstimator](https://github.com/ydsf16/IMUOrientationEstimator)
+
+## References
+
+[1] Sola, Joan. *Quaternion Kinematics for the Error-State Kalman Filter*. 2017.
