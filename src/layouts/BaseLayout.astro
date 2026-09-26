@@ -8,7 +8,7 @@ const { locale = 'en', title = 'TinyGrape Lab', description: suppliedDescription
 const normalizedLocale = locale as Locale;
 const copy = siteCopy[normalizedLocale];
 const description = suppliedDescription || copy.heroBody;
-const siteUrl = 'https://tinygrape.com.cn';
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') || 'https://tinygrape.com.cn';
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const imageUrl = new URL(image, siteUrl).toString();
 const pageTitle = `${title} · TinyGrape Lab`;
@@ -46,17 +46,33 @@ const pageTitle = `${title} · TinyGrape Lab`;
           <img src="/media/brand-icon.png" alt="" width="32" height="32" />
           <span>TinyGrape <b>Lab</b></span>
         </a>
-        <nav aria-label="Primary navigation">
+        <nav class="desktop-nav" aria-label="Primary navigation">
           <a href={localizedPath('/products', locale as Locale)}>{copy.nav.products}</a>
           <a href={localizedPath('/projects', locale as Locale)}>{copy.nav.projects}</a>
           <a href={localizedPath('/notes', locale as Locale)}>{copy.nav.notes}</a>
           <a href={localizedPath('/open-source', locale as Locale)}>{copy.nav.openSource}</a>
           <a href={localizedPath('/about', locale as Locale)}>{copy.nav.about}</a>
         </nav>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu">Menu</button>
         <div class="language-switch"><a class={locale === 'en' ? 'active' : ''} href={localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'en')}>EN</a><span>/</span><a class={locale === 'zh' ? 'active' : ''} href={localizedPath(Astro.url.pathname.replace(/^\/(en|zh)/, '') || '/', 'zh')}>中文</a></div>
       </div>
+      <nav id="mobile-menu" class="mobile-menu shell" aria-label="Mobile navigation">
+        <a href={localizedPath('/products', locale as Locale)}>{copy.nav.products}</a>
+        <a href={localizedPath('/projects', locale as Locale)}>{copy.nav.projects}</a>
+        <a href={localizedPath('/notes', locale as Locale)}>{copy.nav.notes}</a>
+        <a href={localizedPath('/open-source', locale as Locale)}>{copy.nav.openSource}</a>
+        <a href={localizedPath('/about', locale as Locale)}>{copy.nav.about}</a>
+      </nav>
     </header>
     <main><slot /></main>
     <footer class="site-footer"><div class="shell footer-inner"><span>© {new Date().getFullYear()} TinyGrape Lab</span><span>{copy.footer}</span><div class="footer-links"><a href="https://github.com/ydsf16">GitHub</a><a href={localizedPath('/privacy', locale as Locale)}>Privacy</a><a href={localizedPath('/support', locale as Locale)}>Support</a></div></div></footer>
+    <script is:inline>
+      const menuButton = document.querySelector('.menu-toggle');
+      const mobileMenu = document.querySelector('#mobile-menu');
+      menuButton?.addEventListener('click', () => {
+        const open = mobileMenu?.classList.toggle('is-open') ?? false;
+        menuButton.setAttribute('aria-expanded', String(open));
+      });
+    </script>
   </body>
 </html>

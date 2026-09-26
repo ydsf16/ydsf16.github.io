@@ -3,6 +3,7 @@ type: product
 title: RoamShot
 lang: zh
 status: 实验中
+summary: 让 iPhone 成为更有能力的运动相机，用于移动拍摄、现场采集与视觉实验。
 featured: true
 priority: 90
 platforms: [iOS]

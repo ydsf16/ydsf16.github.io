@@ -3,6 +3,7 @@ type: product
 title: Sensor Recorder Pro
 lang: zh
 status: 已发布
+summary: 在 iPhone 上采集相机、运动与位置数据，用于机器人、SLAM 和空间研究。
 featured: true
 priority: 100
 platforms: [iOS]

@@ -3,6 +3,7 @@ type: product
 title: Sensor Recorder Pro
 lang: en
 status: available
+summary: Capture camera, motion and location data on iPhone for robotics, SLAM and spatial research.
 featured: true
 priority: 100
 platforms: [iOS]

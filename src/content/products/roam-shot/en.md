@@ -3,6 +3,7 @@ type: product
 title: RoamShot
 lang: en
 status: experimental
+summary: Turn an iPhone into a more capable action camera for movement, field capture and visual experiments.
 featured: true
 priority: 90
 platforms: [iOS]

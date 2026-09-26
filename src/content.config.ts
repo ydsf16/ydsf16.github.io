@@ -5,7 +5,7 @@ const products = defineCollection({
   schema: z.object({
     type: z.literal('product'),
     slug: z.string().optional(), title: z.string(), lang: z.enum(['en', 'zh']),
-    status: z.string().optional(), featured: z.boolean().default(false), priority: z.number().default(0),
+    status: z.string().optional(), summary: z.string().optional(), featured: z.boolean().default(false), priority: z.number().default(0),
     tags: z.array(z.string()).default([]), categories: z.array(z.string()).default([]), cover: z.string().optional(),
     platforms: z.array(z.string()).default([]),
     features: z.array(z.string()).default([]),
@@ -25,7 +25,7 @@ const projects = defineCollection({
   schema: z.object({
     type: z.literal('project'),
     slug: z.string().optional(), title: z.string(), lang: z.enum(['en', 'zh']),
-    status: z.string().optional(), featured: z.boolean().default(false), priority: z.number().default(0),
+    status: z.string().optional(), summary: z.string().optional(), featured: z.boolean().default(false), priority: z.number().default(0),
     tags: z.array(z.string()).default([]), categories: z.array(z.string()).default([]), cover: z.string().optional(),
     githubUrl: z.string().url().optional(), relatedProducts: z.array(z.string()).default([]), relatedNotes: z.array(z.string()).default([])
   })

@@ -12,7 +12,7 @@ const notes = (await getCollection('notes', ({ data }) => data.lang === locale &
 ---
 <BaseLayout locale={locale} title={locale === 'zh' ? '首页' : 'Home'}>
   <section class="hero shell">
-    <div class="hero-copy"><p class="eyebrow">{copy.heroEyebrow}</p><p class="hero-body">{copy.heroBody}</p><div class="actions"><a class="button primary" href={`/${locale}/projects`}>{copy.primary} <span>↗</span></a><a class="button secondary" href={`/${locale}/about`}>{copy.secondary}</a></div></div>
+    <div class="hero-copy"><p class="eyebrow">{copy.heroEyebrow}</p><h1>{copy.heroTitle}</h1><p class="hero-body">{copy.heroBody}</p><div class="actions"><a class="button primary" href={`/${locale}/projects`}>{copy.primary} <span>↗</span></a><a class="button secondary" href={`/${locale}/about`}>{copy.secondary}</a></div></div>
     <div class="hero-art" aria-hidden="true"><img src="/media/brand-banner.png" alt="" /></div>
   </section>
   <section class="shell section"><div class="section-heading"><div><p class="eyebrow">01 / PRODUCTS</p><h2>{copy.productsTitle}</h2><p>{copy.productsBody}</p></div><a class="text-link" href={`/${locale}/products`}>{copy.viewAll} ↗</a></div><div class="card-grid">{products.map((item) => <ContentCard item={item} locale={locale} kind="product">{item.body ? item.body.slice(0, 140) : copy.productsBody}</ContentCard>)}</div></section>

@@ -7,6 +7,6 @@ const href = `/${locale}/${section}/${data.slug || item.id.split('/')[0]}`;
 <article class="content-card">
   <div class="card-topline"><span class="pill">{data.status || (kind === 'product' ? 'Product' : 'Project')}</span><span class="arrow">↗</span></div>
   <h3><a href={href}>{data.title}</a></h3>
-  <p><slot /></p>
+  <p>{data.summary || 'More details from TinyGrape Lab.'}</p>
   <div class="tag-row">{data.tags.slice(0, 3).map((tag: string) => <span>{tag}</span>)}</div>
 </article>
