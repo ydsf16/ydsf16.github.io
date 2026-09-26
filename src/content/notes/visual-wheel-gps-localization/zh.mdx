@@ -18,13 +18,19 @@ relatedProducts: []
 relatedProjects: [robotics-experiments]
 ---
 
+import VideoEmbed from '../../../components/VideoEmbed.astro';
+
 > 接上一篇 [MSCKF-Based Visual Wheel Odometry（VWO-MSCKF）](https://zhuanlan.zhihu.com/p/270670373)，这篇文章接入 GPS 信息，实现全局定位。
 
 实现方法参考了 Guoquan Huang 老师组的工作：W. Lee、K. Eckenhoff、P. Geneva、G. Huang，**Intermittent GPS-aided VIO: Online Initialization and Calibration**，2020 ICRA。
 
 先看一下效果：**红色的是融合定位轨迹，青色的是 GPS 数据**。
 
-实验视频：[知乎视频 1319077432150827008](https://www.zhihu.com/zvideo/1319077432150827008)  
+实验视频：
+
+<VideoEmbed src="https://video.zhihu.com/video/1319077432150827008" title="Visual-Wheel-GPS 融合定位实验" />
+
+如果播放器无法加载，也可以[直接打开知乎视频](https://www.zhihu.com/zvideo/1319077432150827008)。  
 代码：[ydsf16/TinyGrapeKit](https://github.com/ydsf16/TinyGrapeKit)
 
 ## 坐标系
