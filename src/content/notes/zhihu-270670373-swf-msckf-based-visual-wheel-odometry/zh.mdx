@@ -1,0 +1,422 @@
+---
+type: note
+title: "[SWF] MSCKF-Based Visual-Wheel Odometry 轮速视觉融合里程计"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/270670373
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Sliding Windows Filter（SWF）在VIO、SLAM这个领域应用非常广，比如MSCKF、OKVIS、VINS-Mono等等，几乎可以说是VIO的标配。
+>
+> SWF可以分成基于滤波器的和基于优化的两种。最典型的基于滤波器的方法就是MSCKF算法了。它是基于EKF的算法，在marginalize state的时候处理比较简单，只需要把对应的covariance的对应行列直接丢弃就可以了。而基于优化的方法在边缘化时需要对Hessian矩阵做舒尔补，操作会复杂一些。
+>
+> 为了尝试一下SWF，我们先从简单的基于滤波的方法入手。本文实现了一个基于MSCKF
+>
+> [1]
+>
+> 的Visual+Wheel融合的Odometry。
+
+下面是分别是仿真和用KAIST数据测试的结果。
+
+**注意**：这里为了凸显加了视觉校正效果，把wheel的noise设的比较大，轨迹不太平滑。如果想要平滑一些，可以适当调低wheel的noise。
+
+## 代码请见
+
+VWO-MSCKF
+
+## 1. 传感器配置
+
+Visual部分，用一个单目相机。Wheel部分可以是左右轮速度或位移。
+
+![文章配图](/media/notes/zhihu-270670373-swf-msckf-based-visual-wheel-odometry/image-01.jpg)源自：https://irap.kaist.ac.kr/dataset/system.html
+
+## 2. 坐标系统
+
+**轮速坐标系/Odometry坐标系** $\&#123;O\&#125;$ ：车辆后轴中心、贴地。 $x$ 轴向前， $y$ 轴向左， $z$ 轴向上。
+
+**全局坐标系**$\&#123;G\&#125;$ : 与初始时刻的轮速坐标系重合的坐标系。
+
+**相机坐标系** $\&#123;C\&#125;$ : $x$ 轴向右， $y$ 轴向下， $z$ 轴向前。
+
+## 3. 内外参数
+
+**内参数**：1）相机内参；2）左右轮轴距 $b$ ，左右轮速系数 $k_l, k_r$ 将编码器count转成距离米，或者速度转成m/s。
+
+**外参数**：轮速坐标系到相机坐标系的旋转 $&#123;&#125;^C_OR$ 与平移 $&#123;&#125;^C p_O$ 。
+
+我们假设这些内外参数都假设预先标定好的。实际上，也可以把这些内外参数放到状态向量里面估计，这也是很多论文里面常见的做法，比如[OpenVINS](https://link.zhihu.com/?target=https%3A//github.com/rpng/open_vins)。但是，具体这些内外参数能不能估计出来，是不是可观的，可以参考一下**[黄国权](https://link.zhihu.com/?target=http%3A//udel.edu/~ghuang/publications.html)**老师的论文。
+
+## 4. 状态向量
+
+滑窗里面的状态分成两类，一类是Odometry的位姿。
+
+
+$$
+{}^G_O T = \{ {}^G_O R, {}^G p_O \} \in \text{SE3}\\
+$$
+
+
+另一个类是一串相机位姿：
+
+
+$$
+{}^G_C T = \{{}^G_C R, {}^G p_C\} \in \text{SE3}\\
+$$
+
+
+**总的状态是当前Odometry位姿+N帧的相机位姿：**
+
+
+$$
+\chi = \left[\begin{matrix} {}^G_O T & {}^G_C T_1 & {}^G_C T_2 & \cdots &{}^G_C T_N \end{matrix}\right] \tag{1}
+$$
+
+
+跟MSCKF一样，我们把协方差分块表示：
+
+
+$$
+P_{k:k} = \left[\begin{matrix}  P_{OO_{k:k}} & P_{OC_{k:k}} \\ P_{OC_{k:k}}^T & P_{CC_{k:k}}  \\  \end{matrix}\right] \tag{2}\\
+$$
+
+
+$P_&#123;OO_&#123;k:k&#125;&#125;$ 为Odometry姿态$&#123;&#125;^G_O T$ 的协方差，维度为 $6\times6$ 。 $P_&#123;CC_&#123;k:k&#125;&#125;$ 为对应N帧相机位姿的协方差矩阵，维度为 $6N\times6N$ 。
+
+这里我们使用最简单的滑窗维护方式，当新的一帧进到滑窗后，就直接把老的一帧给边缘化掉。因为是EKF，就是直接把最后一帧相机pose从 $\chi$ 中去掉，然后把对应的协方差的行和列删除掉。
+
+## 5. Wheel Propagation
+
+EKF算法分成两步：Propagation+Update。在这里，我们用wheel的信息进行状态的propagation，用视觉信息做update。下面先推导Propagation部分。这里的推导，参考了Mingyang Li的paper[2]。
+
+按照IMU处理的方法，首先把ODE方程列出来
+
+
+$$
+\begin{align} \dot{{}^G_O R} &= {}^G_O R [{}^O\omega_O]_\times \\ \dot{{}^G p_O} &= {}^G v_O = {}^G_O R  {}^O v_O \end{align} \tag{3}\\
+$$
+
+
+$&#123;&#125;^O\omega_O$ 是相对轮速坐标系的顺时角速度，类似于IMU gyrosope的测量，是个3D量。但是实际上轮速计只能测到2D的旋转，所有只有能测到绕 $z$ 轴的角速度：
+
+
+$$
+{}^O \omega_O = \left[\begin{matrix} 0 \\ 0\\ \frac{k_r \cdot v_r - k_l \cdot v_l}{b} \end{matrix}\right] \tag{4}\\
+$$
+
+
+$&#123;&#125;^O v_O$ 是瞬时速度，也是个3D量。但轮速也只能测到沿 $x$ 轴方向的速度：
+
+
+$$
+{}^O v_O = \left[\begin{matrix} \frac{k_l \cdot v_l + k_r \cdot v_r}{2} \\ 0 \\ 0 \end{matrix}\right] \tag{5}\\
+$$
+
+
+$v_l$ ， $v_r$ 是左右轮的速度。
+
+下面就可以对ODE方程进行积分了。简单起见，直接用欧拉积分了。如果考虑精度，可以使用中值或者龙格库塔：
+
+
+$$
+\begin{align} {}^G_O R_{k+1} &= {}^G_O R_k \underbrace{\text{Exp}( {}^O \omega_O \Delta t}_{\Delta R}) \\ {}^G {p_O}_{k+1} &= {}^G {p_O}_{k} + {}^G_O R_k  \underbrace{{}^O v_O \Delta t }_{\Delta p}\end{align} \tag{6}\\
+$$
+
+
+用这个式子，就可以进行均值的Propagation。对于协方差的Propgation，我们先求雅克比。这里定义旋转的Error为：
+
+
+$$
+{}^G_O R = {}^G_O\hat{R}\  \text{Exp}(\delta \theta) \\ \tag{7}
+$$
+
+
+那么可以求得，相对于Odometry位姿 $\&#123; &#123;&#125;^G_O R, &#123;&#125;^G p_O \&#125;$ 的雅克比：
+
+
+$$
+\Phi = \left[\begin{matrix}  \text{Exp}({}^O \omega_O \Delta t) ^T & 0 \\  - {}^G_O R_{k} [{}^O v_O \Delta t]_\times & I  \end{matrix}\right] \\  \tag{8}
+$$
+
+
+相对于姿态增量 $\&#123;\Delta R, \ \Delta p\&#125;$ 的雅克比为：
+
+
+$$
+F = \left[\begin{matrix} I& 0 \\ 0 &  {}^G_O R_k    \end{matrix}\right] \\ \tag{9}
+$$
+
+
+$\&#123;\Delta R, \ \Delta p\&#125;$ 噪声 $Q$ 可以根据姿态增量的大小设置。我们可以得到大协方差矩阵的Propagation公式：
+
+
+$$
+P_{k+1:k} = \left[\begin{matrix}  \Phi P_{OO_{k:k}} \Phi^T + F Q F^T& \Phi P_{OC_{k:k}} \\ P_{OC_{k:k}}^T\Phi^T & P_{CC_{k:k}}  \\  \end{matrix}\right] \\ \tag{10}
+$$
+
+
+## 6. 状态增广
+
+当新来一帧图像，可以通过odometry位姿，计算出相机位姿。
+
+
+$$
+\begin{align} {}^G_C R &= {}^G_O R \ {}^O_C R \\ {}^G p_C &= {}^G p_O + {}^G_O R \ {}^O p_C \end{align} \\ \tag{11}
+$$
+
+
+然后把它放到状态向量里面。相应的要把协方差矩阵进行扩展：
+
+
+$$
+P_{k|k} \leftarrow  \left[\begin{matrix} I_{6N+6} \\ J \end{matrix}\right] P_{k|k}  \left[\begin{matrix} I_{6N+6} \\ J \end{matrix}\right]^T \\ \tag{12}
+$$
+
+
+$J$ 是（11）相对于原状态$\chi$ (增广之前的状态)的雅克比：
+
+
+$$
+J = \left[\begin{matrix} {}^O_C R^T &0_{3\times3} & 0_{6N\times6N} \\ -{}^G_O R\left[{}^O p_C\right]_\times &I & 0_{6N\times6N} \end{matrix}\right] \\ \tag{13}
+$$
+
+
+前两列是相对于Odometry姿态$\&#123; &#123;&#125;^G_O R, &#123;&#125;^G p_O \&#125;$的雅克比。
+
+## 7. Update
+
+### 7.1 视觉Update
+
+MSCKF的很大的优势就是没有把特征点放到状态向量里面，降低了计算量。
+
+当特征点丢失的时候，才拿来进行更新。特征点丢失有两种情况：
+
+1. 一种是跟踪丢失，也就是当前帧跟踪不到的那些特征点；
+2. 另一种是边缘化的时候，也就是把最后一帧滑出窗口的时候，把**在这一帧里面新建的特征点**都丢弃，也就是都拿来做更新。
+
+> 这里说的特征点/feature，同时表示3D点，也表示在图像上的2D位置。
+
+**A. 一个特征点的处理**
+
+每个用来做更新的feature $&#123;&#125;^G p_f$ ，会被滑窗内的 $M$ 帧相机看到。在其中一帧图像上的投影为：
+
+
+$$
+z_i = \pi\left(\underbrace{{}^G_C R^T ({}^G p_{f_i} - {}^G p_C)}_{{}^C p_{f_i}}\right) \\ \tag{14}
+$$
+
+
+其中， $\pi$ 为相机的投影函数。把这个方程线性化：
+
+
+$$
+r_i = H_{\chi_i} \delta \chi_i +H_{f_i} \delta{{}^G p_{f_i}} \\ \tag{15}
+$$
+
+
+$H_&#123;\chi_i&#125;$ 是对整个大状态 $\chi$ 的雅克比， $H_&#123;f_i&#125;$ 是对特征点的雅克比。这里需要注意一下，计算 $H_&#123;\chi_i&#125;$ 是需要知道 $&#123;&#125;^G p_&#123;f_i&#125;$ 的，所以，还是需要把特征点的3D位置恢复出来的。
+
+一个feature有 $M$ 帧相机的观测，把这些观测堆叠在一起。可以得到一个大的线性化方程：
+
+
+$$
+r = H_{\chi} \delta \chi +H_{f} \delta{{}^G p_{f}} \\ \tag{16}
+$$
+
+
+但是这个方程里面有feature，而我们的状态里面没有feature，所以是不能直接用来做EKF更新的。那我们就要想办法把 $H_&#123;f&#125; \delta&#123;&#123;&#125;^G p_f&#125;$ 消掉。一种方法，我们可以在（16）左右两边同时乘以一个矩阵 $A^T$ ：
+
+
+$$
+A^T r = A^T H_{\chi} \delta \chi +A^T H_{f} \delta{{}^G p_{f}} \\ \tag{17}
+$$
+
+
+如果这个矩阵满足 $A^T H_&#123;f&#125; =0$ 。我们就可以把（16）中关于特征点的部分给消除掉了。 $A^T$ 乘在了左边，所以叫做 $H_&#123;f&#125;$ 的左零空间。
+
+现在的问题就是怎么求解 $A$ 了。MSCKF给的方法是[Givens Rotation](https://zhuanlan.zhihu.com/p/136551885)，如果计算效率要求不高，也可对 $H_f$ 做QR分解：
+
+
+$$
+H_f = \left[\begin{matrix} Q_1 & Q_2\end{matrix}\right] \left[\begin{matrix} R \\ 0\end{matrix}\right] = Q_1 R \\
+$$
+
+
+对这个式子左乘 $Q_2^T$ 有：
+
+
+$$
+Q_2^T H_f = Q_2^T Q_1 R = 0\\
+$$
+
+
+因为 $Q_2$ 与$Q_1$ 是正交的。所以， $A=Q_2$
+
+做了上面的操作之后，就可以得到一个不含特征点的线性方程：
+
+
+$$
+\bar r = \bar H_{\chi} \delta \chi \\ \tag{18}
+$$
+
+
+**B. 多个特征点的处理**
+
+上面一个特征点可以得到一个（18）式。多个特征点就可以得到很多的（18）式，把他们堆叠起来，有得到一个很大的线性方程：
+
+
+$$
+r^* = H^* \delta {\chi} \\ \tag{19}
+$$
+
+
+这个方程的行数一般很大，直接用来做EKF更新效率很低。MSCKF又用QR分解，进行了一次压缩。具体的对 $H^&#123;*&#125;$ 做QR分解：
+
+
+$$
+H^{*} = \left[\begin{matrix} Q_1 & Q_2\end{matrix}\right] \left[\begin{matrix} R \\ 0\end{matrix}\right] \\
+$$
+
+
+带入到(19)式中，可以得到，
+
+
+$$
+r^* = \left[\begin{matrix} Q_1 & Q_2\end{matrix}\right] \left[\begin{matrix} T_H \\ 0\end{matrix}\right]  \delta {\chi} \\
+$$
+
+
+左右两边，同时乘以 $\left[\begin&#123;matrix&#125; Q_1 & Q_2\end&#123;matrix&#125;\right]^T$ 有
+
+
+$$
+\left[\begin{matrix} Q_1^T \\ Q_2^T \end{matrix}\right] r^* =  \left[\begin{matrix} T_H \\ 0\end{matrix}\right]  \delta {\chi}  \\
+$$
+
+
+最后，我们得到一个压缩后的线性方程
+
+
+$$
+r_n  = Q_1^T r^{*} = T_H \delta \chi  \\ \tag{20}
+$$
+
+
+这方程的行数最大和状态的维度相同。最终用来做EKF更新的也就是（20）式。
+
+**C. 边缘化**
+
+边缘化，或者说如何删除滑窗里的状态。前面也已经提到了，我们使用了最简单的策略。就直接把最老的一帧去掉。去掉的这帧里的所有特征点都被拿来做更新。
+
+**最后，总结一下，当一帧图像来了之后的处理步骤**
+
+> step1
+>
+> ：增广状态
+>
+> step2
+>
+> ：做特征点跟踪。
+>
+> step3
+>
+> ：收集跟踪丢失的的所有特征点
+>
+> step4
+>
+> ：收集将要被边缘化的帧中的所有特征点：
+>
+> step5
+>
+> : 利用特征点
+>
+> 和
+>
+> 构造线性方程(20)，并执行EKF更新。
+>
+> step6
+>
+> : 边缘化操作：将
+>
+> 中边缘化掉的pose去掉，将协方差矩阵中对应的行和列删除。
+
+## 7.2 平面约束Update
+
+一般车辆都是运动在平面上的，在更新的时候，我们引入一个平面约束。这部分参考了Stergios I. Roumeliotis 的Paper[VINS On wheels](https://link.zhihu.com/?target=https%3A//ieeexplore.ieee.org/document/7989603/)[3]
+
+我们想要的约束是Odometry的坐标的X-O-Y面与一个平面重合。怎么表达这个平面呢？可以在这个平面上建立一个坐标系 $\&#123;\pi\&#125;$ ，在加上一个全局坐标系原点到平面的垂直距离沿着$\&#123;\pi\&#125;$ 坐标系 $z$ 轴的投影 $&#123;&#125;^\pi z_G$ 。坐标系 $\&#123;\pi\&#125;$的姿态为 $&#123;&#125;^&#123;\pi&#125; _G R$ ，下面来建立平面约束：
+
+1. Odometry坐标系的姿态与平面坐标系的姿态误差应该只有绕 $z$ 轴的旋转，roll、pitch都是0。
+
+
+$$
+0_{2\times 1} =\Lambda \underbrace {{}^\pi_G R \ {}^G_O R}_{{}^\pi _O R}e_3 \\ \tag{21}
+$$
+
+
+其中， $\Lambda = \left[\begin&#123;matrix&#125; 1 & 0 & 0 \\ 0 &1 &0 \end&#123;matrix&#125;\right]$ ， $e_3 = \left[\begin&#123;matrix&#125; 0 \\ 0 \\ 1 \end&#123;matrix&#125;\right]$ ，目的是取 $&#123;&#125;^\pi _O R$ 右上角的 $2\times1$ 的向量。
+
+2. 全局坐标系的原点，到odometry坐标系的X-O-Y平面的垂直距离沿着$\&#123;\pi\&#125;$的 $z$ 轴投影，应该与$&#123;&#125;^\pi z_G$相同。
+
+
+$$
+{}^\pi z_G = -e_3^T{}^\pi_G R \  {}^G p_O\\ \tag{22}
+$$
+
+
+(21)(22)式对 Odometry姿态$\&#123; &#123;&#125;^G_O R, &#123;&#125;^G p_O \&#125;$的雅克比为：
+
+
+$$
+H_p = \left[\begin{matrix}   -\Lambda {}^\pi_G R \ {}^G_O R [e_3]_\times & 0 \\ 0 & -e_3^T{}^\pi_G R  \end{matrix}\right] \\ \tag{23}
+$$
+
+
+对于我们的应用，我们设定平面 $\&#123;\pi\&#125;$ 为初始时刻Odometry坐标系的X-O-Y平面。那么：
+
+
+$$
+{}^\pi _G R = I ,\  {}^\pi z_G = 0 \\ \tag {24}
+$$
+
+
+带入到(21)(22）式，看一下其实就是让 $&#123;&#125;^G_O R$ 的右上角 $2\times1$ 的向量为0，让 $&#123;&#125;^G p_O$ 的 $z$ 分量为0。
+
+## 8. 实现
+
+全部工程代码请见：
+
+VWO-MSCKF
+
+## **9. 实验**
+
+**仿真测试，很明显，VWO-MSCKF比纯Wheel里程计精度更好。**
+
+![文章配图](/media/notes/zhihu-270670373-swf-msckf-based-visual-wheel-odometry/image-02.jpg)
+
+**数据集测试**
+
+我们这里使用了**KAIST**数据集，链接是：
+
+https://
+
+irap.kaist.ac.kr/datase
+
+t/
+
+同样的，相比纯Wheel odom，精度会有所提高。
+
+![文章配图](/media/notes/zhihu-270670373-swf-msckf-based-visual-wheel-odometry/image-03.jpg)
+
+注意：这里的测试，Wheel内参数精度都是比较低的，所以raw odom的精度不是很高。如果wheel内参数精度很高的话，VWO-MSCKF精度不一定更高。

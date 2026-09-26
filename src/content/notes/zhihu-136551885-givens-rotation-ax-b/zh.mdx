@@ -1,0 +1,311 @@
+---
+type: note
+title: "Givens Rotation解Ax=b"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/136551885
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 工程中的很多问题都会归结为求解方程
+>
+> 。
+>
+> 是一个
+>
+> 矩阵，
+>
+> 是一个
+>
+> 的列向量。
+>
+> 求解这个问题有很多中方法，如QR分解，LLT分解等等（可以看Eigen的一个教程：
+>
+> http://
+>
+> eigen.tuxfamily.org/dox
+>
+> /group__TutorialLinearAlgebra.html
+>
+> ）。本文主要介绍使用Givens Rotation解这个问题。
+>
+> 很多SLAM算法中都有使用Givens Rotation，比如
+>
+> MSCKF，iSAM
+>
+> 等。
+
+## 1. QR分解求解Ax=b
+
+在引入Givens Rotation之前，先介绍QR分解的方法。
+
+矩阵 $\mathbf A$ 可以分解为一个正交方阵 $\mathbf Q$ 和一个上三角矩阵 $\mathbf R$
+
+
+$$
+\mathbf A = \mathbf Q  \left[\begin{matrix}  \mathbf R \\ \mathbf 0\end{matrix}\right] \ (1)\\
+$$
+
+
+我们要求解的问题就变为
+
+
+$$
+\mathbf Q  \left[\begin{matrix}  \mathbf R \\ \mathbf 0\end{matrix}\right] \mathbf x = \mathbf b \ (2) \\
+$$
+
+
+两边同时乘 $\mathbf Q^T$
+
+
+$$
+\mathbf Q^T \mathbf Q  \left[\begin{matrix}  \mathbf R \\ \mathbf 0\end{matrix}\right] \mathbf x = \mathbf Q^T \mathbf b \\    \left[\begin{matrix}  \mathbf R \\ \mathbf 0\end{matrix}\right] \mathbf x = \mathbf Q^T \mathbf b \\   \left[\begin{matrix}  \mathbf R \\ \mathbf 0\end{matrix}\right] \mathbf x = \left[ \begin{matrix} \mathbf d \\ \mathbf c\end{matrix}\right] \\
+$$
+
+
+取上半部分：
+
+
+$$
+\mathbf R \mathbf x = \mathbf d  \ (3)\\
+$$
+
+
+$\mathbf R$ 是一个上三角矩阵，所以求解方程(3)只需要从最后一行开始，先计算 $\mathbf x$的最后一个元素，然后逐行回带，就可以可把 $\mathbf x$ 求解出来。
+
+> 使用上面的过程求解，首先需要把
+>
+> 进行QR分解，而且要存储
+>
+> 。这个过程费时，费内存。
+>
+> 而Givens Rotation告诉我们，不需要把
+>
+> 求出来，也可以得到(3)式。
+
+## **2. Givens Rotation**
+
+为了获取（3）式子，我们的目的是要把矩阵 $\mathbf A$ 的下半部分的元素（除了上三角的元素）变成0。
+
+**2.1 先看简单的二维方阵的情况**
+
+
+$$
+\mathbf A = \left[ \begin{matrix} a_{11} &a_{12} \\ a_{21} &a_{22} \end{matrix}\right] \\
+$$
+
+
+我们要把 $a_&#123;21&#125;$ 那里变成0，可以对 $\mathbf A$ 左乘一个旋转矩阵/Givens矩阵 $\mathbf G$ ：
+
+
+$$
+\left[ \begin{matrix} cos\theta &-sin\theta\\ sin\theta &cos\theta\end{matrix} \right] \left[ \begin{matrix} a_{11} &a_{12} \\ a_{21} &a_{22} \end{matrix}\right]  = \left[ \begin{matrix} b_{11} &b_{12} \\  0 &b_{22} \end{matrix}\right]  \\
+$$
+
+
+> 之所以用旋转矩阵，因为它是正交的，它的连乘也是正交的，也就是它的乘积可以组成
+
+旋转的角度 $\theta$ 的选取要能够把左下角的元素 $a_&#123;21&#125;$ 变为0，也就是要满足：
+
+
+$$
+a_{11}sin\theta + a_{21}cos\theta=0 \\ \theta = \text{atan}(-\frac{a_{21}}{a_{11}})
+$$
+
+
+很显然，我们是知道 $a_&#123;11&#125;,a_&#123;21&#125;$ ，所以 $\theta$ 也可以解出来，那自然的givens矩阵 $\mathbf G$ 也就有了。所以，就可以把 $\mathbf A$ 变成上三角矩阵了。
+
+> 实际上我们并不需要把
+>
+> 解出来，只需要把
+>
+> 和
+>
+> 解出来就可以了。有一种数值稳定的解法是：
+
+对于要解的$\mathbf A \mathbf x = \mathbf b$问题，两边同时乘上Givens矩阵就得到了和（3）式一样的情况。
+
+
+$$
+\left[ \begin{matrix} cos\theta &-sin\theta\\ sin\theta &cos\theta\end{matrix} \right] \mathbf A \mathbf x = \left[ \begin{matrix} cos\theta &-sin\theta\\ sin\theta &cos\theta\end{matrix} \right] \mathbf b \\ \left[ \begin{matrix} b_{11} &b_{12} \\  0 &b_{22} \end{matrix}\right]  \left[ \begin{matrix} x_{1} \\ x_{2} \end{matrix}\right]=  \left[ \begin{matrix} d_{1} \\ d_{2} \end{matrix}\right]  \\
+$$
+
+
+从下往上计算 $\mathbf x$ 的元素，先计算 $x_2 = d_2 / b_&#123;22&#125;$ ，再计算 $x_1 = \frac&#123;d_1 - b_&#123;12&#125;x_2&#125;&#123;b_&#123;11&#125;&#125;$ ，就解完了。
+
+**2.2 上面这个二维的方阵，比较简单，只需要做一次Givens旋转就搞定了。下面再看，对于超定矩阵的情况。**
+
+
+$$
+\mathbf A = \left[ \begin{matrix} a_{11} &a_{12} \\ a_{21} &a_{22} \\ a_{31} & a_{32}\end{matrix}\right] \\
+$$
+
+
+我们要做的是把 $a_&#123;21&#125;, a_&#123;31&#125;, a_&#123;32&#125;$ 的地方变为0。
+
+变为0的顺序，为从最左侧一列开始往右，每一列从最下面一个元素开始。
+
+第一步：把 $a_&#123;31&#125;$ 变为0，我们需要左乘Givens矩阵 $G_1$
+
+
+$$
+\left[ \begin{matrix} cos\theta_1 & 0 & -sin\theta_1 \\ 0 &1 & 0 \\ sin\theta_1 & 0 & cos\theta_1 \end{matrix}\right] \left[ \begin{matrix} a_{11} &a_{12} \\ a_{21} &a_{22} \\ a_{31} & a_{32}\end{matrix}\right]  = \left[ \begin{matrix} b_{11} &b_{12} \\ a_{21} &a_{22} \\ 0 & b_{32}\end{matrix}\right]\\
+$$
+
+
+可以看到这个Givens矩阵是由 $a_&#123;11&#125;$ 和 $a_&#123;13&#125;$ 确定的。变化的元素都有 $b$ 来表示。
+
+第二步：把 $a_&#123;21&#125;$变为0，左乘Givens矩阵 $G_2$
+
+
+$$
+\left[ \begin{matrix} cos\theta_2 & -sin\theta_2 & 0  \\ sin\theta_2 &cos\theta_2 & 0 \\ 0 & 0 & 1 \end{matrix}\right]  \left[ \begin{matrix} b_{11} &b_{12} \\ a_{21} &a_{22} \\ 0 & b_{32}\end{matrix}\right] =  \left[ \begin{matrix} c_{11} &c_{12} \\ 0 & c_{22} \\ 0 & b_{32}\end{matrix}\right]\\
+$$
+
+
+这次的Givens矩阵由 $b_&#123;11&#125;$ 和 $a_&#123;21&#125;$ 确定。变化的元素用 $c$ 来标识。
+
+第三步：把 $b_&#123;32&#125;$ 变为0，左乘Givens矩阵 $G_3$
+
+
+$$
+\left[ \begin{matrix}1 & 0 &0  \\ 0   & cos\theta_3 & -sin\theta_3\\ 0 &  sin\theta_3 & cos\theta_3 \end{matrix}\right]  \left[ \begin{matrix} c_{11} &c_{12} \\ 0 & c_{22} \\ 0 & b_{32}\end{matrix}\right] =  \left[ \begin{matrix} c_{11} &c_{12} \\ 0 & d_{22} \\ 0 & 0\end{matrix}\right]\\
+$$
+
+
+至此，我们就把矩阵 $\mathbf A$ 变成了上三角矩阵。
+
+实际上三个Givens矩阵的连乘就是 $\mathbf Q$ 矩阵的转置：
+
+
+$$
+\mathbf Q^T  = \mathbf G_3 \mathbf G_2 \mathbf G_1\\
+$$
+
+
+**2.3 总结**
+
+> 总结一下Givens Rotation的过程：
+
+- **从左到右逐列执行。**
+- **每一列，从下往上执行。**
+- **每一次的Givens矩阵由要消为0 的元素和对应对角线的元素确定。**
+
+> 如果我们把用Givens Rotation计算的上三角矩阵与Matlab，Eigen等其他算法计算的结果对比，有时候会发现不一样。不要以为自己算错了，这是因为QR分解并不是唯一的。
+>
+> 例如，定义一个对角矩阵
+>
+> ，每个
+>
+> 都是+1或者-1，那么
+>
+> ，
+>
+> 和
+>
+> 就组成了新的QR分解。
+
+## 3. 实现代码
+
+```
+// Note: i is col, j is row.
+void GivensCosSin(const double aii, const double aji, double* c, double* s) {
+    if (std::abs(aji) < 1e-12) {
+        *c = 1.;
+        *s = 0.;
+    } else if (std::abs(aji) > std::abs(aii)) {
+        const double aii_over_aji = aii / aji;
+        const double one_over_sqrt = 1. / std::sqrt(1. + aii_over_aji * aii_over_aji);
+        *c = - aii_over_aji * one_over_sqrt;
+        *s = one_over_sqrt;
+    } else {
+        const double aji_over_aii = aji / aii;
+        const double one_over_sqrt = 1. / std::sqrt(1 + aji_over_aii * aji_over_aii);
+        *c = one_over_sqrt;
+        *s = - aji_over_aii * one_over_sqrt;
+    }
+}
+
+// A * x = b to R * x = d.
+void GivensRotationQRInPlace(Eigen::MatrixXd* A, Eigen::VectorXd* b) {
+    Eigen::MatrixXd& AA = *A;
+    Eigen::VectorXd& bb = *b;
+    const int rows = AA.rows();
+    const int cols = AA.cols();
+
+    assert(rows > cols);
+    assert(rows == bb.rows());
+
+    // Traverse all columns
+    for (int col = 0; col < cols; ++col) {
+        // Bottom to up.
+        for (int row = rows - 1; row > col; --row) {
+            // Compute cos_theta, sin_theta
+            double c, s;
+            GivensCosSin(AA(col, col), AA(row, col), &c, &s);
+
+            // Porcess A.
+            // For all elements at the ith, and jth rows.
+            for (int n = col; n < cols; ++n) {
+                const double a = AA(col, n);
+                const double b = AA(row, n);
+                AA(col, n) = c * a - s * b;
+                AA(row, n) = s * a + c * b;
+            } 
+
+            // Process b.
+            {
+                const double a = bb(col);
+                const double b = bb(row);
+                bb(col) = c * a - s * b;
+                bb(row) = s * a + c * b; 
+            }
+        }   
+    }
+}
+
+bool BackSubstitution(const Eigen::MatrixXd& R, const Eigen::VectorXd& d, Eigen::VectorXd* x) {
+    x->resize(R.rows());
+    // From bottom to up.
+    for (int row = R.rows() - 1; row >= 0; --row) {
+        if (std::abs(R(row, row)) < 1e-12) {
+            return false;
+        }
+
+        double tmp = 0.;
+        for (size_t col = row + 1; col < R.cols(); ++col) {
+            tmp += R(row, col) * (*x)(col);
+        }
+
+        (*x)(row) = (d(row) - tmp) /  R(row, row);
+    }
+
+    return true;
+}
+
+bool SolveLinearSystemInPlace(Eigen::MatrixXd* A, Eigen::VectorXd* b, Eigen::VectorXd* x) {
+    // Ax=b to Rx=d.
+    GivensRotationQRInPlace(A, b);
+    
+    // Solve Rx = d.
+    return BackSubstitution(A->topRows(A->cols()), b->topRows(A->cols()), x);
+}
+```
+
+## 4. 参考资料
+
+- Joan Sola. Course on SLAM.
+- Timothy Sauer. Numerical Analysis.
+- Michael Kaess. iSAM: Incremental Smoothing and Mapping
+- G. Golub and C. V. Loan, Matrix Computations, 3rd

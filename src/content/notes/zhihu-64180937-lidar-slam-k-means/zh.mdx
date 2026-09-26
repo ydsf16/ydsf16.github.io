@@ -1,0 +1,168 @@
+---
+type: note
+title: "[LIDAR SLAM] k-means 简单实现"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/64180937
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> K-means是一种聚类算法。
+>
+> 本文对K-means算法进行了简单实现
+>
+> 。
+
+K-Means算法效果
+
+https://www.zhihu.com/video/1106986187683876864
+
+## 问题描述（[WIKI上有详细介绍](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/K-means_clustering)）
+
+给定一组数据点 $X = (x_1, x_2, \cdots, x_n)$ ，每个点的维度都是 $d$ 。K-means的目的是将这 $n$ 个点分成 $k$ 类： $S=\&#123;S_1, S_2, \cdots, S_k\&#125;$ 。要求点到各自类中心的距离和最小，即：
+
+
+$$
+\arg \min \sum\limits_{i = 1}^k {\sum\limits_{x \in {S_i}}^{} {{{\left\| {x - {\mu _i}} \right\|}^2}} }   \\
+$$
+
+
+## K-Means算法
+
+K-Means算法的步骤如下
+
+> 输入：
+>
+> 一组数据点:
+>
+> ，类别数：
+>
+> 输出：每个点对应的类别
+>
+> step 1. 随机选择
+>
+> 个点作为初始中心点（mean）
+>
+> 迭代如下步骤，直到收敛
+>
+> step 2. 根据中心点，计算每个点的分类（根据欧氏距离）
+>
+> step 3. 对每个类计算一个新的中心点（mean）
+>
+> step 4. 判断是否收敛：每个点的分类不再变化 or 总的cost不变了 or mean不再变化
+>
+> 迭代结束
+
+实际上，K-means并不一定能够得到全局最优解。
+
+## 实现
+
+K-means算法实现起来也比较简单，下面给出全部源码。从TUM RGB-D数据集中选择一张图片，用其中的Depth图构造出3D点云，对点云进行K-means分割，效果如图。
+
+![文章配图](/media/notes/zhihu-64180937-lidar-slam-k-means/image-01.jpg)
+
+```
+void Kmeans::clustering ( const std::vector< Eigen::Vector3d >& point_cloud, int k, int max_iters, double epsilon, std::vector< int >& classes )
+{
+    if ( point_cloud.size() < k ) {
+        return;
+    }
+    //classes.reserve ( point_cloud.size() );
+    //classes.shrink_to_fit();
+    classes = std::vector<int> ( point_cloud.size(), 0 );
+
+    // step 1. rand select k points. TODO
+    std::vector<Eigen::Vector3d> means; // means for k
+    means.reserve ( k );
+
+    cv::RNG rng ( cv::getTickCount() );
+    std::set<int> selected_ids;
+    while ( selected_ids.size() < k ) {
+        int id = rng.uniform ( 0, point_cloud.size() );
+        if ( ! selected_ids.count ( id ) ) {
+            selected_ids.insert ( id );
+        }
+    } // select ids.
+    std::set<int>::const_iterator iter;
+    for ( iter = selected_ids.begin(); iter != selected_ids.end(); ++iter ) {
+        means.push_back ( point_cloud.at ( *iter ) );
+    }
+
+    // start loop
+    for ( size_t nit = 0; nit < max_iters; ++nit ) {
+        // step 2. assign points to classes.
+        // for each point
+        for ( size_t i = 0; i < point_cloud.size(); i ++ ) {
+            // pt.
+            const Eigen::Vector3d& pt = point_cloud.at ( i );
+
+            // init params
+            int min_class_id = -1;
+            double min_dist = std::numeric_limits<double>::max();
+
+            for ( size_t j = 0; j < k ; j ++ ) {
+                const Eigen::Vector3d& mean = means.at ( j );
+				double dist = ( pt-mean ).norm(); // Euclidean distance
+                if ( dist < min_dist ) {
+                    min_dist = dist;
+                    min_class_id = j;
+                }
+            }
+
+            classes.at ( i ) = min_class_id; // assign id.
+        }// for each point assign to the nearest class.
+
+        // step 3. compute new center for each class.
+        std::vector<Eigen::Vector3d> new_means ( k, Eigen::Vector3d ( 0.0,0.0,0.0 ) ); // sum of each
+        std::vector<int> npts_class ( k, 0 ); // number of points of each class
+        for ( size_t i = 0; i < point_cloud.size(); i ++ ) {
+            // pt
+            const Eigen::Vector3d& pt = point_cloud.at ( i );
+            const int& class_id = classes.at ( i );
+
+            // sum
+            new_means.at ( class_id ) += pt;
+            npts_class.at ( class_id ) ++;
+        }
+
+        for ( size_t i = 0; i < k; i ++ ) {
+            new_means.at ( i ) /= ( double ) ( npts_class.at ( i ) );
+        }
+
+        // Step 4. check if it has converged
+        double delta_mean = 0.0;
+        for ( size_t i = 0; i < k; i ++ ) {
+            delta_mean += ( new_means.at ( i ) - means.at ( i ) ).norm();
+        }
+
+        if ( delta_mean < epsilon ) {
+            break;
+        }
+
+        // copy means.
+        means = new_means;
+    } // for max_iters.
+   
+} //  clustering
+```
+
+**全部工程代码请见（包括测试代码）**
+
+ydsf16/lidar_slam
+
+## 参考资料
+
+[1] [k-means wiki](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/K-means_clustering)
+
+[2] [清雨影：K-Means聚类算法（二）：算法实现及其优化](https://zhuanlan.zhihu.com/p/20445085)

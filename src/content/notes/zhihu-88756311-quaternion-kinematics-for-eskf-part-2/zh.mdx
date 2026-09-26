@@ -1,0 +1,225 @@
+---
+type: note
+title: "Quaternion kinematics for ESKF总结[Part 2]"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/88756311
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 最近在看Joan Solà大神的《Quaternion Kinematics for the error-state Kalman filter》，在此对其中的一些知识点进行总结，纯属搬书。
+
+## 1. Error-state kinematics for IMU-driven systems.
+
+为什么使用error-state？
+
+- The orientation error-state is minimal, avoiding issues related to over-parameterization and the consequent risk of the singularity of the involved covariances matrices, resulting typically from enforcing constraints.
+- The error-state system is always operating close to the original, and therefore far from possible parameters singularities, gimbal lock issues, or the like, providing a guarantee that the linearization validity holds at all times.
+- The error-state is always small, meaning that all second-order products are negligible. This makes the computation of Jacobians very easy and fast. Some jacobians may even be constant or equal to available state magnitudes.
+- The error dynamics are slow because all the large signal dynamics have been integrated into the nominal-state. This means that we can apply KF corrections at a lower rate than the predictions.
+
+在error-state Filter中我们有三种类型的数：true, nominal和error-state:
+
+
+$$
+true = nominal \oplus error\ state \\
+$$
+
+
+nominal可以认为是大信号，不考虑噪声。噪声全部放到error-state中处理。在Filter中使用error-state作为滤波状态。
+
+以下是ESKF中常用的变量：
+
+![文章配图](/media/notes/zhihu-88756311-quaternion-kinematics-for-eskf-part-2/image-01.jpg)
+
+需要注意的是，这里定义的旋转的误差状态是local的， $\delta \theta$ 在R的右侧， $\delta \theta$ 的参考系是局部坐标系。而IMU的gyro给出的测量也是相对于局部坐标系的。这种表达更容易使用IMU的量测。
+
+## 2. System kinematics in continuous time
+
+**2.1 True state kinematics**
+
+
+$$
+\dot{\bm p}_t = \bm v_t \\ \dot{\bm v}_t = \bm a_t \\ \dot{\bm q}_t = \frac{1}{2} \bm q_t \otimes \bm{\omega}_t \\ \dot{\bm a}_{bt} = \bm a_w \\ \dot{\bm \omega}_{bt} = \bm \omega_w \\ \dot{\bm g}_t = 0\\
+$$
+
+
+$&#123;\bm a&#125;_&#123;bt&#125;$ 为accelerator的bias， $\bm &#123;\omega&#125;_&#123;bt&#125;$ 为gyro的bias。
+
+我们的IMU传感器的量测为，都是在局部坐标系下，且受到bias和噪声的影响。
+
+
+$$
+\bm a_m = \bm R_t^T(\bm a_t - \bm g_t) +\bm a _{bt} + \bm a_n \\ \bm \omega_m = \bm \omega_t +\bm \omega_{bt} +\bm \omega_n
+$$
+
+
+把这些量测带入到True state kinematics中，可以得到：
+
+
+$$
+\dot{\bm p}_t = \bm v_t \\ \dot{\bm v}_t = \bm R_t(\bm a_m - \bm a_{bt} - \bm a_n) \\ \dot{\bm q}_t = \frac{1}{2} \bm q_t \otimes (\bm  \omega_m - \bm \omega_{bt} - \bm \omega_n) \\ \dot{\bm a}_{bt} = \bm a_w \\ \dot{\bm \omega}_{bt} = \bm \omega_w \\ \dot{\bm g}_t = 0 \\
+$$
+
+
+这就是把真实的IMU量测加进去的True state kinematic方程。需要注意的是，我们最终要建立的是error-state的运动学方程。
+
+**2.2 The nominal-state kinematics**
+
+> The nominal-state kinematics correspoinds to the modeled system without noise or perturbations.
+
+nominal-state中不包含噪声。
+
+
+$$
+\dot{\bm p} = \bm v \\ \dot{\bm v} = \bm R(\bm a_m - \bm a_{b}) \\ \dot{\bm q} = \frac{1}{2} \bm q \otimes (\bm  \omega_m - \bm \omega_{b}) \\ \dot{\bm a}_{b} = 0\\ \dot{\bm \omega}_{b} = 0\\ \dot{\bm g} = 0 \\
+$$
+
+
+**2.3 The error-state kinematics**
+
+将true-state部分的kinematics方程中减去nominal-state就可以得到error-state的kinematics方程。
+
+
+$$
+\dot{\delta \bm p} = \delta \bm v \\ \dot{\delta \bm v} = -\bm R[\bm a_m - \bm a_b]_\times \delta \bm \theta - \bm R \delta \bm a_b +\delta \bm g - \bm R \bm a_n \\ \dot{\delta \theta} = -[\bm \omega_m - \bm \omega_b]_\times \delta \bm \theta -\delta \bm \omega_b -\bm \omega_n \\ \dot{\delta \bm a_b} = \bm a_w \\ \dot{\delta \bm \omega_b} = \bm \omega_w \\ \dot{\bm \delta g} = 0
+$$
+
+
+下面详细推导一下，速度和姿态部分。推导的方法是把true-state写成nominal+error的形式，然后把error部分提到方程的左侧即得到error-state的方程。
+
+**首先推导速度：**
+
+
+$$
+\dot{(\bm v +\delta \bm v)} = (\bm R \delta \bm R)(\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) + \bm g + \delta \bm g \\ \dot{\bm v} + \dot{\delta \bm v} = \bm R(\bm I +\delta \bm \theta _ \times)(\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) + \bm g + \delta \bm g \\ \dot{\bm v} + \dot{\delta \bm v} = \bm R ( \bm a_m - \bm a_b) + \bm g - \bm R(\delta \bm a_b + \bm a_n) +\bm R \delta \bm \theta_\times (\bm a_m - \bm a_b - \delta \bm a_b - \bm a_n) +\delta \bm g \\
+$$
+
+
+忽略一些二次小项：
+
+
+$$
+\dot{\delta \bm v} = - \bm R \delta \bm a_b  -\bm R (\bm a_m - \bm a_b)  \delta  \bm \theta_\times+\delta \bm g - \bm R \bm a_n \\
+$$
+
+
+**下面推导旋转部分：**
+
+
+$$
+\dot{(\bm  q \otimes \delta \bm q)} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\   \dot{\bm q} \otimes \delta \bm q + \bm q \otimes \dot{\delta \bm q} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \frac{1}{2} \bm  q \otimes (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q + \bm q \otimes \dot{\delta \bm q} = \frac{1}{2} (\bm  q \otimes \delta \bm q) \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \frac{1}{2} (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q + \dot{\delta \bm q} = \frac{1}{2} \otimes \delta \bm q \otimes (\bm \omega_m - \bm \omega_b - \delta \bm \omega_b - \bm \omega_n) \\  \dot{\delta \bm q} = \frac{1}{2} \delta \bm q \otimes (\bm \omega_m - \bm \omega_b)  - \frac{1}{2} (\bm \omega_m - \bm \omega_b) \otimes \delta \bm q - \frac{1}{2} \delta \bm q \otimes  (\delta \bm \omega_b + \bm \omega_n) \\  \left[\begin{array}{c} 0 \\  \frac{1}{2} \dot{\delta \bm \theta} \end{array} \right] = \frac {1}{2} \delta \bm \theta \times  (\bm \omega_m - \bm \omega_b) -  \frac {1}{2} (\delta \bm \omega_b + \bm \omega_n) - \frac{1}{2} \delta \bm \theta \times (\delta \bm \omega_b + \bm \omega_n) \\
+$$
+
+
+最后一部分为二次小项，可以忽略：
+
+
+$$
+\dot{\delta \bm \theta} =-  (\bm \omega_m - \bm \omega_b) \times \delta \bm \theta  -  \delta \bm \omega_b - \bm \omega_n \\
+$$
+
+
+## **3. System kinematics in discrete time**
+
+Intergration need to be don for the following sub-systems.
+
+1. The nominal state
+2. The error-state. (a) The deterministic part. (b) The stochastic part.
+
+**3.1 The nominal state kinematics.**
+
+
+$$
+\bm p \leftarrow \bm p + \bm v \Delta t + \frac 1 2 (\bm R(\bm a_m - \bm a_b) + \bm g) \Delta t^2 \\ \bm v \leftarrow \bm v +(\bm R (\bm a_m + \bm a_b) + \bm g)\Delta t \\ \bm q \leftarrow \bm q \otimes \bm q\{(\bm \omega_m - \bm \omega_b)\Delta t\} \\ \bm a_b \leftarrow \bm a_b \\ \bm \omega_b \leftarrow \bm \omega b \\ \bm g \leftarrow \bm g \\
+$$
+
+
+**3.2 The error-state kinematics**
+
+
+$$
+\delta \bm p \leftarrow \delta \bm p + \delta \bm v \Delta t \\ \delta \bm v \leftarrow \delta \bm v + (-\bm R[\bm a_m -\bm a_b]_\times \delta \theta - \bm R \delta \bm a_b + \delta \bm g) \Delta t +\bm v_i \\ \delta \theta \leftarrow \bm R^T\{(\bm \omega_m - \bm \omega_b)\Delta t\}\delta \theta - \delta \bm \omega \Delta t +\bm \theta_i \\ \delta \bm a_b \leftarrow \delta \bm a_b + \bm a_i \\ \delta \bm \omega_b \leftarrow \delta \bm \omega_b + \bm \omega_i \\ \delta \bm g \leftarrow \delta \bm g \\
+$$
+
+
+噪声项 $\bm v_i, \ \bm \theta_i, \ \bm a_i, \ \bm \omega_i$ 的协方差为：
+
+
+$$
+\bm V_i = \sigma^2_{a_n} \Delta t^2 \bm I \\ \bm \Theta_i = \sigma^2_{\omega_n} \Delta t^2 \bm I \\ \bm A_i = \sigma^2_{a_\omega} \Delta t \bm I \\ \bm \Omega_i = \sigma^2_{\omega_\omega} \Delta t \bm I
+$$
+
+
+**3.3 The error-state Jacobian and perturbation matrices.**
+
+ESKF预测部分的协方差传播方程为：
+
+
+$$
+\bm P \leftarrow \bm F_x\bm P\bm F_x^T +\bm F_i \bm Q_i \bm F_i^T \\
+$$
+
+
+其中，雅克比
+
+
+$$
+\bm F_x = \frac{\partial f}{\partial \delta x} = \left[\begin{array}{cccccc}      \bm I & \bm I\Delta t & 0 & 0 & 0 & 0 \\ 0 & \bm I & -\bm R[\bm a_m - \bm a_b]_\times \Delta t & - \bm R\Delta t & 0 & \bm I \Delta t \\ 0 & 0 & \bm R^T\{(\bm\omega_m -\bm \omega_b)\Delta t\} & 0 & -\bm I \Delta t & 0 \\ 0 & 0 & 0 & \bm I & 0 & 0 \\ 0 & 0 & 0 & 0 & \bm I & 0 \\ 0 & 0 & 0 & 0 & 0 & \bm I \end{array} \right]
+$$
+
+
+
+$$
+\bm F_i = \frac{\partial f}{\partial \bm i} = \left[\begin{array}{cccc}      0 & 0 & 0 & 0 \\ \bm I & 0 & 0 & 0 \\ 0 & \bm I & 0 & 0 \\ 0 & 0 & \bm I & 0 \\ 0 & 0 & 0 & \bm I \\ 0 & 0 & 0 & 0  \end{array} \right] , \bm Q_I = \left[ \begin{array}{cc} \bm V_i & 0 & 0 & 0 \\ 0 & \bm \Theta_i & 0 & 0 \\ 0 & 0 & \bm A_i & 0 \\ 0 & 0 & 0 & \bm \Omega_i \\ \end{array}\right] \\
+$$
+
+
+## **4. Fusing IMU with complementary sensory data**
+
+> While the IMU information has served so for to make predictions to the ESKF, this other information is used to correct the filter, and thus observe the IMU bias errors. The correction consists of three steps:
+
+1. Observation of the error state filter correction,
+2. injection of the observed errors into the nominal state, and
+3. reset of the error-state.
+
+**4.1 Observation of the error state via filter correction**
+
+观测方程为
+
+
+$$
+y = h(\bm x_t)+ v \\
+$$
+
+
+观测噪声： $v \sim \mathcal N (0, \bm V)$
+
+**Correction equations:**
+
+
+$$
+\bm K \leftarrow \bm P \bm H^T(\bm H \bm P \bm H^T +\bm V)^{-1} \\ \hat{\delta \bm x} \leftarrow \bm K(y-h(\hat {\bm x_t})) \\ \bm P \leftarrow (\bm I - \bm K \bm H)\bm P  \\  or \bm P \leftarrow \ (\bm I - \bm K \bm H) \bm P  (\bm I - \bm K \bm H)^T + \bm K \bm V \bm K^T\\
+$$
+
+
+其中，雅克比 $\bm H = \frac&#123;\partial h&#125;&#123;\partial \delta \bm x&#125;$ ，可以用链式法则计算： $\bm H = \frac&#123;\partial h&#125;&#123;\partial \delta x&#125; = \frac&#123;\partial h&#125;&#123;\partial x&#125; \frac&#123;\partial x&#125;&#123;\partial \delta x&#125;$ .
+
+**4.2 Injection of the observaed error into the nominal state.**
+
+注意旋转的加法。
+
+**4.3 ESKF reset**
+
+注意旋转，几乎可以忽略。

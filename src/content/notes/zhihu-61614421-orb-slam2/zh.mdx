@@ -1,0 +1,367 @@
+---
+type: note
+title: "[ORB-SLAM2]单目初始化"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/61614421
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> ORB-SLAM提出一种自动初始化流程，能够根据场景自动的选择模型（Homography or Fundamental），当初始化质量不好的时候则延迟初始化。
+>
+> 本文对初始化过程中的诸多细节进行了总结。
+>
+> 本文属于个人记录，比较乱。
+
+## 1. 初始化流程
+
+### **Step 0. 选定一个参考帧，提取ORB特征**
+
+选择标准：提取到的ORB特征数量足够多>100个
+
+### Step 1. 匹配当前帧与参考帧的ORB特征
+
+1. 当前帧提取的特征数量足够多>100，否则回到第0步。
+2. 利用DBOW2的词袋加速特征匹配过程。
+3. 如果匹配点数太少&lt;100，则回到第0步。
+4. 上面的条件通过之后，进行初始化
+
+### Step 2. 同步计算两个模型Homography和Fundamental
+
+**Homography模型**
+
+
+$$
+\bf{x}_c = \bf{H}_{cr} \bf{x}_r \ (1)\\
+$$
+
+
+基于RANSAC框架，采用4对点计算。
+
+**Fundamental模型**
+
+
+$$
+\bf{x}_c^T \bf{F}\bf{x}_r=0 \ (2)\\
+$$
+
+
+基于RANSAC框架，采用8对点计算。
+
+**这里，RANSAC的迭代次数是固定的。**每次迭代，都为H模型和F模型计算一个分数。
+
+
+$$
+\begin{gathered}   {S_M} = \sum\limits_i {\left\{ {{\rho _M}\left( {d_{cr}^2\left( {{\mathbf{x}}_c^i,{\mathbf{x}}_r^i,M} \right)} \right) + {\rho _M}\left( {d_{rc}^2\left( {{\mathbf{x}}_c^i,{\mathbf{x}}_r^i,M} \right)} \right)} \right\}}  \hfill \\   {\rho _M}\left( {d_{}^2} \right) = \left\{ \begin{gathered}   \Gamma  - {d^2},\;if\;{d^2} < {T_M} \hfill \\   0, if\;{d^2} \geqslant {T_M} \hfill \\  \end{gathered}  \right. \hfill \\  \end{gathered}  \ (3)\\
+$$
+
+
+其中， $M$ 为 $H$ 或者 $F$ 。 $T_M$ 为距离阈值，根据95%的 $\chi^2$ 测试设置。 $T_H=5.99$ （两个自由度）， $T_F = 3.84$ （1个自由度）。这里假设标准差为1个pixel。***这里的***$\Gamma$***与***$T_&#123;H&#125;$***相同。TODO没看明白。***
+
+完成所有的迭代步骤之后，选择分数最高的那一个作为$H$ 和 $F$ 的结果。
+
+### Step 3. 模型选择：Homography or Fundamental
+
+计算比例：
+
+
+$$
+R_H = \frac{S_H}{S_H + S_F} \ (4) \\
+$$
+
+
+如果 $R_H > 0.45$ 就选择Homography为模型，否则就选择Fundamental为模型。***TODO:为什么阈值是0.45也没有看明白。***
+
+**Step 4. 计算位姿和地图点**
+
+根据选择的模型恢复出相对位姿和3D地图点。
+
+**Step 5. Bundle Adjustment.**
+
+最后在来一个BA。BA大家都很清楚了。
+
+> 这里有几个关键点：1. 如何估计单应矩阵、基础矩阵。2. 如何从单应矩阵和基础矩阵中分解出旋转R和平移t。
+
+---
+
+## 2. 单应矩阵 Homography Matrix
+
+在第一帧坐标系下，3D点 $P$ 的空间位置为 $[X,Y,Z]^T$ 。这些3D点分布在一个平面上，平面的方程为
+
+
+$$
+{{\mathbf{n}}^T}{\mathbf{P}} + d = 0 \ (5)\\
+$$
+
+
+整理一下：
+
+
+$$
+- \frac{{{{\mathbf{n}}^T}{\mathbf{P}}}}{d} = 1  (6)\\
+$$
+
+
+$\bf&#123;P&#125;$ 点投影到第2帧上
+
+
+$$
+\begin{gathered}   {s_2}{{\mathbf{p}}_{\mathbf{2}}}{\mathbf{ = K}}\left( {{\mathbf{RP + t}}} \right) = {\mathbf{K}}\left( {RP - \frac{{{{\mathbf{n}}^T}{\mathbf{P}}}}{d}t} \right) \hfill \\    = {\mathbf{K}}\left( {{\mathbf{R}} - \frac{{{\mathbf{t}}{{\mathbf{n}}^{\mathbf{T}}}}}{d}} \right){\mathbf{P}} = {\mathbf{K}}\left( {{\mathbf{R}} - \frac{{{\mathbf{t}}{{\mathbf{n}}^{\mathbf{T}}}}}{d}} \right){s_1}{{\mathbf{K}}^{ - 1}}{{\mathbf{p}}_1} \hfill \\   {{\mathbf{p}}_{\mathbf{2}}}{\text{ = }}\frac{{{s_1}}}{{{s_2}}}\underbrace {{\mathbf{K}}\left( {{\mathbf{R}} - \frac{{{\mathbf{t}}{{\mathbf{n}}^{\mathbf{T}}}}}{d}} \right)}_{\mathbf{H}}{{\mathbf{K}}^{ - 1}}{{\mathbf{p}}_1} \hfill \\  \end{gathered}  (7)\\
+$$
+
+
+由于 $P_1,P_2$ 都是齐次坐标，所以H是可以随意尺度缩放的。也就是，对于平面场景，两幅图像上的2D点的齐次坐标之间的关系可表示为
+
+
+$$
+{p_2} = s{\mathbf{H}}{p_1} \ (8)\\
+$$
+
+
+将（8）式展开有
+
+
+$$
+\left[ {\begin{array}{*{20}{c}}   {{u_2}} \\    {{v_2}} \\    1  \end{array}} \right] = s\left[ {\begin{array}{*{20}{c}}   {{h_{11}}}&{{h_{12}}}&{{h_{13}}} \\    {{h_{21}}}&{{h_{22}}}&{{h_{23}}} \\    {{h_{31}}}&{{h_{32}}}&{{h_{33}}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{u_1}} \\    {{v_1}} \\    1  \end{array}} \right] \\
+$$
+
+
+可以确定两个方程
+
+
+$$
+\begin{gathered}   {h_{11}}{u_1} + {h_{12}}{v_1} + {h_{13}} - {u_1}{u_2}{h_{31}} - {v_1}{u_2}{h_{32}} - {u_2}{h_{33}} = 0 \hfill \\   {h_{21}}{u_1} + {h_{22}}{v_1} + {h_{23}} - {u_1}{v_2}{h_{31}} - {v_1}{v_2}{h_{32}} - {v_2}{h_{33}} = 0 \hfill \\  \end{gathered} \ (9)\\
+$$
+
+
+### 解法1：
+
+由于H是尺度缩放，可以通过调整 $s$ 使得 $h_&#123;33&#125;=1$ ，这样（9）式变为
+
+
+$$
+\begin{gathered}   {h_{11}}{u_1} + {h_{12}}{v_1} + {h_{13}} - {u_1}{u_2}{h_{31}} - {v_1}{u_2}{h_{32}} = {u_2} \hfill \\   {h_{21}}{u_1} + {h_{22}}{v_1} + {h_{23}} - {u_1}{v_2}{h_{31}} - {v_1}{v_2}{h_{32}} = {v_2} \hfill \\  \end{gathered} \ (10)\\
+$$
+
+
+由以上推到分析可知，1个点对可以提供两个方程，而我们有8个参数需要求解，这样4个点对就可以求解出 $H$ 矩阵。多于四个点对就形成了一个超定方程
+
+
+$$
+{\mathbf{Mx = b}} \\
+$$
+
+
+可以计算一个最小二乘解 $x=&#123;\left( &#123;&#123;&#123;\mathbf&#123;M&#125;&#125;^T&#125;&#123;\mathbf&#123;M&#125;&#125;&#125; \right)^&#123; - 1&#125;&#125;&#123;&#123;\mathbf&#123;M&#125;&#125;^T&#125;b$，或者利用QR分解 $x = &#123;R^&#123; - 1&#125;&#125;&#123;Q^T&#125;b$ ，还有很多解法，请参考[http://eigen.tuxfamily.org/dox/group__LeastSquares.html](https://link.zhihu.com/?target=http%3A//eigen.tuxfamily.org/dox/group__LeastSquares.html)。
+
+### 解法2:
+
+（9）式具有9个变量，4对点可以确定8个方程：
+
+
+$$
+Mx{\text{ = }}0 \\
+$$
+
+
+我们可以获得一个通解 $x=\eta \cdot \xi$ 。是一个up to scale的解。实际上我们的H矩阵也是up to scale的。其中 $\xi$ 就是M的对应与M的最小奇异值的奇异向量，可以通过SVD分解去求解。也就对应于 $M^TM$ 最小特征值的特征向量。**ORB-SLAM里面使用的就是这种解法。在ORB-SLAM中的RANSAC中使用了8对点进行计算，主要是为了与F矩阵的求解一致。**
+
+> 上述两种方法的结果没有太大差别，基本上是一致的。值得说明的是，ORB-SLAM在计算Homography的时候对2D特征点进行了归一化。
+>
+> 变成均值为0，方差为1的标准正态分布。作用是什么呢？是不是为了计算稳定呢？可能是吧。
+
+---
+
+## 3. 基础矩阵 Fundamental Matrix
+
+双视对极几何的产物，还是同一个3D点P，投影到两个相机之下。
+
+
+$$
+\left\{ {\begin{array}{*{20}{l}}   {{s_1}{p_1} = KP} \\    {{s_2}{p_2} = K\left( {RP + t} \right)}  \end{array}} \right.  \ (11)\\
+$$
+
+
+将转换到相机坐标系下归一化的坐标有
+
+
+$$
+\left\{ {\begin{array}{*{20}{l}}   {{s_1}\underbrace {{K^{ - 1}}{p_1}}_{{x_1}} = P}&{ \Leftrightarrow {s_1}{x_1}{\text{ = }}P} \\    {{s_2}\underbrace {{K^{ - 1}}{p_2}}_{{x_2}} = RP + t}&{ \Leftrightarrow {s_2}{x_2}{\text{ = }}RP + t}  \end{array}} \right. \Rightarrow {s_2}{x_2} = {s_1}R{x_1} + t \ (12) \\
+$$
+
+
+(12)式子两边右叉乘 $t$ ，在整理一下
+
+
+$$
+\begin{array}{*{20}{c}}   {{s_2}{t^ \wedge }{x_2} = {s_1}{t^ \wedge }R{x_1} \Rightarrow {s_2}{x_2}^T{t^ \wedge }{x_2} = {s_1}{x_2}^T{t^ \wedge }R{x_1}} \\     \Downarrow  \\    {{x_2}^T\underbrace {{t^ \wedge }R}_E{x_1}{\text{ = }}0}  \end{array}\ (13) \\
+$$
+
+
+其中的 $E$ 为本质矩阵，Essential Matrix。描述了两个相机之间归一化相机坐标之间的关系。
+
+再把 $x_1$ 和 $x_2$ 替换回像素坐标有
+
+
+$$
+{p_2}^T\underbrace {{K^{ - T}}{t^ \wedge }R{K^{ - 1}}}_{F{\text{ = }}{K^{ - T}}E{K^{ - 1}}}{p_1} = 0 \ (14)\\
+$$
+
+
+其中的 $F$ 即为基础矩阵，Fundamental Matrix。描述了两个相机之间，像素坐标之间的关系。
+
+同样的 $F$ 矩阵也是up to scale的。因此，它也只有8个自由度。一般把第9个量固定为1，或者求一个9量的通解。一个（14）可以提供一个方程，那么8个点对就可以计算出$F$ 矩阵。解法与单应矩阵相同。具体的，展开（14）式有
+
+$&#123;u_2&#125;&#123;u_1&#125;&#123;f_&#123;11&#125;&#125; + &#123;u_2&#125;&#123;v_1&#125;&#123;f_&#123;12&#125;&#125; + &#123;u_2&#125;&#123;f_&#123;13&#125;&#125; + &#123;v_2&#125;&#123;u_1&#125;&#123;f_&#123;21&#125;&#125; + &#123;v_2&#125;&#123;v_1&#125;&#123;f_&#123;22&#125;&#125; + &#123;v_2&#125;&#123;f_&#123;23&#125;&#125; + &#123;u_1&#125;&#123;f_&#123;31&#125;&#125;&#123;\text&#123; + &#125;&#125;&#123;v_1&#125;&#123;f_&#123;32&#125;&#125;&#123;\text&#123; + &#125;&#125;&#123;f_&#123;33&#125;&#125;&#123;\text&#123; = &#125;&#125;0$
+
+于是，大于等于8个点形成了方程
+
+
+$$
+\bf M x = 0 \\
+$$
+
+
+利用第2节中的解法2可以获得 $F$ 矩阵。
+
+---
+
+## 4. 分数计算
+
+对应单应矩阵，计算2D点之间马氏距离的平方
+
+
+$$
+{x_2}^\prime  = H{x_1} \Rightarrow {d^2} = {\left( {{x_2} - {x_2}^\prime } \right)^T}{\Sigma ^{ - 1}}\left( {{x_2} - {x_2}^\prime } \right) \\
+$$
+
+
+$d^2$ 服从2自由度的 $\chi^2$ 分布。（3）式中的 $\Gamma$ 和 $T_M$ 都取5.99。
+
+对于基础矩阵，计算的误差为**点到极线的距离的平方**。具体的，在相机2上的极线方程为
+
+
+$$
+{x_2}^T\underbrace {F{x_1}}_{\mathbf{n}} = 0 \\
+$$
+
+
+距离的平方为
+
+
+$$
+{d^2} = \frac{{{{\left( {{x_2}{{^\prime }^T}F{x_1}} \right)}^2}}}{{\left( {F{x_1}} \right)_1^2 + \left( {F{x_1}} \right)_2^2}} \\
+$$
+
+
+如果假设距离服从均值为0，方差为1个pixel的正态分布，那么 $d^2$ 是服从1个自由度的 $\chi^2$ 分布的，因此 $T_M$ 取的是3.84。
+
+$T_M$ 用来判定内点和外点。
+
+***TODO: 但是为什么***$\Gamma$***都取的5.99呢？这个不知道为什么。***
+
+---
+
+## 5. 由基础矩阵F分解分解出旋转和平移
+
+可参考《MVG》中文版的174页，英文版258页。
+
+已知基础矩阵F，可以获得Essential Matrix矩阵
+
+$\[E = &#123;K^T&#125;FK\]$
+
+下面根据Essential Matrix分解出R和t。我们知道E的成分有一个反对称矩阵S和一个正交矩阵R，外加一个scale组成。
+
+
+$$
+E=s[t^{\wedge}]R \\
+$$
+
+
+实际上只有5个自由度。s可以放到反对称矩阵里面。
+
+先给出两个矩阵
+
+
+$$
+W = \left[ {\begin{array}{*{20}{c}}   0&{{\text{ - }}1}&0 \\    1&0&0 \\    0&0&1  \end{array}} \right]Z{\text{ = }}\left[ {\begin{array}{*{20}{c}}   0&1&0 \\    {{\text{ - }}1}&0&0 \\    0&0&0  \end{array}} \right] \\
+$$
+
+
+W为正价矩阵，Z为反对称矩阵。
+
+对E进行SVD分解为
+
+
+$$
+E=U \Sigma V^T \\
+$$
+
+
+总共可以得到四个解，分别是
+
+
+$$
+\begin{gathered}   \left\{ {\begin{array}{*{20}{l}}   {R = UW{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = UW{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = U{W^T}{V^T}} \\    {t = U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\   \left\{ {\begin{array}{*{20}{l}}   {R = U{W^T}{V^T}} \\    {t =  - U{{\left[ {0,0,1} \right]}^T}}  \end{array}} \right. \hfill \\  \end{gathered}  \\
+$$
+
+
+然后根据：
+
+1. 点在相机的前面，重投影误差足够小，恢复3D点。
+2. 根据恢复出3D点的多少来找一个最优解。
+3. 如果有多个最优解则放弃这次计算。
+4. 如果只有一个最优解，且恢复出了足够的3D点，并且有足够的视差（这里用的是地图点指向两个帧的夹角）就接收。
+
+**TODO: 详细解读如何求解。**
+
+---
+
+## 6. 由单应矩阵H恢复出R和t
+
+按照ORB-SLAM的做法，可以恢复8个解，然后从8个解中选择一个最优解。
+
+然后根据恢复出的3D点个数，视差等信息筛选出最优解，要求
+
+1.最优个数 > 0.7 次优个数
+
+2. 最优的视差，大于最小要求的视差
+
+3. 最优的个数，大于最小设置的个数
+
+4. 最优个数，大于匹配点个数*0.9
+
+**TODO: 详细解读如何求解。**
+
+---
+
+**----更多SLAM文章----**
+
+[杨小东：SLAM轨迹真值获取装置](https://zhuanlan.zhihu.com/p/60589790)
+
+[杨小东：[PnP]PnP问题之EPnP解法](https://zhuanlan.zhihu.com/p/59070440)
+
+[杨小东：[PnP] PnP问题之DLT解法](https://zhuanlan.zhihu.com/p/58648937)
+
+[杨小东：[ORB-SLAM2]卡方分布(Chi-squared)外点(outlier)剔除](https://zhuanlan.zhihu.com/p/58556978)
+
+[杨小东：[ORB-SLAM2] ORB特征提取策略对ORB-SLAM2性能的影响](https://zhuanlan.zhihu.com/p/57235987)
+
+[杨小东：[PR-3]ArUco EKF SLAM 扩展卡尔曼SLAM](https://zhuanlan.zhihu.com/p/45207081)
+
+[杨小东：[PR-2] PF 粒子滤波/蒙特卡罗定位](https://zhuanlan.zhihu.com/p/43523632)
+
+**----相关代码----**
+
+ydsf16 - Overview

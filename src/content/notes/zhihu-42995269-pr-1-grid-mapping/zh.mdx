@@ -1,0 +1,216 @@
+---
+type: note
+title: "[PR-1] Grid Mapping 占用栅格地图构建实现"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42995269
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Probabilistic Robotics《概率机器人》(PR)
+>
+> 是一本非常经典的介绍移动机器人技术的书；但是这本书主要注重理论，而对于实现只给出了伪代码；在
+>
+> PR
+>
+> 系列文章中，我根据自己的理解，对其中的一些方法进行了复现。
+
+## **理论依据**
+
+占用栅格地图构建要解决的问题是：已知机器人位姿序列 $x_&#123;1:t&#125;$ 和观测序列 $z_&#123;1:t&#125;$ ，求解环境地图 $m$ 。表达成概率形式，就是求地图的后验概率。
+
+
+$$
+p(m|x_{1:t}, \ z_{1:t}) \ \ (1)\\
+$$
+
+
+这里我们要求解地图形式是栅格形式。
+
+![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-01.jpg)图1. 占用栅格地图
+
+占用栅格地图将环境等分成小格子，那么总的地图 $m$ 就是由这些小格子组成： $m=\&#123;m_1, m_2, \cdots, m_n\&#125;$ 。式（1）就可以变换一下啦：
+
+
+$$
+p(m|x_{1:t}, \ z_{1:t}) = p(m_1, m_2, \cdots, m_n |x_{1:t}, \ z_{1:t}) \\ = \prod_{i=1}^{n}p(m_i | x_{1:t}, \ z_{1:t}) \ \ （假设每个格子独立同分布） \ \ (2)\\
+$$
+
+
+这就转换成了一个独立求解每个栅格的问题。每个小格子要么是占有栅格，即在这个地方有障碍物，要么就是空闲栅格表示这个地方没有障碍物，还有就是我们系统还没有探测到这个地方有没有障碍物，就是未知栅格。我们把一个格子被占有的概率记为——置信度 $bel(m_i) = p(m_i | x_&#123;1:t&#125;, \ z_&#123;1:t&#125;)$ ，最终我们可以通过设置阈值来确定哪些格子是占有栅格（比如 $bel(m_i) >0.6$） ，哪些格子是空闲栅格（比如 $bel(m_i)&lt;0.4$ ），哪些是未知栅格（比如 $0.4\leq bel(m_i) \leq0.6$ ）。
+
+现在问题的关键就在与求解栅格的置信度： $bel(m_i)$ 。下面我们就来推导一下：
+
+
+$$
+\begin{aligned} &bel_t(m_i) = p(m_i | x_{1:t}, z_{1:t}) \\ &= \frac{ p(z_t | m_i, x_{1:t}, z_{1:t-1}) p( m_i | x_{1:t}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \\ &= \frac{ p(z_t | m_i, x_t) p( m_i | x_{1:t-1}, z_{1:t-1}) }{ p(z_t | x_{1:t}, z_{1:t-1}) } \ \ 其中，(p(z_t | m_i, x_t) = \frac{p(m_i | z_t, x_t) p(z_t | x_t)}{ p(m_i | x_t)}) \\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i | x_t) p (z_t | x_{1:t}, z_{1:t-1}) }\\ &= \frac{ p(m_i | z_t, x_t) p(z_t | x_t) p (m_i | x_{1:t-1}, z_{1:t-1}) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ & =\frac{ p(m_i | z_t, x_t) p(z_t | x_t) bel_{t-1}(m_i) }{ p(m_i) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned}\ \ (3)
+$$
+
+
+看最后这个式子，很难求吧，第一项是一个观测模型，这个还好说，是已知的。第二项怎么求？分母上后一项怎么求？这都不好办把。我们换一种思路，这个栅格空闲的概率是什么？
+
+
+$$
+\begin{aligned} &bel_t( \bar{m_i}) =\frac{ p(\bar{m_i} | z_t, x_t) p(z_t | x_t) bel_{t-1}(\bar{m_i}) }{ p(\bar{m_i}) p (z_t | x_{1:t}, z_{1:t-1}) } \\ \end{aligned} \ \ (4)\\
+$$
+
+
+我们用（3）式除以（4）式，可以消除其中的一些未知项目：
+
+
+$$
+\begin{aligned} \frac{bel_t(m_i)}{bel_{t}(\bar{m_i})} &= \frac{bel_t(m_i)}{ [1-bel_{t}({m_i})]}\\ & = \frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) p(\bar{m_i}) }{ p(\bar{m_i} | z_t, x_t) bel_{t-1}(\bar{m_i}) p(m_i) }\\ &=\frac{ p(m_i | z_t, x_t)bel_{t-1}(m_i) [1- p(m_i)] }{ [1-p(m_i | z_t, x_t)] [1-bel_{t-1}(m_i) ] p(m_i) } \end{aligned}\ \ \ (5) \\
+$$
+
+
+这个式子里面的东西都是可以求出来的啦。我们再定义一些中间变量：
+
+$对数置信度：l_&#123;t,i&#125;=log\frac&#123; bel_&#123;t&#125;(m_i)&#125;&#123; 1- bel_&#123;t&#125;(m_i) &#125; =log\frac&#123; p(m_i | z_&#123;1:t&#125;, x_&#123;1:t&#125;) &#125;&#123; 1- p(m_i | z_&#123;1:t&#125;, x_&#123;1:t&#125;) &#125;$
+
+$反演观测模型：l_&#123;inv,i&#125; = log \frac&#123; p(m_i | z_t, x_t) &#125;&#123; 1- p(m_i | z_t, x_t) &#125;$
+
+$先验概率：l_0 = log \frac&#123;p(m_i)&#125; &#123;1-p(m_i)&#125;$
+
+（5）式就变成了：
+
+
+$$
+l_{t,i} = l_{t-1, i} + l_{inv,i}-l_0 \ \ \ (6)\\
+$$
+
+
+每次只要更新对数形式的式子（6）即可，有了对数形式，置信度也好算：
+
+
+$$
+bel_{t}(m_i) = 1- \frac1 {1 + exp(l_{t, i}) } \\
+$$
+
+
+一般情况下，初始时刻，栅格的占用情况是不知道的，那么就把置信度设为： $bel(m_i)_0 = 0.5$ ，那么 $l_0=0$ 。式子里面要有一个未知变量 $p(m_i| z_t, x_t)$ 。这其实就是一个传感器模型，对于激光传感器，我们一般采用的传感器模型如图所示：
+
+![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-02.jpg)图2. 激光雷达反演测量模型（http://ais.informatik.uni-freiburg.de/teaching/ws13/mapping/pdf/slam10-gridmaps.pdf）
+
+以上将所有计算问题推导完毕，具体的程序流程为：
+
+![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-03.jpg)图3. 占用栅格地图构建算法 （http://ais.informatik.uni-freiburg.de/teaching/ws13/mapping/pdf/slam10-gridmaps.pdf）
+
+## **算法实现**
+
+我们设计一个实验来实现这个算法，使用的机器人是我们自己研发的Falconbot，配备一台北洋UST-10LX激光雷达，每个轮子都配有编码器。
+
+![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-04.jpg)Falconbot
+
+看一下建图的**前提条件**：观测和机器人位姿已知。观测好说，就是激光雷达的数据。那位姿呢？这里我们使用里程计估计的位姿（虽然不精确，但是起码可以用来做实验）。这里必须注意一下，里程计的估计的位姿是机器人的位姿，并不是激光雷达的位姿，要得到激光雷达的位姿还要做一下坐标变换。
+
+我遥控机器人在实验室周围利用ROS采集了两组激光+编码器的数据，传到了百度网盘。
+
+https://
+
+pan.baidu.com/s/1j_SSEt
+
+aq7D0XwaED0Jg4Ew
+
+实现代码在这里
+
+ydsf16/occ_grid_mapping
+
+效果如下
+
+Grid Mapping
+
+https://www.zhihu.com/video/1018215036191440896
+
+![文章配图](/media/notes/zhihu-42995269-pr-1-grid-mapping/image-05.jpg)
+
+可以看到，建的图有一些的重叠，这是因为里程计定位的精度不高。
+
+## **关键代码**
+
+假设我们得到一次2D激光的扫描数据和对应的机器人位姿，核心的实现代码如下：
+
+```
+void GridMapper::updateMap ( const sensor_msgs::LaserScanConstPtr& scan,  Pose2d& robot_pose )
+{
+    /* 获取激光的信息 */
+    const double& ang_min = scan->angle_min;
+    const double& ang_max = scan->angle_max;
+    const double& ang_inc = scan->angle_increment;
+    const double& range_max = scan->range_max;
+    const double& range_min = scan->range_min;
+    
+    /* 设置遍历的步长，沿着一条激光线遍历 */
+    const double& cell_size = map_->getCellSize();
+    const double inc_step = 1.0 * cell_size;
+
+    /* for every laser beam */
+    for(size_t i = 0; i < scan->ranges.size(); i ++)
+    {
+        /* 获取当前beam的距离 */
+        double R = scan->ranges.at(i); 
+        if(R > range_max || R < range_min)
+            continue;
+        
+        /* 沿着激光射线以inc_step步进，更新地图*/
+        double angle = ang_inc * i + ang_min;
+        double cangle = cos(angle);
+        double sangle = sin(angle);
+        Eigen::Vector2d last_grid(Eigen::Infinity, Eigen::Infinity); //上一步更新的grid位置，防止重复更新
+        for(double r = 0; r < R + cell_size; r += inc_step)
+        {
+            Eigen::Vector2d p_l(
+                r * cangle,
+                r * sangle
+            ); //在激光雷达坐标系下的坐标
+            
+            /* 转换到世界坐标系下 */
+            Pose2d laser_pose = robot_pose * T_r_l_;
+            Eigen::Vector2d p_w = laser_pose * p_l;
+
+            /* 更新这个grid */
+            if(p_w == last_grid) //避免重复更新
+                continue;
+            
+            updateGrid(p_w, laserInvModel(r, R, cell_size));
+            	    
+            last_grid = p_w;
+        }//for each step
+    }// for each beam
+}
+
+void GridMapper::updateGrid ( const Eigen::Vector2d& grid, const double& pmzx )
+{
+    double log_bel;
+    if(  ! map_->getGridLogBel( grid(0), grid(1), log_bel )  ) //获取log的bel
+        return;
+    log_bel += log( pmzx / (1.0 - pmzx) ); //更新
+    map_->setGridLogBel( grid(0), grid(1), log_bel  ); //设置回地图
+}
+
+double GridMapper::laserInvModel ( const double& r, const double& R, const double& cell_size )
+{
+    if(r < ( R - 0.5*cell_size) )
+        return P_free_;
+    
+    if(r > ( R + 0.5*cell_size) )
+        return P_prior_;
+    
+    return P_occ_;
+}
+```
+
+## **参考资料**
+
+1. 《概率机器人》第9章
+2. 弗莱堡课程[Robot Mapping - WS 2013/14](https://link.zhihu.com/?target=http%3A//ais.informatik.uni-freiburg.de/teaching/ws13/mapping)

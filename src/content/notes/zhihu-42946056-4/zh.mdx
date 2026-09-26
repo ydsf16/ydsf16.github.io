@@ -1,0 +1,165 @@
+---
+type: note
+title: "[十四讲]第4章总结"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42946056
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 最近在看《视觉SLAM十四讲》，在此对一些关键点进行总结和记录。
+
+**这一章的主要内容是介绍李群和李代数**
+
+**为什么要使用李群和李代数？**主要的目的是为了简化涉及位姿变量的优化问题的求解。如果采用旋转矩阵和变换矩阵作为位姿表达，我们构造的优化问题就是一个带约束的优化问题，约束就是旋转矩阵是正交的，这个问题就很难求解；而如果***使用李群、李代数的方式表达刚体的运动，问题就变成了一个无约束优化问题***。这就是VSLAM中的主要用途。
+
+## **群的定义**
+
+**群是一种几何加上一种运算的代数结构，集合记为A， 运算记为**$\cdot$ ，**满足以下条件：**
+
+1. 封闭性： $\forall a_1, a_2 \in A, \ a_1 \cdot a_2 \in A.$
+2. 结合律： $\forall a_1,\ a_2,\ a_3 \in A, \ (a_1 \cdot a_2)\cdot a_3 = a_1 \cdot (a_2 \cdot a_3)$
+3. 幺元： $\exists a_0 \in A, s.t. \forall a\in A, \ a_0\cdot a = a\cdot a_0 = a$
+4. 逆： $\forall a \in A, \ \exists a^&#123;-1&#125; \in A, \ s.t. \ a\cdot a^&#123;-1&#125; = a_0$
+
+**常见的群：**
+
+1. 一般线性群GL(n) ：指 $n \times n$ 的可逆矩阵，对矩阵乘法成群；
+2. 特殊正交群SO(n)： 即旋转矩阵群，其中SO(2)和SO(3)很常用；
+3. 特殊欧式群SE(n)： 即n维欧式变换，SE(2)，SE(3)
+
+**李群：具有连续（光滑）性质的群；**
+
+## **李代数的定义**
+
+每个李群都有与之对应的李代数，李代数描述了李群的局部性质。
+
+李群由一个集合 $\mathbb V$ , 一个数域 $\mathbb F$和一个二元运算（李括号） $[,]$ 组成。称 $(\mathbb V, \ \mathbb F, \ [,])$ 为一个李代数；满足一下条件：
+
+1. 封闭性： $\forall X,Y \in \mathbb V,\ [X,Y]\in \mathbb V.$
+2. 双线性： $\forall X,Y,Z \in \mathbb V, a, b\in \mathbb F$有： $[aX+bY, Z]=a[X,Z]+b[Y,Z], [Z, aX+bY]=a[Z,X]+b[Z,Y].$
+3. 自反性： $\forall X \in \mathbb V, [X,X]=0$ .
+4. 雅克比等价： $\forall X,Y,Z\in \mathbb V, [X, [Y,Z]] + [Z,[X,Y]]+[Y,[Z,X]]=0.$
+
+## **李代数 $\mathfrak &#123;so&#125;(3)$**
+
+
+$$
+\mathfrak {so}(3) = \{ \phi \in \mathbb R^3,\ \Phi = \phi^{\wedge} \in \mathbb R^{3\times3} \} \\
+$$
+
+
+1. 元素是三维向量或者三维反对称矩阵；
+2. 李括号是： $[\phi_1,\ \phi_2] =(\Phi_1 \Phi_2 - \Phi_2 \Phi_1)^&#123;\vee&#125;$ .
+3. 他与李群SO(3)的关系是 $\mathbf R = exp(\phi^&#123;\wedge&#125;)$ .
+
+**李代数**$\mathfrak &#123;se&#125;(3)$
+
+
+$$
+\mathfrak {se}(3) = \left\{ \xi =\begin{bmatrix} \rho \\ \phi \end{bmatrix} \in \mathbb R^{6\times6},\ \rho \in \mathbb R^{3\times 3}, \phi \in \mathfrak{so}(3) , \xi^{\wedge} = \begin{bmatrix} \phi^{\wedge}&\rho \\ 0^T & 0 \end{bmatrix} \in \mathbb R^{4\times 4} \right\} \\
+$$
+
+
+1. 元素是六维向量，前三个是平移相关的量，后三个是旋转相关的量；
+2. 李括号为： $[\xi_1,\ \xi_2] =(\xi_1^&#123;\wedge&#125; \xi_2^&#123;\wedge&#125; - \xi_2^&#123;\wedge&#125; \xi_1^&#123;\wedge&#125; ) ^&#123; \vee&#125;$ ；
+3. 他与李群SE(3)的关系是 $\mathbf T = exp(\xi^&#123;\wedge&#125;)$ 。
+
+## **指数对数映射**
+
+![文章配图](/media/notes/zhihu-42946056-4/image-01.jpg)盗图
+
+## **李代数求导与扰动模型**
+
+对于一般的矩阵指数函数，下式并不成立，
+
+
+$$
+ln(exp(\mathbf A) exp(\mathbf B)) = \mathbf A + \mathbf B \\
+$$
+
+
+但是**BCH**公式告诉我们，有个近似的式子：
+
+
+$$
+ln(exp(\phi_1^{\wedge}) exp(\phi_2^{\wedge}) )^{\vee} \approx \left \{ \begin{array}{lcl} \mathbf{J}_l(\phi_2)^{-1} \ \phi_1 + \phi_2 \ \ 当 \phi_1很小 \\ \mathbf{J}_r(\phi_1)^{-1} \phi_2 + \phi_1 \ \ 当 \phi_2很小 \end{array} \right. \\
+$$
+
+
+有了这个就可以根据导数的定义去做刚体运动的求导工作：
+
+
+$$
+\frac{\partial Rp}{\partial \varphi } = \lim_{\varphi \rightarrow 0} \frac{exp(\varphi^{\wedge} )exp(\phi^{\wedge}) p - exp(\phi^{\wedge})p }{ \varphi } = -(Rp)^{\wedge} \\
+$$
+
+
+
+$$
+\frac{\partial Tp}{\partial \delta \xi} = \begin{bmatrix} \bf I & -(Rp+t) \\ 0^T & 0^T \end{bmatrix} = (Tp)^{\odot} \\
+$$
+
+
+## **VSLAM应用**
+
+假设，我们要解决一个motion only BA问题：
+
+
+$$
+\xi^* = arg\min_{\xi} \frac1 2 \parallel \mathbf e \parallel^2 \\ \mathbf{e} = u_i - \frac1 {s_i} K exp(\xi^{\wedge}) p_i \\ T = exp(\xi^{\wedge})
+$$
+
+
+如果采用高斯牛顿法求解，需要对误差利用泰勒展开，取线性项：
+
+
+$$
+\mathbf e(\xi \oplus \delta \xi) = e(\xi) + J \cdot \delta \xi \\ J = \frac{ \partial e } {\partial \delta \xi}
+$$
+
+
+这里的关键就在于雅可比矩阵 $J$ 的求解。这里的 $u_i$ 是一个2x1的向量，求导时无用，我们引入一下中间变量——地图点在摄像机坐标系下的表达 $P'$ :
+
+
+$$
+\mathbf e = u_i - \frac1 {s_i} K P'; \\ P' = exp(\xi^{\wedge}) p_i = Tp_i
+$$
+
+
+根据链式求导法则:
+
+
+$$
+J = \frac{ \partial e} { \partial\delta\xi} = \frac{ \partial e} { \partial P'} \frac{ \partial P'} { \partial\delta\xi} \\
+$$
+
+
+前面一项就是投影模型的求导：
+
+
+$$
+\frac{ \partial e} { \partial P'} = - \begin{bmatrix} \frac{f_x}{Z'} & 0 & -\frac{f_x X'}{Z'^2} \\ 0 & \frac {f_y}{ Z'} & -\frac{f_y Y'}{Z'^2} \end{bmatrix}\\
+$$
+
+
+后面一部分就是前面提到的利用李代数的扰动模型进行的求导：
+
+
+$$
+\frac{ \partial P'} { \partial\delta\xi} = \frac{\partial Tp_i}{\partial \delta \xi} = \begin{bmatrix} \bf I & -P'^{\wedge} \end{bmatrix} = (Tp_i)^{\odot} \\
+$$
+
+
+这就是李代数的应用，实现了无约束的优化。

@@ -1,0 +1,197 @@
+---
+type: note
+title: "[SINS]捷联惯导更新算法"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/441287506
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 最近了解了一些高精捷联惯导的知识，在此做一些总结。
+>
+> 因为自己刚接触这个领域，可能会有不少差错，欢迎指正。
+
+本篇实现了一套北方位捷联惯导更新算法。在给定位置、姿态、速度初值的基础上，通过IMU积分来获取实时的位置姿态。主要参为严恭敏老师的《捷联惯导算法与组合导航原理》以及[PSINS](https://link.zhihu.com/?target=http%3A//www.psins.org.cn/sy)工具箱。
+
+## 算法原理
+
+### 1.1 姿态更新算法
+
+姿态微分方程方程为：
+
+
+$$
+\dot{\mathbf{C}}^n_b = \mathbf{C}^n_b(\mathbf{\omega}^b_{nb}\times) \\
+$$
+
+
+但是用这个方程做姿态更新会非常复杂。我们可以把旋转矩阵用链式方法分解成两个矩阵的相乘：
+
+
+$$
+\mathbf{C}^{n(m)}_{b(m)} = \mathbf{C}^{n(m)}_i \mathbf{C}^i_{b(m)} \\
+$$
+
+
+这样，我们可以分别更新右边这两个矩阵更加方便。
+
+
+$$
+\mathbf{C}^i_{b(m)} =  \mathbf{C}^i_{b(m-1)}  \mathbf{C}^{b(m-1)}_{b(m)} \\ \mathbf{C}^{n(m)}_i = \mathbf{C}^{n(m)}_{n(m-1)}  \mathbf{C}^{n(m-1)}_i
+$$
+
+
+综合以上可以得到，姿态更新的实用方法：
+
+
+$$
+\mathbf{C}^{n(m)}_{b(m)} = \mathbf{C}^{n(m)}_{n(m-1)}  \mathbf{C}^{n(m-1)}_{b(m-1)}  \mathbf{C}^{b(m-1)}_{b(m)}  \\
+$$
+
+
+左边这一项为当地导航系的变化，由速度和地球自转引起，这两个旋转速度都为平稳变化量，可以采用欧拉积分。
+
+
+$$
+\mathbf{C}^{n(m)}_{n(m-1)}  = \mathbf{C}^{n(m-1)}_{n(m)}  = \mathbf{M}^T(\phi^n_{in}) \approx \mathbf{M}^T(\omega^n_{in(m)} \Delta T) \\ \mathbf{\phi}^n_{in} = \omega^n_{ie} + \omega^n_{en}  \\ \omega^n_{ie} = \left[ \begin{matrix} 0 & \omega_{ie} cos L & \omega_{ie} sin L\end{matrix}\right]^T \\ \omega^n_{en} = \left[\begin{matrix} -\frac{v_N}{R_M + h} & \frac{v_E}{R_N + h} & \frac{v_E}{R_N +h} tan L  \end{matrix} \right]^T
+$$
+
+
+右边这一项，为快速变化量。需要采用更高精的积分方法，这里采用二子样算法：
+
+
+$$
+\mathbf{C}^{b(m-1)}_{b(m)} = M(\phi^b_{ib(m)}) \\ \phi^b_{ib(m)} = (\Delta \theta_{m1} + \Delta \theta_{m2}) + \frac{2}{3} \Delta \theta_{m1} \times \Delta \theta_{m2} \\
+$$
+
+
+### 1.2 速度更新
+
+比力方程：
+
+
+$$
+\dot{\mathbf v}^n_{e n} = \mathbf C^n_b \mathbf f^b_{sf} - (2 \omega^n_{ie} + \omega^n_{en}) \times \mathbf v^n_{en} + \mathbf g^n \\
+$$
+
+
+对这个式子进行积分：
+
+
+$$
+\mathbf v^{n(m)}_m = \mathbf v^{n(m-1)}_{m-1} +  \Delta \mathbf v ^{n}_{sf(m)} + \Delta  \mathbf v^n_{cor/g(m)} \\
+$$
+
+
+其中，第二项：
+
+
+$$
+\Delta  \mathbf v^n_{cor/g(m)} = \int_{m-1}^{m} - (2 \omega^n_{ie} + \omega^n_{en}) \times \mathbf v^n_{en} + \mathbf g^n  dt \\
+$$
+
+
+为有害加速度导致的速度增量，被积分的量是一些缓慢变化的量，可以采用梯形积分有：
+
+
+$$
+\Delta  \mathbf v^n_{cor/g(m)} = (- (2 \omega^n_{ie} + \omega^n_{en}) \times \mathbf v^n_{en} + \mathbf g^n)_{(m-1/2)} \Delta T \\
+$$
+
+
+这里的量需要采用外推法获取：
+
+
+$$
+x_{m-1/2} = x_{m-1} + \frac{x_{m-1} - x_{m-2}}{2} = \frac{ 3 x_{m-1} - x_{m-2}} { 2 }  \ \ \ \ (x=\omega^n_{ie}, \omega^n_{en}, v^n, g^n) \\
+$$
+
+
+其中，第三项
+
+
+$$
+\Delta \mathbf v ^{n}_{sf(m)} =\int_{m-1}^{m} \mathbf C^n_b \mathbf f^b_{sf}  dt \\
+$$
+
+
+为比力导致的速度增量，里面的旋转矩阵和比例都是快速变化量，需要采用高精度的积分方法才能保证精度。
+
+
+$$
+\Delta \mathbf v ^{n}_{sf(m)} = \left[ \mathbf I - \frac {\Delta T}{2} (\omega^n_{in(m-1/2)} \times)\right] \mathbf C^{n(m-1)}_{b(m-1)} (\Delta \mathbf v_m + \Delta \mathbf v^b_{rot} + \Delta \mathbf v^b_{scul}) \\
+$$
+
+
+其中
+
+
+$$
+\Delta \mathbf v^b_{rot}  = \frac{1}{2} \Delta \theta_m \times \Delta \mathbf v_m \\
+$$
+
+
+为速度旋转误差补偿量。
+
+
+$$
+\Delta \mathbf v^b_{scul} = \frac{2}{3} (\Delta \theta_{m1} \times  \Delta \mathbf v_{m2}+\Delta \mathbf v_{m1} \times \Delta \theta_{m2} ) \\
+$$
+
+
+为二子样的划桨误差补偿量。
+
+其中 $\Delta \theta_&#123;m&#125;$ $\Delta \mathbf v_m$为IMU输出的角增量或者速度增量。
+
+### 1.3 位置更新算法
+
+位置微分方程
+
+
+$$
+\dot{\mathbf{p}} = \mathbf M \mathbf v^n \\ \mathbf p = \left[\begin{matrix} L \\ \lambda \\ h \end{matrix}\right] \\ \mathbf M = \left[\begin{matrix}  0 & \frac{1}{R_M + h} & 0 \\ sec L / {R_N + h} & 0 & 0 \\ 0 & 0 & 1 \end{matrix}\right]
+$$
+
+
+位置更新算法引起的计算误差一般比较小，可以采用比较简单的梯形积分：
+
+
+$$
+\mathbf p_m = \mathbf p_{m-1} + \mathbf M_{m-1/2} (\mathbf v^n_{m-1} + \mathbf v^n_{m}) \frac {\Delta T}{2} \\
+$$
+
+
+$\mathbf M_&#123;m-1/2&#125;$ 可以采用简单的外推法获得。
+
+## 2. 代码
+
+https://
+
+github.com/ydsf16/TinyG
+
+rapeKit/tree/master/app/SINS/Core/InsUpdate
+
+## 3. 实验测试
+
+同样用上一篇[小葡萄：[SINS] 高精度捷联惯导初始对准](https://zhuanlan.zhihu.com/p/441031920) 相同的数据。
+
+一组光纤惯组SPANISA跑车测试-高精度捷联惯导算法
+
+这段数据用Novatel 100C录制，并且提供了IE后处理结果，可以作为真值适用。
+
+对比INS积分与真值。可以看出1个多小时积分，姿态最大的误差不超过1.5角分【～0.025度】，速度误差不超过2m/s，姿态误差&lt;1500m。精度还是非常高的。
+
+![文章配图](/media/notes/zhihu-441287506-sins/image-01.jpg)INS积分与IE真值对比【左侧的图为AVP的值，右侧为INS积分与IE真值的对比】【用PSINS工具箱绘制】
+
+![文章配图](/media/notes/zhihu-441287506-sins/image-02.jpg)INS积分轨迹【红色】与真值轨迹【黑色】对比。【QGIS绘制】

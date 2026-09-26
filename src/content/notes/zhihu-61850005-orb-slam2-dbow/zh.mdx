@@ -1,0 +1,241 @@
+---
+type: note
+title: "[ORB-SLAM2] 回环&DBoW视觉词袋"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/61850005
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 回环检测是SLAM中有效降低全局误差，构建全局一致地图的关键模块。跟踪丢失的时候，还可用于重定位。根据综述文献[1]，检测回环的方法有image-to-image, map-to-map, image-to-map三种方法。相比之下，image-to-image方法，也称为appearance-based基于外观的方法，具有更好的大场景适应性。现阶段，在image-to-image的方法中，常用的方法是基于视觉词袋方法（Bag of visual words）。针对BRIEF特征，文献[2]提出了词袋方法：DBoW2方法。之后又推出了改进版DBoW3。
+>
+> 本文对DBoW，以及DBoW在ORB-SLAM中的使用细节进行了总结。
+
+---
+
+## 0. 回环的评价指标
+
+对于一个回环的结果，可能有下面四种情况出现。
+
+![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-01.png)
+
+把一种回环检测算法在一个大的数据集上测试，四种结果的数量分别为 $N_&#123;TP&#125;$ , $N_&#123;TN&#125;$ ， $N_&#123;FP&#125;$ , $N_&#123;FN&#125;$ 。我们可以获得两个统计量，分别为准确率（Precision）和召回率（Recall）
+
+
+$$
+Precision=\frac{N_{TP}}{N_{TP}+N_{FP}} \\
+$$
+
+
+
+$$
+Recall = \frac{N_{TP}}{N_{TP} +N_{FN}} \\
+$$
+
+
+准确率描述的是检测到是回环的结果里面有多少是真的回环。在SLAM中，我们对这个指标要求很高，宁缺毋滥。错误的回环会对SLAM系统带来灾难性的后果。在检测到回环之后，一般还需要经过各种校验，才会接收这次回环。
+
+召回率描述的是所有实际的回环中，我们能检测出多少个回环。当然这指标也是越多越好，但是实际上准确率和召回率往往是矛盾的。
+
+对于一个回环算法，通过调整参数，在一个数据集上测试，可绘制出一个准确率-召回率曲线，如下图。曲线的右上角越靠近右上角越好，越方越好，太绕了，O(∩_∩)O哈哈~。
+
+![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-02.jpg)准确率-召回率曲线，摘自[2]
+
+---
+
+## 1. DBoW2视觉词袋
+
+我们的目的是比较两张图像之间的相似度，通过相似度来判断是否会回环。那么如何比较相似度呢？一种是可以通过匹配两帧之间的特征，统计一下匹配点的数量，这种方法太慢了。原因是什么呢？特征点本身是对图像信息进行了筛选、抽象和降维，哪是不是可以再抽象一下呢？可以，把特征再抽象为单词。比如，“车”，“猫”，“人”，打比方而已哈。那么我们可以分别统计两张图上有没有车，猫，人。据此来判断两幅图像是否相似。 这里只有有、无（0、1）两种量。
+
+DBOW2将BRIEF的聚类成 $n$ 个单词： $w_1, w_2, \cdots,w_n$ 。一幅图像上提取的特征可以转换为单词表示：
+
+
+$$
+A=1 \cdot w_1 + 1 \cdot w_2 + 0 \cdot w_3 + \cdots + 1\cdot w_n = [w_1, w_2, w_3, \cdots, w_n][1, 1, 0, \cdots, 1]^T \\
+$$
+
+
+因为视觉单词是固定的，所以一幅图像就可以用向量表示：
+
+
+$$
+v_A = [1, 1, 0, \cdots, 1]^T \\
+$$
+
+
+也就是说我们只需要对比词袋向量，就可以计算两幅图像的相似性。怎么对比能，有不同的分数计算方法，例如：
+
+
+$$
+s(A,B) = 1-\frac{1}{n}||v_A -v_B||_1 \\
+$$
+
+
+这里的计算类似于汉明距离，计算的是不相同的单词数量。
+
+> 需要注意的是，实际的DBoW2中也不是只考虑单词的有无，也是会根据单词出现的多少考虑权重。另外，相似分数的计算方式也不太相同。后文会解释。
+
+那么问题来了，上述的那些单词如何来的呢？DBoW2通过在大量图像中提取特征，利用K-Means方法聚类出 $n$ 个单词。这个 $n$ 个单词也不是一次聚类而成的，而是利用了K叉树。具体如下图。在每一层依次用K-means算法聚类成 $K$ 类。最后形成的叶子节点就是单词。深度为 $d$ 的 $K$ 叉树形成的单词数量为 $n=K^d$ 。在DBoW2中默认的 $K=10, d=5$ ，可以形成10000个单词。
+
+利用 $K$ 叉树的好处是什么呢？主要是加速。
+
+> 1. 可以加速判断一个特征属于哪个单词。如果不使用K叉树，就需要与每个单词比较（计算汉明距离），共计需要比较
+>
+> 次。而使用K叉树之后，需要的比较次数变为
+>
+> 次。大大提高了速度。这里利用了K叉树的快速查找特性。
+>
+> 2. DBoW中存储了Direct Index，也就每个节点存储有一幅图像上所有归属与该节点的特征的index。在两帧进行特征匹配的时候，只需要针对每一个节点进行匹配就好了，大大缩小了匹配空间，加速了匹配速度。ORB-SLAM帧间匹配都使用了这个trick。
+>
+> 3. 除此之外，如下图，DBoW的每个单词中还存储了Inverse index，每个Inverse Index中存储有所有有此单词的图像index，以及对应的权重：
+>
+> 。在进行闭环搜索的时候，可以加快搜索过程的。具体的，我们只需要找与当前关键帧有相同单词的关键帧就可以了。
+
+![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-03.jpg)
+
+下面再来说DBoW2是如何计算相似分数的。
+
+在构建词典的时候，使用了大量的数据。在这个环境中有的单词出现的次数多，有的单词出现的少。直观想一下，出现次数多的单词其实对环境不具有区分度，反而出现次数少的单词很有区分性。比如一个单词叫做“地砖”，环境中很多，用这个单词来比较两幅图像的话就不能显著区分两个环境。因此，引入一个TF-IDF（Term Frequency-Inverse Document Frequency）的权重，来降低这种单词的作用。
+
+
+$$
+IDF_i= log{\frac{n}{n_i}} \\
+$$
+
+
+$n_i$ 为该单词出现的次数， $n$ 为所有单词的总次数。（注：这里说的是训练过程，词典构建过程。）明显的， $n_i$ 越大，权重越小。
+
+> 至此词典就构建OK了：一个K叉树，两个index（Inverse index，Direct Index），一个权重（TF-IDF）。
+
+下面开始使用词典比较图像相似度。将一幅图像A的所有特征转换为词袋向量，这里不仅仅要考虑单词有无的问题，还要考虑单词的权重。A中有的单词多，有的单词少。单词多自然要加大权重，单词少自然要减少权重啦。引入另一个权重叫做TF（Term Frequency）：
+
+
+$$
+TF_i = \frac{n_i}{n} \\
+$$
+
+
+最后当前图像的一次单词的权重取为IDF和TF的乘积
+
+
+$$
+\eta_i = TF_i \times IDF_i \\
+$$
+
+
+这样，就组成了一个带权的词袋向量。
+
+
+$$
+A = \{ (w_1,\eta_1), (w_2, \eta_2), \cdots, (w_N, \eta_N) \} :v_A \\
+$$
+
+
+下面计算两幅图像A,B的相似度，这里就要考虑权重了。计算相似度的方法由很多，DBoW2的库里面就有L1、L2、ChiSquare等六种计算方式。比如L1距离为：
+
+## $s(v_A, v_B) = \frac 1 2 \sum_&#123;i&#125; \&#123;|v_&#123;Ai&#125; | + |v_&#123;Bi&#125; | - |v_&#123;Ai&#125;-v_&#123;Bi&#125; |\&#125; \\$
+
+实际上，在比较相似度的时候只需要计算上述的分数就好了，这个速度就比特征匹配快的多。
+
+---
+
+## 2. ORB-SLAM中的回环
+
+ORB-SLAM维护了一个数据库，这个数据库里面保存了每个单词能看到的关键帧。（inverse index）。每个关键帧都要从这个数据库中检测回环，检测完回环之后，每个关键帧都会加入到这个数据库中。当一个关键帧被删除之后，这个数据库也会被同时更新。这样做的好处就是加快回环搜索的速度，这个与DBoW的inverse index是相同的思想，只不过ORB-SLAM自己去维护了以下而已。
+
+### 2.1 搜索闭环候选帧
+
+下面进入正式的流程，因为ORB-SLAM使用了共视图，很多操作都可以采用共视图辅助。
+
+这个流程[吴博](https://link.zhihu.com/?target=http%3A//paopaorobot.org/bbs/read.php%3Ftid%3D59%26fid%3D8)的视频已经讲的很清楚了，我这里做个搬运工作。
+
+![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-04.jpg)摘自吴博《ORB-SLAM 代码详细解读》[3]
+
+1. 做了降频，要求闭环与闭环之间至少经过10个关键帧。
+
+2. 计算一个相对分数minsocre：计算当前帧与其共视图中的帧的相似分数，取其中最小的那个作为minsocre。因为DBoW计算出的绝对分数不具有可比性，取当前帧与共视帧之间最小的相似度作为基准，如果大于这个基准才有可能是闭环帧。
+
+3. 从上文中说的数据库中查找闭环候选帧。因为数据库中维护了Inverse Index，所以可以快速找到与当前帧有共同单词的关键帧。其中就会有一个关键帧具有的共同单词数最大，为maxcommonwords。根据这个设一个阈值，mincommons = 0.8 * maxcommonwords，据此去掉共同单词太少的候选关键。再加上minscore的要求干掉一部分关键帧。再再加上候选帧不能在当前帧的共视图中的条件，又干掉一部分。之后，把相连的的候选帧归为一组，每个组计算一个累加分数，可以找到一个最大分数bestAccScore。据此，设置一个阈值，minScoreToRetain = 0.75*bestAccScore。用这个阈值干掉一部分分组，这样可以干掉一些孤立的闭环帧候选帧（孤立的可能都是错误的闭环）。剩下的这些分组中的关键帧就是闭环候选帧啦。
+
+4. 连续性检测。现在，进一步对候选关键帧进行筛选。闭环不仅仅是单帧对单帧的匹配，好的闭环应该是多帧对多帧的闭环。也就是形成连续闭环，如下图所示。这一步请参考[4]。
+
+![文章配图](/media/notes/zhihu-61850005-orb-slam2-dbow/image-05.jpg)摘自[4]
+
+5. 至此可以得到若干的比较可靠的候选关键帧了：mvpEnoughConsistentCandidates。上面那么多的步骤，都是为了保证准确率。SLAM中要求闭环的准确率达到100%。
+
+### 2.2 几何校验，sim3
+
+下面，还要进行几何校验。对每一个候选帧与当前帧计算Sim3变换。
+
+1. 匹配当前帧与闭环帧之间的特征点，利用DBoW加速一下（Direct Index的应用），匹配太少的候选帧直接就干掉了。
+2. 计算一个Sim3初值。
+3. 利用Sim3初值将候选关键帧的地图点再投影到当前帧，得到更多匹配。
+4. 然后优化Sim3. 第2-4步是在RANSAC框架下做的，只要有一个帧通过了测试，就跳出去了。这样就选出了一个闭环帧。
+5. 把闭环帧的共视关键帧全部取出来，形成了局部地图，把局部地图点再投到当前帧匹配，又形成了更多的匹配。检查一下匹配点的数量来确定是否接受此次闭环。
+
+至此，已经找到了一个闭环帧，并且计算出了当前帧与闭环帧之间的Sim3变换。
+
+### 2.3 Loop fusion
+
+下面要去做Loop fusion：调整关键帧位姿，更新共视图。
+
+首先，把当前帧和当前帧的相邻帧（共视帧&共视帧的共视帧），根据前面的Sim3变换对齐到闭环帧上。这样做的好处是可以迅速把相机拉回到闭环位姿，并且把局部地图也拉回去了，可以保证定位的连续性。
+
+然后，更新共视图关系，把闭环帧和闭环帧的共视帧上的地图点投影到当前帧上来。进行地图点融合，匹配，更新共视帧。
+
+上面的步骤其实就是把当前帧的局部地图和闭环帧的局部地图缝合起来。
+
+### 2.4 优化
+
+接下来，就要开始优化啦。
+
+首先基于Essential graph优化一下，然后再来一个全局BA。
+
+---
+
+## 参考资料
+
+[1] Williams B , Cummins M , José Neira, et al. A comparison of loop closing techniques in monocular SLAM[J]. Robotics and Autonomous Systems, 2009, 57(12):1188-1197.
+
+[2] Galvez-Lo?Pez D , Tardos J D . Bags of Binary Words for Fast Place Recognition in Image Sequences[J]. IEEE Transactions on Robotics, 2012, 28(5):1188-1197.
+
+[3] [第三十六课：ORB-SLAM2源码解析 -吴博](https://link.zhihu.com/?target=http%3A//paopaorobot.org/bbs/read.php%3Ftid%3D59%26fid%3D8)
+
+[4] [https://blog.csdn.net/chishuideyu/article/details/76165461](https://link.zhihu.com/?target=https%3A//blog.csdn.net/chishuideyu/article/details/76165461)
+
+---
+
+**----相关代码----**
+
+ydsf16 - Overview
+
+**----更多SLAM文章----**
+
+[杨小东：[ORB-SLAM2] ORB-SLAM中的ORB特征（提取）](https://zhuanlan.zhihu.com/p/61738607)
+
+[杨小东：[ORB-SLAM2]单目初始化](https://zhuanlan.zhihu.com/p/61614421)
+
+[杨小东：SLAM轨迹真值获取装置](https://zhuanlan.zhihu.com/p/60589790)
+
+[杨小东：[PnP]PnP问题之EPnP解法](https://zhuanlan.zhihu.com/p/59070440)
+
+[杨小东：[PnP] PnP问题之DLT解法](https://zhuanlan.zhihu.com/p/58648937)
+
+[杨小东：[ORB-SLAM2]卡方分布(Chi-squared)外点(outlier)剔除](https://zhuanlan.zhihu.com/p/58556978)
+
+[杨小东：[ORB-SLAM2] ORB特征提取策略对ORB-SLAM2性能的影响](https://zhuanlan.zhihu.com/p/57235987)
+
+[杨小东：[PR-3]ArUco EKF SLAM 扩展卡尔曼SLAM](https://zhuanlan.zhihu.com/p/45207081)
+
+[杨小东：[PR-2] PF 粒子滤波/蒙特卡罗定位](https://zhuanlan.zhihu.com/p/43523632)

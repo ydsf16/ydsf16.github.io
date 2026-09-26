@@ -1,0 +1,165 @@
+---
+type: note
+title: "SLAM中李群、李代数常用公式"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/115342370
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 在SLAM问题中，旋转/姿态一般是旋转矩阵或者四元数的表达，并非纯向量。因此，在优化或者滤波时会引入李群/李代数。SLAM领域介绍这方面的经典论文有：
+
+- Joan, Sola. A micro Lie theory for state estimation in robotics.
+- E. Eade. Lie groups for 2D and 3D transformations.
+- C. Forster. On-manifold pre-integration fo real-time visual-inertial odometry.
+- T. D. Barfoot. State estimation for robotics.
+- G. Chirikjian. Stochastic Models, Information Theory, and Lie Group.
+
+> 个人感觉，Joan Sola的这篇文章写的很详细，非常适合理解概念，强烈推荐。对于李群/李代数处理姿态的应用，这篇文章基本能解决大部分的问题了。
+>
+> 这里对其中的一些公式进行一些摘抄，纯属抄书。
+
+## Key Properties of the exponential map
+
+
+$$
+\begin{align} exp((t+s)\tau^{\wedge})&= exp(t \tau^{\wedge})exp(s\tau^{\wedge}) \\ exp(t\tau^{\wedge}) &= exp(\tau^{\wedge})^t \\ exp(-\tau^{\wedge}) &= exp(\tau^{\wedge})^{-1} \\ exp(\mathcal X  \tau ^{\wedge} \mathcal X ^{-1}) &= \mathcal X exp(\tau^{\wedge})\mathcal X ^{-1}\\ \end{align} \\
+$$
+
+
+## Two plus and minus operators
+
+
+$$
+\begin{align} &\text{right-}\oplus: \mathcal{Y} = \mathcal X \oplus {{}^ \mathcal X \tau} = \mathcal X Exp({}^ \mathcal X \tau) \in \mathcal M\\ &\text{right-}\ominus: {}^ \mathcal X \tau=\mathcal Y \ominus \mathcal X =Log(\mathcal X^{-1}\mathcal Y) \in T_{\mathcal X}\mathcal M \end{align} \\
+$$
+
+
+
+$$
+\begin{align} &\text{left-}\oplus: \mathcal Y= {}^\varepsilon \tau \oplus \mathcal X= Exp({}^\varepsilon \tau)\mathcal X \in \mathcal M \\ &\text{left-}\ominus {}^\varepsilon \tau = \mathcal Y \ominus \mathcal X = Log(\mathcal Y^{-1}\mathcal X) \in T_{\varepsilon}\mathcal M \end{align} \\
+$$
+
+
+## The Adjoint
+
+
+$$
+\begin{align} Ad_\mathcal X:\ m\rightarrow m;\  \tau^{\wedge} &= \mathcal X \tau^{\wedge} \mathcal X^{-1}\\ \text{Linear: } Ad_{\mathcal X}(a \tau^{\wedge} +b\sigma^{\wedge}) &= a Ad_{\mathcal X} (\tau^{\wedge})+ b Ad_{\mathcal X} (\sigma^{\wedge}) \\ \text{Homomorphism: } Ad_{\mathcal X} (Ad_{\mathcal Y}(\tau^{\wedge})) &= Ad_{\mathcal{XY}}(\tau^{\wedge}) \end{align} \\
+$$
+
+
+## The Adjoint Matrix
+
+
+$$
+\begin{align} \mathbf{Ad_{\mathcal X}}:\mathbb R^{m} \rightarrow \mathbb R^{m}; &{}^\mathcal X \tau \rightarrow {}^{\varepsilon}{\tau} = \mathbf{Ad_{\mathcal X}} {}^\mathcal X \tau \\ \mathbf {Ad_{\mathcal X}} \tau &= (\mathcal X \tau \mathcal X^{-1})^{\vee} \\ \mathcal X \oplus \tau &=( \mathbf {Ad_{\mathcal X}}\tau) \oplus \mathcal X \\  \mathbf {Ad_{\mathcal X^{-1}}} &= ( \mathbf {Ad_{\mathcal X}})^{-1} \\  \mathbf {Ad_{\mathcal X}} \mathbf {Ad_{\mathcal Y}} &=  \mathbf {Ad_{\mathcal {X Y}}} \end{align}\\
+$$
+
+
+## Jacobian
+
+
+$$
+\begin{align} \frac{{}^\mathcal X D f(\mathcal X)}{D\mathcal X} &= \lim_{\tau \rightarrow 0} \frac{f(\mathcal X \oplus \tau) \ominus f(\mathcal X)}{\tau} \\ &=\lim_{\tau \rightarrow 0} \frac{Log(f(\mathcal X)^{-1}f(\mathcal XExp(\tau)))}{\tau} \\ &=\frac{\partial Log(f(\mathcal X)^{-1}f(\mathcal XExp(\tau)))}{\partial \tau} |_{\tau = 0} \end{align} \\
+$$
+
+
+Relationship between different jacobian
+
+
+$$
+\frac{{}^\epsilon Df(\mathcal X)}{D\mathcal X} = \mathbf{Ad_{\mathcal f(\mathcal X)}} \frac{{}^\mathcal X Df(\mathcal X)}{D\mathcal X} \mathbf {Ad_{\mathcal X}^{-1}} \\
+$$
+
+
+Approximations
+
+
+$$
+\begin{align} Exp(\tau +\delta \tau) &\approx Exp(\tau) Exp(J_r(\tau) \delta \tau) \\ Exp(\tau) Exp(\delta \tau) &\approx Exp(\tau +J_r(\tau)^{-1}\delta \tau) \\ Log(Exp(\tau) Exp(\delta \tau)) &\approx \tau +J_r(\tau)^{-1}\delta \tau \end{align} \\
+$$
+
+
+
+$$
+\begin{align} Exp(\tau +\delta \tau) &\approx Exp(J_l(\tau) \delta \tau) Exp(\tau) \\ Exp(\delta \tau) Exp(\tau) &\approx Exp(\tau +J_l(\tau)^{-1}\delta \tau) \\ Log(Exp(\delta \tau) Exp(\tau)) &\approx \tau +J_l(\tau)^{-1}\delta \tau \end{align} \\
+$$
+
+
+Relationship between left and right jacobian
+
+
+$$
+\begin{align} \mathbf{Ad}_{Exp(\tau)} &= J_l(\tau)J_r(\tau)^{-1} \\ J_r(-\tau) &= J_l(\tau) \end{align} \\
+$$
+
+
+Elementary Jacobian blocks
+
+
+$$
+\begin{align} \mathbf {J}_{\mathcal X}^{\mathcal X^{-1}} &= -\mathbf {Ad_{\mathcal X}} \\ \mathbf J_{\mathcal X}^{\mathcal X \circ \mathcal Y} &=\mathbf{Ad_{\mathcal Y^{-1}}} \\ \mathbf J_{\mathcal Y}^{\mathcal X \circ \mathcal Y} &= \mathbf I \\ \mathbf{J}_{\mathcal X}^{Log(\mathcal X)} &= \mathbf{J}_r^{-1}(\tau) \\ \mathbf J_{\mathcal X}^{\mathcal X \oplus \tau} &= \mathbf{Ad_{Exp(\tau)}}^{-1} \\ \mathbf J_{\tau}^{\mathcal X \oplus \tau} &= \mathbf{J}_r \\ \mathbf J_{\mathcal X}^{\mathcal Y \ominus \mathcal X} &=-\mathbf J_l(\tau)^{-1} \\ \mathbf J_{\mathcal Y}^{\mathcal Y \ominus \mathcal X} &=\mathbf J_r(\tau)^{-1} \end{align} \\
+$$
+
+
+## Uncertainty in manifolds, covariance propagation
+
+
+$$
+\begin{align} \Sigma_{\mathcal X} &= \mathbb E((\mathcal X \ominus \bar{\mathcal X})(\mathcal X \ominus \bar{\mathcal X})^{T}) \in \mathbb R^{m\times m} \\ {}^ \varepsilon\Sigma_\mathcal X &=\mathbf{Ad_{\mathcal X}} {}^ \mathcal X\Sigma_\mathcal X  \mathbf{Ad_{\mathcal X}} ^{T} \\  \Sigma_\mathcal Y &\approx \frac{Df}{D\mathcal X} \Sigma_\mathcal X  \frac{Df}{D\mathcal X} ^{T} \end{align} \\
+$$
+
+
+## Discrete integration on manifolds
+
+
+$$
+\mathcal X_k = \mathcal X_{k-1} \oplus \tau_k = \mathcal X_{k-1}  Exp(\tau_{k}) \\
+$$
+
+
+## The 3D Rotation Groups SO3
+
+Exp and log
+
+
+$$
+\mathbf R = Exp(\theta \mathbf u) = \mathbf I + sin \theta [\mathbf u]_{\times} +(1-cos\theta) [\mathbf u]_\times^2 \in \mathbb R^{3\times 3}  \\
+$$
+
+
+
+$$
+\theta \mathbf u = Log(\mathbf R) = \frac{\theta(\mathbf R - \mathbf R^T)^{\vee}}{2 sin\theta}, \theta = cos^{-1}(\frac{trac(R) - 1}{2}) \\
+$$
+
+
+Adjoint
+
+
+$$
+\mathbf{Ad_R} = \mathbf R \\
+$$
+
+
+Elementary Jacobian blocks
+
+
+$$
+\begin{align} \mathbf {J_R^{R^{-1}}} &= -\mathbf R \\ \mathbf {J_Q^{QR}} &= \mathbf R^T \\ \mathbf{J_R^{QR}} &=\mathbf I \\ \mathbf{J_R^{Rv}} &= - \mathbf R[\mathbf v]_\times \\ \mathbf{J_v^{Rv}} &= \mathbf R \\ \mathbf{J_R^{R\oplus \theta}} &=\mathbf R(\theta)^T \\ \mathbf{J_\theta^{R\oplus \theta}} &=\mathbf J_r(\theta) \\ \mathbf{J_Q^{Q\ominus R}} &=\mathbf J_r(\theta) ^{-1}\\ \mathbf{J_R^{Q\ominus R}} &=- \mathbf J_l(\theta) ^{-1}\\ \mathbf J_l &= \mathbf J_r^T \\ \mathbf J_l^{-1} &=\mathbf J_r^{-T }\end{align}\\
+$$
+
+
+> 一般情况下，可以不用SE3，Sim3的李群。因为其中只有旋转是矩阵，平移和scale都可以说是向量吧。

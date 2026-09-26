@@ -1,0 +1,101 @@
+---
+type: note
+title: "[十四讲-2] 第3章总结"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42802944
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 最近在看《视觉SLAM十四讲》，在此对一些关键点进行总结和记录
+
+## **三维空间的刚体运动**
+
+**向量的点积：** $\mathbf a \cdot \mathbf b = \sum_&#123;i=1&#125;^&#123;N&#125; a_i b_i = |a||b|cos&lt;\mathbf a, \mathbf b>$
+
+**向量的外积，叉乘**： $\mathbf a \times \mathbf b = \mathbf a ^&#123;\wedge&#125;\mathbf b$ , $\mathbf a^&#123;\wedge&#125; = \begin&#123;bmatrix&#125; 0 & -a_3 & a_2 \\ a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 \end&#123;bmatrix&#125;$ ，
+
+**外积的大小为**$|\mathbf a||\mathbf b|sin&lt;\mathbf a, \mathbf b>$ ，外积可以向量的旋转，想想一下转轴。
+
+**坐标系间的欧式变换**：同一个向量在不同坐标系下的表示
+
+
+$$
+[\mathbf e_1 \ \mathbf e_2 \ \mathbf e_3] \begin{bmatrix} a_1 \\ a_2 \\ a_3 \end{bmatrix} = [\mathbf e'_1 \ \mathbf e'_2 \ \mathbf e'_3] \begin{bmatrix} a'_1 \\ a'_2 \\ a'_3 \end{bmatrix} \\
+$$
+
+
+式子两边同时乘以 $\begin&#123;bmatrix&#125; e^T_1 \\ e^T_2 \\ e^T_3 \end&#123;bmatrix&#125;$ ,可以得到：
+
+$\begin&#123;bmatrix&#125; a_1 \\ a_2 \\ a_3 \end&#123;bmatrix&#125; = \begin&#123;bmatrix&#125; e^T_1e'_1 & e^T_1e'_2 & e^T_1e'_3 \\ e^T_2e'_1 & e^T_2e'_2 & e^T_2e'_3 \\ e^T_3e'_1 & e^T_3e'_2 & e^T_3e'_3 \end&#123;bmatrix&#125; \begin&#123;bmatrix&#125; a'_1 \\ a'_2 \\ a'_3 \end&#123;bmatrix&#125; = \mathbf R \mathbf a' \\$ 从而引入了**旋转矩阵** $\mathbf R$ ，旋转矩阵是正交矩阵（逆为自身的转置矩阵），旋转矩阵的集合是特殊正交群(Special Orthogonal Group)：
+
+
+$$
+\mathbf {SO}(n)=\{ \mathbf R \in \mathbb{R}^{n \times n} | \mathbf R \mathbf R^T = \mathbf I, det(\mathbf R)=1 \} \\
+$$
+
+
+为了便于计算，又引入了**齐次坐标和齐次变换矩阵**，变换矩阵属于特殊欧式群（Special Euclidean Group）:
+
+
+$$
+\mathbf{SE}(3) = \left\{ \mathbf T = \begin{bmatrix} \mathbf R & \mathbf t \\ 0^T & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 4} \ | \ \mathbf R \in SO(3),\ t \in \mathbb{R} \right\} \\
+$$
+
+
+旋转矩阵利用9个量描述6个自由度，具有很强的冗余，在优化的时候尤其不方便；引入了**旋转向量和欧拉角**；
+
+**旋转向量、轴角**：任意旋转都可以用一个旋转轴 $\mathbf n$ 和一个旋转角来表示 $\theta$ ，旋转向量： $\theta \mathbf n$ ，可以利用罗德里格斯公式将实现轴角与旋转矩阵之间的变换：
+
+
+$$
+\mathbf R = cos \theta \mathbf I+(1-cos \theta)\mathbf n \mathbf n^T + sin\theta \mathbf n^{\wedge} \\
+$$
+
+
+欧拉角的表示更为直观，有ZYX\ZYZ\XYZ……各种欧拉角表示，但是存在万向锁问题（Gimbal Lock）。
+
+**实际上，只要用3个实数来表达三维旋转都会存在奇异性问题**，也就是说欧拉角、轴角、李代数都存在奇异性问题。
+
+**四元数的引入解决了这个问题，即紧凑有没有奇异性。任意的旋转都可以由两个互为相反数的四元数表述。一个四元数可以唯一确定一个旋转。**
+
+## **Eigen库的常用操作**
+
+编译的时候无法确定大小的矩阵可以
+
+> 使用Eigen::MatrixXd matrix; 初始化，
+>
+> 之后再用matrix.resize(m, n)来动态分配大小。
+
+Eigen 求解线性方程组 Ax = b
+
+> x = A.ldlt().solve(b));  // A sym. p.s.d.    #include &lt;Eigen/Cholesky>
+>
+> x = A.llt() .solve(b));  // A sym. p.d.      #include &lt;Eigen/Cholesky>
+>
+> x = A.lu()  .solve(b));  // Stable and fast. #include &lt;Eigen/LU>
+>
+> x = A.qr()  .solve(b));  // No pivoting.     #include &lt;Eigen/QR>
+>
+> x = A.svd() .solve(b));  // Stable, slowest. #include &lt;Eigen/SVD>
+>
+> // .ldlt() -> .matrixL() and .matrixD()
+>
+> // .llt()  -> .matrixL()
+>
+> // .lu()   -> .matrixL() and .matrixU()
+>
+> // .qr()   -> .matrixQ() and .matrixR()
+>
+> // .svd()  -> .matrixU(), .singularValues(), and .matrixV()

@@ -1,0 +1,96 @@
+---
+type: note
+title: "IMU & GPS定位 Quaternion kinematics for ESKF[part 3]"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/152662055
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+最近基本把《QuaternionkinematicsforESKF》看完了,采用书中的方法实现了一个IMU+GPS的组合定位。
+
+## 1. 原理
+
+### 1.1 坐标系
+
+全局坐标系采用东北天(ENU)坐标系,即X指向东,Y轴指向北,Z轴指向天空。坐标原点为初始时刻位置。GPS到IMU有一个外参, 即GPS在IMU坐标系下的位置: $&#123;&#125;^I \bm p_&#123;Gps&#125;$ ,即杆臂值。
+
+### 1.2 error-state
+
+我们维护位置、速度、方向、加速度和陀螺的bias,5种,共计15维的状态。
+
+
+$$
+\left[\begin{matrix} \delta \bm p^T &  \delta \bm v^T &\delta \bm \theta^T & \delta \bm a_b ^T&\delta \bm \omega_b^T\end{matrix}\right]^T \\
+$$
+
+
+重力方向没有放入到状态之中,因为我们用了东北天坐标系,重力直接设为Z轴的反方向。
+
+如书中所述,采用IMU进行EKF的预测。需要propagatenominalstate和error-state的协方差,如书中p58、p59。
+
+
+$$
+\begin{align} \bm p &\leftarrow \bm p + \bm v\Delta t + \frac1 2 (\bm R (\bm a_m - \bm a_b) + \bm g) \Delta t^2 \\ \bm v &\leftarrow \bm v + (\bm R (\bm a_m - \bm a_b) + \bm g) \Delta t \\ \bm q &\leftarrow \bm q \otimes\bm q{(\bm \omega_m - \bm \omega_b)\Delta t} \\ \bm a_b &\leftarrow \bm a_b \\ \bm \omega_b &\leftarrow \bm  \omega_b \\ \bm P & \leftarrow \bm F_x \bm P \bm F_x^T + \bm F_i \bm Q_i \bm F_i^T \end{align} \\
+$$
+
+
+### 1.3 ESKF GPS更新
+
+GPS可以提供位置量测信息。一般GPS提供的数据为WGS84坐标系,而我们的state是定义在ENU坐标系下的。为此,我们参考了VINS-Fusion的做法,采用了 ***GeographicLib*** 库,先把GPS数据转换至ENU笛卡尔坐标系: $&#123;&#125;^G \bm p_&#123;Gps&#125;$ 。这样我们就可以定义GPS位置观测方程为:
+
+
+$$
+{}^G \bm p_{Gps} = {}^G \bm p_{I} + {}^G _I \bm R \cdot {}^I \bm p_{Gps} \\
+$$
+
+
+相对于error state的Jacobian为：
+
+
+$$
+\bm H = \left[\begin{matrix} \bm I & \bm 0 & -{}^G_I \bm R[{}^I \bm p _{Gps}]_\times & \bm 0 & \bm 0\end{matrix}\right] \\
+$$
+
+
+剩下的就是套用ESKF的更新公式了,如书中P61⻚。
+
+### 1.4 初始化
+
+初始位置为0,方向的roll和pitch可由加速度的重力方向确定,bias设置为0.
+
+## 2. 实现
+
+请见github:
+
+ydsf16/imu_gps_localization
+
+## 3. 数据
+
+https://
+
+epan-utbm.github.io/utb
+
+m_robocar_dataset/
+
+建议使用：
+
+![文章配图](/media/notes/zhihu-152662055-imu-gps-quaternion-kinematics-for-eskf-part-3/image-01.png)
+
+4. 参考资料
+
+1. Quaternion kinematics for the error-state Kalman filter
+2. Woosik Lee, Intermittent GPS-aided VIO: Online Initialization and Calibration.
+3. A General Optimization-based Framework for Global Pose Estimation with Multiple Sensors
+4. A General Optimization-based Framework for Local Odometry Estimation with Multiple Sensors

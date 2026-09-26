@@ -1,0 +1,129 @@
+---
+type: note
+title: "[LIDAR-SLAM] Iterative Closest Point (ICP)简单实现"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/63964953
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 迭代最近点算法（ICP）算法是Lidar SLAM中常用的点云配准方法，可以求解两组点云之间的相对位姿。
+>
+> 本文对最基本的ICP算法进行了介绍和简单实现，并集成为一个简化版的Odometry。
+
+## 1 原理
+
+**1.1 问题**：给定两组点云
+
+
+$$
+\begin{gathered}   X = \left\{ {{x_1},{x_2}, \cdots ,{x_m}} \right\} \hfill \\   P = \left\{ {{p_1},{p_2}, \cdots ,{p_n}} \right\} \hfill \\  \end{gathered}  \ (1)\\
+$$
+
+
+求解两组点云之间的先对位姿 $R,t$ 。问题的特殊性在于：1）两组点云之间的匹配关系是未知的；2）两组点云中点的数量不相同。
+
+> 下面，首先给出已知匹配，且点个数相同的求解方方法。之后再给出未知匹配，且点数量不同的情况的求解方法：ICP。
+
+**1.2 已知匹配的解法**
+
+此时，两组点云是已经匹配好的（通过下标一一对应），且数量相等（ $m=n$ ）。可通过最小化下式求解 $R,t$
+
+
+$$
+E\left( {R,t} \right) =\frac{1}{n}  \sum\limits_{i = 1}^n {{{\left\| {{x_i} - \left( {R{p_i} + t} \right)} \right\|}^2}}  \ (2) \\
+$$
+
+
+这个式子可以获得一个解析解，具体步骤如下。
+
+***step 1. 去掉两组点云的质心***
+
+两组点云的质心分别为 $\[&#123;\mu _x&#125; = \frac&#123;1&#125;&#123;n&#125;\sum\limits_&#123;i = 1&#125;^n &#123;&#123;x_i&#125;&#125; ,\ &#123;\mu _p&#125; = \frac&#123;1&#125;&#123;n&#125;\sum\limits_&#123;i = 1&#125;^n &#123;&#123;p_i&#125;&#125; \]$ 。
+
+两组点云去掉质心后的坐标为 $\[X' = \left\&#123; &#123;&#123;x_i&#125; - &#123;\mu _x&#125;&#125; \right\&#125; = \left\&#123; &#123;&#123;&#123;x'&#125;_i&#125;&#125; \right\&#125;,P' = \left\&#123; &#123;&#123;p_i&#125; - &#123;\mu _p&#125;&#125; \right\&#125; = \left\&#123; &#123;&#123;&#123;p'&#125;_i&#125;&#125; \right\&#125;\]$
+
+***step 2. 计算***
+
+
+$$
+W = \sum\limits_{i = 1}^n {{{x'}_i}} {\left( {p'} \right)^T} \ (3)\\
+$$
+
+
+***step 3. 计算旋转矩阵R***
+
+对 $W$ 进行SVD分解，有 $\[W = U\Sigma &#123;V^T&#125;\]$ 。当 $W$ 满秩的时候，有唯一解
+
+
+$$
+R=UV^T \\
+$$
+
+
+***step 4. 计算平移t***
+
+平移为
+
+
+$$
+t=\mu_x -R\mu_p \\
+$$
+
+
+**1.3 ICP求解方法**
+
+实际情况下，点云之间的匹配关系是不知道，且点的数量不相等的。为此，ICP算法采用迭代求解的方法。具体的迭代如下步骤。
+
+> step 1. 从两组点云中选择匹配的点对，形成匹配两组点云；
+>
+> step 2. 利用1.2节中的方法求解
+>
+> ；
+>
+> step 3. 如果相对于上一次迭代误差
+>
+> 的减少量
+>
+> || 超过最大迭代次数 ||
+>
+> 结束迭代。否则以本次迭代为初值继续迭代。
+
+第2、3步都比较简单，关键的是第一步，如何构建匹配点。最基本的做法是对于 $P$ 中的一个点 $p_i$ 选择 $X$ 中与其**欧式距离最近的点**最为匹配点（可以用KD-Tree加速）。如此，对于 $P$ 中的每一个点，都可以在 $X$ 中找到一个对应点。这样就形成了两组已知匹配的点云，并且点数相等。
+
+还有一个问题，有一些匹配时错误的，这些错误的匹配的表现是匹配点之间的距离过大。一般会用一个N倍平均距离的阈值 $D_&#123;th&#125;=N\cdot D_&#123;avg&#125;$ 去掉那些错误匹配。这里的平均阈值可以使用上一次迭代的值。
+
+## **2 实现**
+
+全部实现，请见
+
+ydsf16/lidar_slam
+
+我们利用TUM提供的RGB-D数据进行测试，只使用了其中的Depth数据生成点云。通过ICP计算相邻两帧之间的位姿变换，串接形成一个Odometry。利用rgbd_dataset_freiburg1_xyz这组数据形成的轨迹如下。
+
+![文章配图](/media/notes/zhihu-63964953-lidar-slam-iterative-closest-point-icp/image-01.jpg)
+
+**3 其他变种**
+
+ICP算法在199x年就被提出来了，后面又出了很多的变种。主要的不同在于以下几点。
+
+![文章配图](/media/notes/zhihu-63964953-lidar-slam-iterative-closest-point-icp/image-02.jpg)
+
+## 参考资料
+
+[1] [PCL 库实现](https://link.zhihu.com/?target=https%3A//github.com/PointCloudLibrary/pcl/blob/c2fe24a69815cbd17b4c91937db790165766294f/apps/in_hand_scanner/src/icp.cpp)
+
+[2] [http://ais.informatik.uni-freiburg.de/teaching/ss11/robotics/slides/17-icp.pdf](https://link.zhihu.com/?target=http%3A//ais.informatik.uni-freiburg.de/teaching/ss11/robotics/slides/17-icp.pdf)
+
+[3]Besl P J , Mckay N D . A Method for Registration of 3-D Shapes[J]. Proceedings of SPIE - The International Society for Optical Engineering, 1992, 14(3):239-256.

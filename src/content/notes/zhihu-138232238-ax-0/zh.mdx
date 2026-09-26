@@ -1,0 +1,98 @@
+---
+type: note
+title: "解超定方程 Ax=0"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/138232238
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 工程中很多问题会归结为求超定方程
+>
+> ，
+>
+> 是
+>
+> 的矩阵，且
+>
+> 。如
+>
+> SLAM中三角化地图点
+>
+> ，
+>
+> PnP
+>
+> 等一些问题都是求解这个方程。
+>
+> 很显然，这个方程有一个0解，但这不是我们想要的，
+>
+> 我们实际想求非零解
+>
+> 。
+
+为了求非零解，我们对 $\mathbf x$ 加上一个约束 $\|\mathbf x\|^2=1$ 。也就是限制 $\mathbf x$ 的长度为１。并构建成一个最带约束的最小二乘问题：
+
+
+$$
+\hat{\mathbf x} = \text{arg} \min \|\mathbf{Ax}\|^2,\text{ subject to } \|\mathbf x\|^2=1 \tag{1}　\\
+$$
+
+
+这是一个带约束的最小二乘问题，我们把拉格朗日搬出来：
+
+
+$$
+\begin{align} L(\mathbf x, \lambda) &= \|\mathbf {Ax}\|^2 + \lambda(1 - \|\mathbf x\|^2) \\ &= \mathbf{x}^T\mathbf{A}^T\mathbf {Ax} + \lambda(1-\mathbf x^T \mathbf x) \end{align} \tag{2}\\
+$$
+
+
+为了求极值，我们分别对 $\mathbf x$ 和 $\lambda$ 求偏导数，令为0：
+
+
+$$
+\begin{align} \frac{\partial L(\mathbf x, \lambda)}{\partial \mathbf x} &= 2\mathbf A^T \mathbf {Ax} - 2\lambda \mathbf x = 0 \tag{3}\\ \frac{\partial L(\mathbf x, \lambda)}{\partial \lambda} &=  1- \mathbf x^T\mathbf x = 0 \tag{4} \end{align} \\
+$$
+
+
+把(3)式整理一下：
+
+
+$$
+\begin{align} (\mathbf A^T \mathbf{A} - \lambda \mathbf I) \mathbf x = 0 \tag{5} \\ \mathbf A^T \mathbf{Ax}  = \lambda \mathbf x \tag{6} \end{align}
+$$
+
+
+可以看出 $\lambda$ 和 $\mathbf x$ 分别是 $\mathbf A^T\mathbf A$ 的特征值和特征向量。也就是说(1)式的解，就是这些特征向量中的一个。
+
+问题来了，那么多的特征向量，应该选择哪个作为解呢？我们展开 $\|\mathbf &#123;Ax&#125;\|^2$ 看一下：
+
+
+$$
+\|\mathbf {Ax}\|^2 = \mathbf x^T\mathbf A^T \mathbf A \mathbf x = \mathbf x^T \lambda\mathbf x = \lambda \mathbf x^T\mathbf x = \lambda \tag{7}\\
+$$
+
+
+> （7）式的推导，用到了式(6)和
+>
+> 。
+
+也就是说，我们想要 $\|\mathbf &#123;Ax&#125;\|^2$ 最小，就需要 $\lambda$ 最小。
+
+**那方程**$(1)$**的非零解就是**$\mathbf A^T\mathbf A$**最小特征值**$\lambda$**对应的特征向量。**
+
+## **参考资料**
+
+1. Karel Zimmermann. Lecture notes: overdetermined homogeneous linear system.
+2. Richard Hartley  and Andrew Zisserman. Multiple View Geometry in Computer Vision.

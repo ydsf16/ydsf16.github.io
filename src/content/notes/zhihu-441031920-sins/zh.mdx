@@ -1,0 +1,157 @@
+---
+type: note
+title: "[SINS] 高精度捷联惯导初始对准"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/441031920
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 最近了解了一些高精捷联惯导的知识，在此做一些总结。
+>
+> 因为自己刚接触这个领域，可能会有不少差错，欢迎指正。
+
+高精陀螺可以敏感到地球自转速度[ $\sim15^\circ / h$ ]，而加计可以测量地球重力。因此，在静止条件下，高精IMU不需要外部辅助，就可以完全确定自身姿态，实现初始对准。
+
+## 静基座粗对准
+
+当地当导航系[ENU系]下，地球的重力为
+
+
+$$
+\bf{g}^n = \left[ \begin{matrix}  0\\  0 \\ -g\end{matrix}\right] \\
+$$
+
+
+地球自转角速度为：
+
+
+$$
+\bf{\omega}^n_{ie} = \left[ \begin{matrix} 0 \\ \omega_{ie} cos L\\ \omega_{ie} sinL \end{matrix}\right] \\
+$$
+
+
+式中， $\omega_&#123;ie&#125;$ 为地球自转角速率，约为 $15.041067 ^\circ/h$ 。 $L$ 为地理纬度。
+
+下面列出惯导角速度测量关系和比力方程：
+
+
+$$
+\mathbf{C}^n_b {\omega}^b_{ib} = \omega^n_{ib} = \omega^n_{ie} + \omega^n_{en}+\omega^n_{nb} \\ \dot{\mathbf v^n} =\mathbf C^n_b \mathbf{f}^b_{sf} - 2(\omega^n_{ie} + \omega^n_{en})\times \mathbf {v}^n + \mathbf{g}^n \\
+$$
+
+
+静基座条件下，加速度、速度近似为0， $\omega^n_&#123;ie&#125; + \omega^n_&#123;en&#125;$ 非常小，做了若干近似后，可得：
+
+
+$$
+\overset{\sim}{\mathbf C}^n_b \overset{\sim}{\omega}^b_{ib}= \omega^n_{ie} \\ \overset{\sim}{\mathbf C}^n_b \overset{\sim}{\mathbf{f}}^b_{sf} = -\mathbf{g}^n \\
+$$
+
+
+联立这两个方程，可以解得姿态矩阵：
+
+
+$$
+\hat{\mathbf{C}}^n_b = \left[\begin{matrix}  -(\tilde{f}^b_{sf} \times \tilde{\omega}^b_{ib})^T/|\tilde{f}^b_{sf} \times \tilde{\omega}^b_{ib}| \\ (\tilde{f}^b_{sf} \times \tilde{\omega}^b_{ib} \times \tilde{f}^b_{sf} )^T / |\tilde{f}^b_{sf} \times \tilde{\omega}^b_{ib} \times \tilde{f}^b_{sf}| \\ (\tilde{f}^b_{sf} )^T/ |\tilde{f}^b_{sf}| \end{matrix}\right] \\
+$$
+
+
+可以看出，姿态矩阵实际上并不存在地理位置项。
+
+## 实验测试
+
+严恭敏老师开源了一套高精度组合惯导算法。他的网站上提供了一些高精度惯导数据，我们就用上面的一组数据进行试验。
+
+一组光纤惯组SPANISA跑车测试-高精度捷联惯导算法
+
+这组数据是用的是novatel 100C光纤惯组采集，开始和结尾的时候各有一段静止的数据，并且这组数据还提供了IE后解算结果，可以作为我们真值，来看一下静态对准的精度。
+
+**开始位置**
+
+yaw [degree]
+
+pitch [degree]
+
+roll [degree]
+
+IE解算真值
+
+116.4122
+
+1.1547
+
+-0.6703
+
+静基座粗对准
+
+116.9759
+
+1.2903
+
+-0.5747
+
+误差
+
+0.5637
+
+0.1355
+
+0.0955
+
+**结束位置**
+
+yaw [degree]
+
+pitch [degree]
+
+roll [degree]
+
+IE解算真值
+
+-66.1869
+
+1.2109
+
+-0.0910
+
+静基座粗对准
+
+-67.5176
+
+1.3439
+
+-0.0046
+
+误差
+
+-1.3307
+
+0.1330
+
+0.0864
+
+可以看到roll，pitch的静态对追的精度还是非常高的，yaw角度相对较低一些。
+
+关于静基座的对准误差主要受那些因素影响，可以参考[1]，这里把结论直接贴出来。
+
+![文章配图](/media/notes/zhihu-441031920-sins/image-01.png)
+
+## **源码请见**
+
+https://
+
+github.com/ydsf16/TinyG
+
+rapeKit/tree/master/app/SINS

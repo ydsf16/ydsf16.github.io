@@ -1,0 +1,111 @@
+---
+type: note
+title: "[MVG] 三角化地图点"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/63179478
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 在ORB-SLAM等基于特征点的V-SLAM算法中，地图点大都通过三角化的方法给出初值，再利用最小化重投影误差优化的方式进行细化。
+>
+> 本篇给出了三角化的详细求解步骤。
+
+一个3D点的齐次坐标为 $[x, y, z, 1]^T$ ，它到图像上的投影为
+
+
+$$
+\begin{array}{*{20}{c}}   {\lambda \left[ {\begin{array}{*{20}{c}}   u \\    v \\    1  \end{array}} \right] = \underbrace {{\mathbf{K}}\left[ {{\mathbf{R}}|{\mathbf{t}}} \right]}_{\mathbf{P}}\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right]} \\     \Downarrow  \\    {\lambda {\mathbf{u}} = {\mathbf{PX}}}  \end{array} \\
+$$
+
+
+两边同时左叉乘 $\bf&#123;u&#125;$ ， 有
+
+
+$$
+{{\mathbf{u}}^ \wedge }{\mathbf{PX}} = 0 \\
+$$
+
+
+展开后可得
+
+
+$$
+\begin{array}{*{20}{c}}   {\left[ {\begin{array}{*{20}{c}}   0&{ - 1}&v \\    1&0&{ - u} \\    { - v}&u&0  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{{\mathbf{P}}_1}} \\    {{{\mathbf{P}}_2}} \\    {{{\mathbf{P}}_3}}  \end{array}} \right]{\mathbf{X}} = 0} \\     \Downarrow  \\    {\left\{ \begin{gathered}   \left( {v{{\mathbf{P}}_3} - {{\mathbf{P}}_2}} \right){\mathbf{X}} = 0 \hfill \\   \left( {{{\mathbf{P}}_1} - u{{\mathbf{P}}_3}} \right){\mathbf{X}} = 0 \hfill \\   \left( {u{{\mathbf{P}}_2} - v{{\mathbf{P}}_1}} \right){\mathbf{X}} = 0 \hfill \\  \end{gathered}  \right.}  \end{array} \\
+$$
+
+
+上式三个方程实际上只能提供两个方程的约束，因为（1）式×(-u)-（2）式×v=（3）式。
+
+一个帧可以形成两个方程，那么两个帧可以形成四个方程：
+
+
+$$
+\underbrace {\left[ {\begin{array}{*{20}{c}}   {{v_1}{\mathbf{P}}_3^1 - {\mathbf{P}}_2^1} \\    {{\mathbf{P}}_1^1 - {u_1}{\mathbf{P}}_3^1} \\    {{v_2}{\mathbf{P}}_3^2 - {\mathbf{P}}_2^2} \\    {{\mathbf{P}}_1^2 - {u_2}{\mathbf{P}}_3^2}  \end{array}} \right]}_{\mathbf{H}}{\mathbf{X}} = 0 \\
+$$
+
+
+这里可以使用SVD求解（参考MVG），齐次坐标 $\[&#123;\mathbf&#123;X&#125;&#125;\]$ 即为 $\bf&#123;H&#125;$ 的最小奇异值的奇异向量。
+
+下面给出代码
+
+```
+void triangulate ( const Eigen::Matrix3d& K, 
+				   const Eigen::Matrix4d T1, const Eigen::Matrix4d& T2, 
+				   const Eigen::Vector2d& uu1, const Eigen::Vector2d& uu2, 
+				   Eigen::Vector4d& X )
+{
+	// construct P1 P2
+	const Eigen::Matrix<double, 3, 4> P1 = K * T1.block(0,0, 3, 4);
+	const Eigen::Matrix<double, 3, 4> P2 = K * T2.block(0, 0, 3, 4);
+	
+	// get vectors
+	const Eigen::Matrix<double, 1, 4>& P11 = P1.block(0, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P12 = P1.block(1, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P13 = P1.block(2, 0, 1, 4);
+	
+	const Eigen::Matrix<double, 1, 4>& P21 = P2.block(0, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P22 = P2.block(1, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P23 = P2.block(2, 0, 1, 4);
+	
+	const double& u1 = uu1[0];
+	const double& v1 = uu1[1];
+	const double& u2 = uu2[0];
+	const double& v2 = uu2[1];
+	
+	// construct H matrix.
+	Eigen::Matrix4d H;
+	H.block(0, 0, 1, 4) = v1 * P13 - P12;
+	H.block(1, 0, 1, 4) = P11 - u1 * P13;
+	H.block(2, 0, 1, 4) = v2 * P23 - P22;
+	H.block(3, 0, 1, 4) = P21 - u2 * P23;
+	
+	// SVD
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd ( H, Eigen::ComputeFullU | Eigen::ComputeFullV );
+	Eigen::Matrix4d V = svd.matrixV();
+	
+	X = V.block(0, 3, 4, 1);
+	X = X / X(3, 0);
+} // triangulate
+```
+
+全部工程代码
+
+ydsf16/MVG_Algorithm
+
+## 参考资料
+
+[1] Multiple View Geometry in Computer Vision
+
+[2] [多视几何——三角化求解3D空间点坐标](https://zhuanlan.zhihu.com/p/55530787)

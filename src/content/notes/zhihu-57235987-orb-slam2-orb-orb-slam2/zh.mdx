@@ -1,0 +1,93 @@
+---
+type: note
+title: "[ORB-SLAM2] ORB特征提取策略对ORB-SLAM2性能的影响"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/57235987
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> 在ORB-SLAM(2)的论文中，作者提到了一种使图像中提取的ORB特征分布更加均匀的方法。这种策略是否有助于提高SLAM的性能？为什么作者不使用OpenCV中的ORB特征提取的实现？本文将通过实验，比较这两种ORB特征提取方法对ORB-SLAM2性能的影响。
+
+## **两种ORB特征器效果对比**
+
+随便从TUM数据集中取出一张照片，分别使用OpenCV的实现和ORB-SLAM2的实现提取1000个ORB特征，效果如下图。 很明显，OpenCV提取的特征点比较集中，出现了扎推现象。而ORB-SLAM2提取的特征点，分布比较均匀。
+
+直观上想象，特征点分布比较集中，极端情况就是所有特征都集中到了一点，那么相机的位姿就无法解算。特征点分布太过集中，SLAM系统的精度可能会有所下降。下面，通过实验验证这一想象。
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-01.jpg)
+
+## **实验条件：**
+
+> 数据集:
+>
+> TUM RGB-D数据集中的6个序列 (严谨的说,以下结论目前只适用于RGB-D相机,没有测试单目和双目的效果)
+>
+> 系统：
+>
+> Ubuntu 16.04
+>
+> CPU:
+>
+> Intel® Core™ i7-8700 CPU @ 3.20GHz × 12
+>
+> OpenCV:
+>
+> 3.3.1
+>
+> ORB-SLAM2参数配置：
+>
+> 使用ORB-SLAM2原版配置
+
+## **轨迹精度对比**
+
+采用的评测标准是absolute trajectory error(ATE) RMSE， 结果见下图。大部分序列下，ORB-SLAM2版本的精度更高。fr1_xyz序列，OpenCV版本的精度稍高，但是和ORB-SLAM2的精度也差不太多。而OpenCV的版本在fr2_3h序列中出现了跟丢现象，直到最后也没有找回，所以测试轨迹精度的数据只占了整个序列开始很小一部分，在轨迹精度上稍显高一些。 实际上，fr2_3h的序列中，相机运动的较快，场景中也距离相机较远，光线也不好。ORB-SLAM版本在所有序列上都没有跟丢，因此鲁棒性更高。总之，***ORB-SLAM2的均匀化特征提取的策略提高了系统的精度和鲁棒性。***
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-02.jpg)轨迹误差对比, ATE, RMSE (m). 备注：freiburg1_xyz(fr1_xyz),  freiburg1_desk(fr1_desk), freiburg2_360_hemisphere(fr2_3h), freiburg2_desk(fr2_desk), freiburg3_long_office_household (fr3_loh), freiburg3_sitting_halfsphere(fr3_sh)
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-03.jpg)轨迹误差
+
+## **地图对比**
+
+就ORB-SLAM2的版本而言，地图点比较均匀和稀疏，关键帧之间的边相对较少。***这似乎表明ORB-SLAM2的均匀提取策略降低了特征的重复性，不利于保证同一个特征在多帧之间都提取到***。
+
+而OpenCV版本的地图点比较集中，这是由于OpenCV选择响应最高的点所导致的。关键帧之间的边也更加密集，这似乎说明响应高的那些ORB特征点具有更好的复现性，可以在连续的更多帧重复提取、跟踪。但是，需要注意的是，这些特征点都集中在一起，即便形成了更强大的网络，获得的估计精度还是没有ORB-SLAM2版本的高。***也就是说，特征点均匀分布是可以提高系统精度的。***
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-04.jpg)序列fr2_desk的地图
+
+下面再看一下，在fr2_desk序列中，每个frame追踪到的地图点的个数。ORB-SLAM2版本相对于OpenCV版本追踪的地图点数量要少，这也与上图中OpenCV版本的关键帧网络更加稠密相互印证。但是，这并不能表明ORB-SLAM2追踪的质量差，因为有可能是ORB-SLAM2的地图点的数量本来就少呢？所以我又统计了以下地图中关键帧的数量和地图点的数量。ORB-SLAM2版本的关键帧数量比OpenCV版本的还多，但是地图点的数量没有OpenCV版本的多。ORB-SLAM2版本中，地图点少，关键帧多，原因可能是1. ORB特征的复现性不好，不能在较多帧之间追踪，构造更多的地图点。2. 均匀化的提取策略提取的特征点数量没有OpenCV原版实现中提取特点数多。（这两点目前没有验证。）
+
+值得注意的是，虽然ORB-SLAM2版本每一帧跟踪的特征点数少，但是最终的轨迹精度却很高。这就体现出ORB-SLAM2特征提取方法的优越性了，可能是特征点分布比较均匀的功劳。OpenCV版本跟踪的点数虽多，但是这些点比较集中。
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-05.jpg)序列fr2_desk中每帧追踪到的地图点个数——直方图
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-06.jpg)每个序列的地图中关键帧的数量
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-07.jpg)每个序列的地图中地图点的数量
+
+## **地图点存活率对比**
+
+提取ORB特征，一是为了构造地图点，二是为了实现数据关联。一个ORB特征点对应的地图点被越多的帧观测到，那么就能形成越强大的Graph，从而也能保证系统的精度。也就是说，多帧之间的ORB特征应具有很好的重复性，这样才能保证形成强大的网络。一个地图点能够被越多的帧观测到越好。于是，我统计了每个特征点相连的关键帧数量。从这幅图似乎感觉两种特征提取方法差别不大，可能对数据影响最大的是实验环境和运动轨迹吧？
+
+![文章配图](/media/notes/zhihu-57235987-orb-slam2-orb-orb-slam2/image-08.jpg)单个地图点观测到的关键帧数量
+
+## **特征提取时间**
+
+ORB-SLAM2的特征提取时间为**10.24±2.64 ms**，OpenCV的特征提取时间为**9.11±2.82 ms。**两者差别不大。
+
+## **总结**
+
+ORB-SLAM2中的ORB特征提取方法相对于OpenCV中的方法，提高了ORB-SLAM2的轨迹精度和鲁棒性。增加特征提取的均匀性可以提高系统精度，但是似乎会降低特征提取的重复性。
+
+> 我只用了TUM RGB-D数据集的6个序列来测试，因此相关结论仅供参考。

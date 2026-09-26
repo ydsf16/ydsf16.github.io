@@ -1,0 +1,245 @@
+---
+type: note
+title: "[PnP] PnP问题之DLT解法"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/58648937
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Perspective-n-Point (PnP)
+>
+> 问题：如下图，
+>
+> 1）给定
+>
+> 个3D参考点
+>
+> 到摄像机图像上2D投影点
+>
+> 的匹配点对；
+>
+> 2）已知 3D点在世界坐标系下的坐标，2D点在图像坐标系下的坐标；
+>
+> 3）已知摄像机的内参数
+>
+> 。
+>
+> 目的
+>
+> ：求世界坐标系与摄像机坐标系之间的位姿变换
+>
+> 用途：相机位姿跟踪，物体位姿跟踪，AR/VR，机器人操作，SLAM中位姿初值求解……
+>
+> 常用解法
+>
+> ：DLT，P3P，EPnP，UPnP。
+
+![文章配图](/media/notes/zhihu-58648937-pnp-pnp-dlt/image-01.jpg)PnP问题示意图（OpenCV ：https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d）
+
+## **1. DLT，直接线性变换**
+
+> 注意
+>
+> ：原版的DLT中无须已知摄像机内参（请参考
+>
+> MVG
+>
+> ）
+>
+> 鉴于在大部分情况下，我们是已知摄像机内参的，因此这里的推导考虑了摄像机内参数。
+
+## **1.1 理论推导**
+
+3D参考点在世界坐标系下的齐次坐标记为
+
+
+$$
+\mathbf c =\begin{bmatrix} x \\ y \\ z \\1 \end{bmatrix} \\
+$$
+
+
+2D投影点在图像坐标系下的齐次坐标记为
+
+
+$$
+\mathbf u = \begin{bmatrix} u \\ v \\1 \end{bmatrix} \\
+$$
+
+
+相机的内参数为
+
+
+$$
+\mathbf K = \begin{bmatrix} f_x &  & c_x\\   & f_y &  c_y\\   &  & 1 \end{bmatrix}\\
+$$
+
+
+那么3D点到2D点投影可表示为
+
+
+$$
+\lambda  \begin{bmatrix}u \\ v \\ 1 \end{bmatrix} = \begin{bmatrix} f_x &  & c_x\\   & f_y &  c_y\\   &  & 1 \end{bmatrix}  \begin{bmatrix} \mathbf R | \mathbf t \end{bmatrix}  \begin{bmatrix}x \\ y \\ z \\ 1 \end{bmatrix}\ (1) \\
+$$
+
+
+虽然$\begin&#123;bmatrix&#125; \mathbf R | \mathbf t \end&#123;bmatrix&#125;$ 有6个自由度， $\mathbf R$ 虽然有9个参数，但是只有3个自由度，因为旋转矩阵具有正交约束。在**DLT**算法中，首先忽略掉 $\mathbf R$ 的正交约束，按照$\begin&#123;bmatrix&#125; \mathbf R | \mathbf t \end&#123;bmatrix&#125;$ 有12个未知参数 $\mathbf x=[a_1, \cdots,a_&#123;12&#125;]^&#123;T&#125;$ 计算，（1）式可变为
+
+
+$$
+\lambda {\text{ = }}\left[ {\begin{array}{*{20}{c}}   u \\    v \\    1  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {{f_x}}&{}&{{c_x}} \\    {}&{{f_y}}&{{c_y}} \\    {}&{}&1  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{a_1}}&{{a_2}}&{{a_3}}&{{a_4}} \\    {{a_5}}&{{a_6}}&{{a_7}}&{{a_8}} \\    {{a_9}}&{{a_{10}}}&{{a_{11}}}&{{a_{12}}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (2) \\
+$$
+
+
+将（2）式展开
+
+
+$$
+\left\{ {\begin{array}{*{20}{l}}   {\lambda u = x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}}} \\    {\lambda v = x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}}} \\    {\lambda  = x{a_9} + y{a_{10}} + z{a_{11}} + {a_{12}}}  \end{array}} \right. \ (3) \\
+$$
+
+
+消掉 $\lambda$ 可得
+
+
+$$
+\left\{ {\begin{array}{*{20}{l}}   {x{f_x}{a_1} + x{c_x}{a_9} + y{f_x}{a_2} + y{c_x}{a_{10}} + z{f_x}{a_3} + z{c_x}{a_{11}} + {f_x}{a_4} + {c_x}{a_{12}} - ux{a_9} - uy{a_{10}} - uz{a_{11}} - u{a_{12}} = 0} \\    {x{f_y}{a_5} + x{c_y}{a_9} + y{f_y}{a_6} + y{c_y}{a_{10}} + z{f_y}{a_7} + z{c_y}{a_{11}} + {f_y}{a_8} + {c_y}{a_{12}} - vx{a_9} - vy{a_{10}} - vz{a_{11}} - v{a_{12}} = 0}  \end{array}} \right. \ (4) \\
+$$
+
+
+写成矩阵形式
+
+
+$$
+\left[ {\begin{array}{*{20}{c}}   {x{f_x}}&{y{f_x}}&{z{f_x}}&{{f_x}}&0&0&0&0&{x{c_x} - ux}&{y{c_x} - uy}&{z{c_x} - uz}&{{c_x} - u} \\    0&0&0&0&{x{f_y}}&{y{f_y}}&{z{f_y}}&{{f_y}}&{x{c_y} - vx}&{y{c_y} - vy}&{z{c_y} - vz}&{{c_y} - v}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {{a_1}} \\    {{a_2}} \\     \vdots  \\    {{a_{12}}}  \end{array}} \right] =\mathbf 0 \ (5) \\
+$$
+
+
+有上述推导可知，1对3D-2D点对提供两个方程，即（5）式。当点对数 $n\geq6$ 时，产生一个方程
+
+
+$$
+{\mathbf{{\rm A}x = 0}} \ (6) \\
+$$
+
+
+其中， $\mathbf A$ 的大小为 $2n\times 12$ 。这个方程无法求出精确解，但是可以获得一个 $|\mathbf x| =1$ 约束下的最小二乘解 $\text&#123;argmin&#125; || \mathbf A \mathbf x||^2$ （这部分可以参考：[Ax=0求解](https://link.zhihu.com/?target=https%3A//blog.csdn.net/zhyh1435589631/article/details/62218421)以及[MVG 教程](https://link.zhihu.com/?target=http%3A//www.robots.ox.ac.uk/~az/tutorials/tutoriala.pdf)）。具体的，对 $\mathbf A$ 进行[SVD](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Singular_value_decomposition)分解，可得
+
+
+$$
+[\mathbf U \ \mathbf  \Sigma \ \mathbf V]= \text{SVD}(\mathbf A)\ (7) \\
+$$
+
+
+$\mathbf V$ 矩阵的最后一列 $\mathbf &#123;\bar x&#125;$ ,便为式（6）的解。注意，求解的结果是没有尺度的，也就是说实际的解为
+
+
+$$
+\mathbf x=\beta \mathbf {\bar x} \ (8)\\
+$$
+
+
+其中， $\beta$ 为比例系数， $\mathbf &#123;\bar x&#125;=[\bar a_1, \cdots,\bar a_&#123;12&#125;]^&#123;T&#125;$ 。 旋转部分为
+
+
+$$
+{\mathbf{\bar R}}{\text{ = }}\left[ {\begin{array}{*{20}{c}}   {{{\bar a}_1}}&{{{\bar a}_2}}&{{{\bar a}_3}} \\    {{{\bar a}_4}}&{{{\bar a}_5}}&{{{\bar a}_6}} \\    {{{\bar a}_7}}&{{{\bar a}_8}}&{{{\bar a}_9}}  \end{array}} \right]\\
+$$
+
+
+为带有尺度的正交矩阵，为求最优的旋转矩阵，将其进行SVD分解
+
+
+$$
+[\mathbf U \ \mathbf \Sigma  \ \mathbf V] = \text{SVD}(\mathbf {\bar R}) \\
+$$
+
+
+最优的旋转矩阵即为
+
+
+$$
+\mathbf R=\pm\mathbf U \mathbf V^T \\
+$$
+
+
+理论上， $\mathbf \Sigma$ 的对角线应该非常相近，取均值，求解得到比例系数为
+
+
+$$
+\beta = \pm1/ (\text{tr}(\mathbf \Sigma) /3) \\
+$$
+
+
+在加上一个限制条件，3D点应该在摄像机的前方
+
+
+$$
+{\lambda >0 : \beta ( x{\bar a_9} + y{\bar a_{10}} + z{\bar a_{11}} + {\bar a_{12}}} ) > 0 \\
+$$
+
+
+可确定 $\beta$ 和 $\mathbf R$ 的±符号。接着，可以求得平移向量
+
+
+$$
+\mathbf t = \beta [ \bar a_4, \bar a_8, \bar a_{12} ]^T \ (10)\\
+$$
+
+
+## **1.2 工程实现&实验**
+
+**1.2.1 实现**
+
+实现基于Eigen库完成，全部工程代码请见
+
+https://
+
+github.com/ydsf16/PnP_S
+
+olver
+
+**1.2.2 实验**
+
+实验很暴力，直接把 **DLT** 方法塞进了**ORB-SLAM2**的前端，与Motion Only BA(MOB)的结果进行对比，结果如下图。MOB的轨迹明显更加平滑。在转角位置，由于跟踪到的点对较少，而且这些3D点较为集中，DLT出现了很明显的误差。另外，DLT也没有考虑外点、野值的问题，而MOB使用了Huber函数，因此MOB的解更稳定。（野值问题，之后可使用RANSAC解决）**运行时间**：200~300个点对的运行时间约为 0.07 ms。(Intel i7-8700, Ubuntu 16.04)。
+
+![文章配图](/media/notes/zhihu-58648937-pnp-pnp-dlt/image-02.jpg)轨迹对比
+
+![文章配图](/media/notes/zhihu-58648937-pnp-pnp-dlt/image-03.jpg)平移误差
+
+![文章配图](/media/notes/zhihu-58648937-pnp-pnp-dlt/image-04.jpg)旋转误差
+
+**参考资料**
+
+[1] 视觉SLAM十四讲
+
+[2] Hartley R, Zisserman A. Multiple View Geometry in Computer Vision[M]. 2003.
+
+[3] [SVD](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Singular_value_decomposition)分解
+
+**----- 未完待续, P3P, EPnP----**
+
+**----更多SLAM文章----**
+
+[杨小东：[ORB-SLAM2]卡方分布(Chi-squared)外点(outlier)剔除](https://zhuanlan.zhihu.com/p/58556978)
+
+[杨小东：[ORB-SLAM2] ORB特征提取策略对ORB-SLAM2性能的影响](https://zhuanlan.zhihu.com/p/57235987)
+
+[杨小东：[PR-3]ArUco EKF SLAM 扩展卡尔曼SLAM](https://zhuanlan.zhihu.com/p/45207081)
+
+[杨小东：[PR-2] PF 粒子滤波/蒙特卡罗定位](https://zhuanlan.zhihu.com/p/43523632)
+
+**----相关代码----**
+
+ydsf16 - Overview

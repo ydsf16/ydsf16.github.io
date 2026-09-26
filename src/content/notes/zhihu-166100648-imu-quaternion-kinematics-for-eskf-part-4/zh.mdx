@@ -1,0 +1,115 @@
+---
+type: note
+title: "IMU 姿态估计 Quaternion kinematics for ESKF[part 4]"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/166100648
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+使用《Quaterniond Kinematic for ESKF》的方法，实现一个IMU姿态估计。用陀螺仪的做Propagation，加速度计做Update。
+
+## State
+
+我们的状态里面是IMU坐标系到ENU坐标系的姿态和陀螺仪的bias。  
+
+$$
+\bm \chi = [\begin{matrix} {}^G_I  \bm R & \bm b_g \end{matrix}]   \\
+$$
+
+
+## Propagation
+
+把书中的IMU kinematic搬出来：
+
+
+$$
+\begin{align*} {}^G_I \dot{\bm R} &= {}^G_I \bm R[\bm \omega_m - \bm b_g - \bm n_w]_\times \\ \dot{\bm b_g} &= \bm 0+ \bm n_g \end{align*} \\
+$$
+
+
+定义旋转误差为：
+
+
+$$
+{}^G_I \bm R = {}^G_I \hat{\bm R} \text{Exp}(\delta \bm \theta)   \\
+$$
+
+
+我们的error-state kinematic就是  
+
+$$
+\begin{align}  \dot{\delta \bm \theta} &= -[\bm \omega_m - \bm b_g]_\times \delta \bm \theta - \delta \bm b_g - \bm n_w  \\ \dot{\delta \bm b_g} &= \bm n_g  \end{align} \\
+$$
+
+
+用欧拉积分
+
+
+$$
+\begin{align*} \delta\bm \theta &\leftarrow \text{Exp}[(\bm \omega_m - \bm b_g)\Delta t]^T \delta \bm \theta - \delta b_g \Delta t +\bm \theta_i   \\  \delta \bm b_g &\leftarrow \delta \bm b_g +\bm\omega_i  \end{align*} \\
+$$
+
+
+写成矩阵形式：
+
+
+$$
+\left[\begin{matrix} \delta \bm \theta \\ \delta \bm b_g \end{matrix}\right] = \underbrace{\left[\begin{matrix}  \text{Exp}[(\bm \omega_m - \bm b_g)\Delta t]^T & - \bm I \Delta t \\ \bm 0 & \bm I \end{matrix} \right]}_{\bm F_x} \left[\begin{matrix} \delta \bm \theta \\ \delta \bm b_g  \end{matrix}\right] +  \underbrace{ \left[ \begin{matrix} \bm I & \bm 0 \\ \bm 0  & \bm I \end{matrix} \right] }_{\bm F_i }\left[\begin{matrix} \bm \theta_i \\ \bm \omega_i \end{matrix}\right]         \\
+$$
+
+
+协方差Propagation就是
+
+
+$$
+\bm \Sigma_{k+1} = \bm F_x \bm \Sigma_k \bm F_x^T + \bm F_i \bm Q \bm F_i^T \\
+$$
+
+
+## Update
+
+如果IMU做匀速运动，加速度计测量的就是重力（方向）。当然实际上，并不可能做匀速运动，可以当做噪声处理。我们就可以建立一个量测方程。
+
+
+$$
+\bm a =- {}^G_I \bm R^T \bm g + \bm n_a  \\
+$$
+
+
+其中， $\bm g = \left[\begin&#123;matrix&#125; 0 &0 & -1 \end&#123;matrix&#125; \right]^T$ 为重力在ENU系下的方向。
+
+雅克比为：
+
+
+$$
+\bm H = \left[ \begin{matrix} [{}^G_I \bm R^T \bm g]_\times & \bm 0 \end{matrix} \right] \\
+$$
+
+
+## 初始化
+
+与上一篇文章相似[https://zhuanlan.zhihu.com/p/152662055](https://zhuanlan.zhihu.com/p/152662055)，采用加速度初始化roll pitch，yaw设置为0.
+
+## 实现
+
+https://
+
+github.com/ydsf16/IMUOr
+
+ientationEstimator
+
+## 参考资料
+
+[1] Sola, Joan. Quaternion kinematics for the error-state Kalman  lter[J]. 2017.

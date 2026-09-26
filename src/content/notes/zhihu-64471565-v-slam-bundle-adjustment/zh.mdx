@@ -1,0 +1,464 @@
+---
+type: note
+title: "[V-SLAM] Bundle Adjustment 实现"
+lang: zh
+date: 2026-09-26
+updated: 2026-09-26
+status: "已发布"
+featured: false
+priority: 0
+tags: [SLAM, VIO, 传感器融合]
+categories: [Spatial AI, 技术笔记]
+draft: false
+source:
+  platform: 知乎
+  type: article
+  url: https://zhuanlan.zhihu.com/p/64471565
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> SLAM问题的后端有主要有滤波和优化两种方案。目前，普遍认为优化的方法在精度上要超过滤波方法，因为它可以进行多次的线性化。近年来出现的SLAM算法也大都是基于优化的算法（如ORB-SLAM、DSO等）。优化问题的核心便是Bundle Adjustment。
+>
+> 本文对V-SLAM中纯视觉的Bundle Adjustment问题进行了介绍，给出了简单的实现，并利用仿真数据进行了测试
+>
+> 。
+
+## 1. 基本原理
+
+关于Bundle Adjustment是什么，大家应该都比较熟悉，这里就不多做介绍了（可以参考文献[1][2]）。本文主要给出一些实现细节。在基于特征点的视觉SLAM中，我们一般通过最小化重投影误差，来优化相机的位姿和地图点的位置。下面针对这个问题展开。
+
+**1.1 地图点的参数化方式**
+
+地图点的参数化方式主要有两种：一种是用三维向量 $\mathbf&#123;X&#125;= [x,y,z]^T$ 表达；另一种采用逆深度表达。为了简单和直观，我们这里还是使用比较传统的**三维向量表达**。
+
+**1.2 相机模型**
+
+相机模型也有很多啦，这里我们同样是使用最简单的一种：**针孔相机模型**。一个3D地图点 $\bf&#123;X&#125;$ 投影到图像上形成2D像素点 $\bf&#123;u&#125;$ （**3D-2D投影**）可以表示为
+
+
+$$
+\lambda {\mathbf{u}} = {\mathbf{KTX}} = \left[ {\begin{array}{*{20}{c}}   {{f_x}}&0&{{c_x}} \\    0&{{f_y}}&{{c_y}} \\    0&0&1  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   \bf R& \bf t  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (1) \\
+$$
+
+
+其中 $\bf&#123;K&#125;$ 为内参矩阵， $\mathbf&#123;T&#125;$ 为相机的位姿， $\bf&#123;X&#125;$ 为3D地图点的齐次坐标。我们设定摄像机内参数是已知的，将上述方程简写为
+
+
+$$
+{\mathbf{u}} = \pi \left( {{\mathbf{T}},{\mathbf{X}}} \right)  \ (2)\\
+$$
+
+
+**1.3 误差、最小二乘问题**
+
+我们需要求解的最小二乘优化问题为
+
+
+$$
+\left\{ {{{\mathbf{T}}_i},{{\mathbf{X}}_j}} \right\} = \mathop {\arg \min }\limits_{} \sum\limits_{\left\{ {i,j,k} \right\} \in \chi } {\rho \left( {\left\| {\underbrace {{z_k} - \pi \left( {{{\mathbf{T}}_i},{{\mathbf{X}}_j}} \right)}_{\mathbf{e}}} \right\|_\Sigma ^2} \right)} {\text{ = }}\arg \min \sum\limits_{\left\{ {i,j,k} \right\} \in \chi } {\rho \left( {{{\mathbf{e}}^T}{\mathbf{\Sigma^{-1}{} e}}} \right)}  \ (3) \\
+$$
+
+
+需要优化的量为相机的位姿 $\mathbf&#123;T&#125;_i$ 和地图点的位置 $\mathbf&#123;X&#125;_j$ ， $\chi$ 包含了所有的**3D-2D投影。** $\mathbf e$ 为**cost function**， $\rho$ 为鲁棒核函数，我们这里也是用最常用的**Huber函数**：
+
+
+$$
+\rho  = \left\{ {\begin{array}{*{20}{l}}   x \\    {2b\sqrt x  - {b^2}}  \end{array}\begin{array}{*{20}{l}}   {,if\sqrt x  < b} \\    {,else}  \end{array}} \right.  \ (4)\\
+$$
+
+
+为了便于操作，这里我们将其转换为一个权重 $w$（这是g2o的做法），使得
+
+
+$$
+{{\mathbf{e}}^T}\left( {w{{\mathbf{\Sigma }}^{ - 1}}} \right){\mathbf{e}} = \rho \left( {{{\mathbf{e}}^T}{{\mathbf{\Sigma }}^{ - 1}}{\mathbf{e}}} \right)  \ (5)\\
+$$
+
+
+那么，权重 $w$ 为
+
+
+$$
+w = \frac{{\rho \left( {{{\mathbf{e}}^T}{{\mathbf{\Sigma }}^{ - 1}}{\mathbf{e}}} \right)}}{{{{\mathbf{e}}^T}{{\mathbf{\Sigma }}^{ - 1}}{\mathbf{e}}}}  \ (6)\\
+$$
+
+
+至此，我们需要求解的最小二乘优化问题，变为
+
+
+$$
+\left\{ {{{\mathbf{T}}_i},{{\mathbf{X}}_j}} \right\} = \mathop {\arg \min }\limits_{} \sum\limits_{\left\{ {i,j,k} \right\} \in \chi } {{{\mathbf{e}}^T}\left( {w{{\mathbf{\Sigma }}^{ - 1}}} \right){\mathbf{e}}} \ (7) \\
+$$
+
+
+**1.4 雅克比Jacobian**
+
+求解最小二乘问题，需要提供cost function：$\[&#123;\mathbf&#123;e&#125;&#125; = z - \pi \left( &#123;&#123;\mathbf&#123;T&#125;&#125;,&#123;\mathbf&#123;X&#125;&#125;&#125; \right)\]$ 相对于优化量 $\[&#123;&#123;\mathbf&#123;T&#125;&#125;,&#123;\mathbf&#123;X&#125;&#125;&#125;\]$ 的**雅克比**。（可参考高博十四讲）
+
+**1）**cost function关于相机位姿 $\bf&#123;T&#125;$ 的雅克比，我们采用李代数扰动模型计算，为
+
+
+$$
+{{\mathbf{J}}_{\mathbf{T}}} =  - \left[ {\begin{array}{*{20}{c}}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}}&{ - \frac{{{f_x}x'y'}}{{{{z'}^2}}}}&{{f_x} + \frac{{{f_x}{{x'}^2}}}{{{{z'}^2}}}}&{ - \frac{{{f_x}y'}}{{z'}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}&{ - {f_y} - \frac{{{f_y}{{y'}^2}}}{{{{z'}^2}}}}&{\frac{{{f_y}x'y'}}{{{{z'}^2}}}}&{\frac{{{f_y}x'}}{{z'}}}  \end{array}} \right] \ (8)\\
+$$
+
+
+其中，
+
+
+$$
+\left[ {\begin{array}{*{20}{c}}   {x'} \\    {y'} \\    {z'}  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {\mathbf{R}}&{\mathbf{t}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   x \\    y \\    z \\    1  \end{array}} \right] \ (9)\\
+$$
+
+
+**2）**cost function关于地图点 $\bf&#123;X&#125;$ 的雅克比为
+
+
+$$
+{{\mathbf{J}}_{\mathbf{X}}} =  - \left[ {\begin{array}{*{20}{c}}   {\frac{{{f_x}}}{{z'}}}&0&{ - \frac{{{f_x}x'}}{{{{z'}^2}}}} \\    0&{\frac{{{f_y}}}{{z'}}}&{ - \frac{{{f_y}y'}}{{{{z'}^2}}}}  \end{array}} \right]{\mathbf{R}} \ (10)\\
+$$
+
+
+**1.5 增量方程的求解**
+
+无论使用Gauss-Netwon还是Levenburg-Marquadt方法求解最小二乘问题（7）,都会求解一个关于增量的线性方程：
+
+
+$$
+\bf H \bf \Delta X = \bf b \ (11)\\
+$$
+
+
+Bundle Adjustment中的 $\mathbf&#123;H&#125;$ 矩阵，具有特殊的稀疏结构，如下图所示。利用这种稀疏结构可以加速求解过程。我们这里的实现使用了舒尔补的方法求解。（TODO，其他求解方法）
+
+![文章配图](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-01.jpg)H矩阵的稀疏结构
+
+其中只与相机位姿相关的矩阵$\mathbf C$ ，以及只与地图点相关的矩阵块$\mathbf M$ 均为对角块矩阵。将(11)式写成分块形式。
+
+
+$$
+\left[ {\begin{array}{*{20}{c}}   {\mathbf{C}}&{\mathbf{{\rm E}}} \\    {{{\mathbf{E}}^T}}&{\mathbf{M}}  \end{array}} \right]\left[ {\begin{array}{*{20}{c}}   {\Delta {{\mathbf{x}}_{\mathbf{c}}}} \\    {\Delta {{\mathbf{x}}_{\mathbf{m}}}}  \end{array}} \right] = \left[ {\begin{array}{*{20}{c}}   {{{\mathbf{b}}_{\mathbf{c}}}} \\    {{{\mathbf{b}}_{\mathbf{m}}}}  \end{array}} \right] \ (12) \\
+$$
+
+
+利用舒尔补消元，我们首先求解 $\Delta \mathbf&#123;x&#125;_c$ ：
+
+
+$$
+\left[ {{\mathbf{C}} - {\mathbf{E}}{{\mathbf{M}}^{ - 1}}{{\mathbf{E}}^T}} \right]{\mathbf{\Delta }}{{\mathbf{x}}_{\mathbf{c}}} = {{\mathbf{b}}_{\mathbf{c}}} - {\mathbf{E}}{{\mathbf{M}}^{ - 1}}{{\mathbf{b}}_{\mathbf{m}}} \\
+$$
+
+
+然后，再去求解 $\Delta \mathbf&#123;x_p&#125;$ :
+
+
+$$
+\Delta {{\mathbf{x}}_m} = {{\mathbf{M}}^{ - 1}}\left( {{{\mathbf{b}}_m} - {{\mathbf{E}}^T}\Delta {{\mathbf{x}}_c}} \right)\\
+$$
+
+
+由于 $\[&#123;\mathbf&#123;M&#125;&#125;\]$ 为对角块矩阵，求逆比较快。上述过程就是利用了这一特性，实现了求解的加速。
+
+**1.6 固定部分状态**
+
+对于一个Bundle Adjustment问题，我们必须固定一部分状态，或者给一部分状态一个先验。不然，就会有无穷多解。可以想象一下，一个网络的误差已经达到了最小后，可以整体在空间内任意移动，而不会对误差造成任何影响。我们只要固定这个网络中的任意1个以上的节点，其他的节点都会有确定的状态。（我们通常会把第一个位姿固定）
+
+怎么固定呢？一种可以加一个先验约束，就是加一个先验cost function。另外一种就是直接把状态fix住，不让它参与优化就好了。 我们采用后一种方法。
+
+## 2. 实现
+
+> 我们的实现比较简单：
+>
+> 1. 仅针对上述优化问题；
+>
+> 2. 不考虑扩展性；
+>
+> 3. 不考虑内存问题（不考虑稀疏矩阵存储，十分占内存，只能用来解小规模问题。TODO）；
+>
+> 4. 不考虑稀疏矩阵的加速；
+>
+> 5. 只实现了LM优化算法；
+>
+> 6. 不支持先验约束，有motion only BA， struct only BA 和 Full BA三种形式。
+>
+> 7. 没有考虑鲁棒性的问题，错误的输入可能直接就崩掉了。
+>
+> 8. 速度慢（TODO）
+>
+> 实现的过程我们参考了g2o的做法。
+>
+> 全部工程代码请见：
+
+ydsf16/vslam
+
+我们首先定义几个类，分别是**地图点，相机位姿，CostFunction**。地图点和相机位姿类用来存储需要优化的状态，通过id进行标识。CostFunction用来存储代价函数、观测，计算雅克比、残差等。
+
+**2.1 地图点类**
+
+存储待优化的地图点，同时定义了位置的加法。如果设置了fixed_标志，则不加入状态向量。
+
+```
+class MapPoint{
+public:
+	MapPoint(const Eigen::Vector3d& position, int id, bool fixed = false);
+	const Eigen::Vector3d& getPosition();
+	void setPosition(const Eigen::Vector3d& position);
+	int getId();
+	void setId(int id);
+	void setFixed();
+	bool isFixed();
+	void addDeltaPosition(const Eigen::Vector3d& delta_position);
+	int state_index_;
+private:
+	Eigen::Vector3d position_; 
+	int id_;
+	bool fixed_; 	
+}; //class MapPoint
+```
+
+**2.2 相机类**
+
+存储待优化的相机，同时定义了位姿的加法，其实就是左乘啦。如果设置了fixed_标志，则不加入状态向量。
+
+```
+class Camera{
+public:
+	Camera(const Sophus::SE3& pose, int id, bool fixed = false);
+	const Sophus::SE3& getPose();
+	void setPose(const Sophus::SE3& pose);
+	int getId();
+	void setId(int id);
+	void setFixed();
+	bool isFixed();
+	void addDeltaPose(const Eigen::Matrix<double, 6, 1>& delta_pose);
+	void addDeltaPose(const Sophus::SE3& delta_pose);
+	int state_index_;
+private:
+	Sophus::SE3 pose_;
+	int id_;
+	bool fixed_;
+}; // class CameraPose
+```
+
+**2.3 CostFunction类**
+
+用来存储cost function，计算cost， 计算雅克比，计算Huber weight等作用。总之，跟cost function相关的操作都放在了这里。
+
+```
+class CostFunction{
+public:
+	CostFunction(MapPoint* map_point, Camera* camera, 
+				 double fx, double fy, double cx, double cy, const Eigen::Vector2d& ob_z);
+	void setHuberParameter(double b = 1.0);
+	void setCovariance(const Eigen::Matrix2d& cov);
+	void computeInterVars(Eigen::Vector2d& e, Eigen::Matrix2d& weighted_info, double& weighted_e2);
+	void computeJT(Eigen::Matrix<double, 2, 6>& JT);
+	void computeJX(Eigen::Matrix<double, 2, 3>& JX);
+	MapPoint* map_point_;
+	Camera* camera_;
+private:
+	double fx_, fy_, cx_, cy_;
+	Eigen::Vector2d ob_z_;
+	Eigen::Matrix2d info_matrix_;
+	double huber_b_;                                      
+}; // class CostFunction
+```
+
+**2.4 BundleAdjustment类**
+
+整个BA问题的类。利用map结构存储地图点和相机，主要是为了方便快速查找。利用set结构存储cost function。在这个类里面，将所有cost function的雅克比、信息矩阵整合成大的雅克比、信息矩阵、Hassian矩阵等。在这里面，我们实现了LM优化算法。
+
+```
+class BundleAdjustment{
+public:
+	BundleAdjustment();
+	~BundleAdjustment(); // free memory.
+	
+	void addMapPoint(MapPoint* mpt);
+	void addCamera(Camera* cam);
+	void addCostFunction(CostFunction* cost_func);
+	MapPoint* getMapPoint(int id);
+	Camera* getCamera(int id);
+	void setConvergenceCondition(int max_iters, double min_delta, double min_error);
+	void setVerbose(bool flag);
+	void optimize();
+	
+private:
+	void optimizationInit();    // init for the optimization.
+	void computeStateIndexes(); // compute index for every state.
+	void computeHAndbAndError();
+	void solveNormalEquation();
+	void inverseM(const Eigen::MatrixXd& M, Eigen::MatrixXd& M_inv);
+	void updateStates();
+	void recoverStates();
+	
+	std::map<int, MapPoint*> mappoints_; // all mappoints
+	std::map<int, Camera*> cameras_; // all cameras.
+	std::set<CostFunction*> cost_functions_; // all cost functions.
+	
+	Eigen::MatrixXd J_; // Jocabian matrix.
+	Eigen::MatrixXd JTinfo_;
+	Eigen::MatrixXd H_; // Hassian matrix.
+	Eigen::MatrixXd r_; // residual vector.
+	Eigen::MatrixXd b_;
+	Eigen::MatrixXd info_matrix_; // information matrix.
+	Eigen::MatrixXd Delta_X_;     // Delta_X_
+	Eigen::MatrixXd I_;
+	
+	int n_cam_state_; // number of cameras in the state vector.
+	int n_mpt_state_; // number of map points in the state vector.
+	
+	/* Convergence condition */
+	int max_iters_;
+	double min_delta_;
+	double min_error_;
+	double sum_error2_;
+	double last_sum_error2_;
+
+	bool verbose_;
+}; // BundleAdjustment
+```
+
+**2.5 BA问题的构建**
+
+这个过程跟g2o几乎一样。
+
+> step 1. 构造地图点、相机，加入到BundleAdjustment类。
+>
+> step 2. 构造cost function，加入到BundleAdjustment类。
+>
+> step 3. 开始迭代优化
+>
+> step 4. 根据id将结果取出
+
+```
+BundleAdjustment ba_mba;
+	ba_mba.setConvergenceCondition(20, 1e-5, 1e-10);
+	ba_mba.setVerbose(true);
+	
+	// add mappoints
+	for(size_t i = 0; i < noise_mappoints.size(); i ++)
+	{
+		const Eigen::Vector3d& npt = noise_mappoints.at(i);
+		MapPoint* mpt = new MapPoint(npt, i);
+		mpt->setFixed(); // fixed all mappoints.
+		ba_mba.addMapPoint(mpt);
+	} // add mappoints
+ 	
+	// add cameras.
+	for(size_t i = 0; i < noise_cameras.size(); i ++)
+	{
+		const Sophus::SE3& ncam = noise_cameras.at(i);
+		Camera* cam = new Camera(ncam, i);
+		ba_mba.addCamera(cam);
+	} // add cameras.
+	
+	// add observations
+	for(size_t i = 0; i < noise_observations.size(); i ++)
+	{
+		const Observation& ob = noise_observations.at(i);
+		MapPoint* mpt = ba_mba.getMapPoint(ob.mpt_id_);
+		Camera* cam = ba_mba.getCamera(ob.cam_id_);
+		CostFunction* cost_func = new CostFunction(mpt, cam, fx, fy, cx, cy, ob.ob_);
+		ba_mba.addCostFunction(cost_func);
+	} // add observations.
+	
+	// Optimize
+	ba_mba.optimize();
+	
+	// Compute pose Error
+	double sum_rot_error = 0.0;
+	double sum_trans_error = 0.0;
+	for(size_t i = 0; i < cameras.size(); i ++)
+	{
+		Camera* cam = ba_mba.getCamera(i);
+		const Sophus::SE3& opt_pose = cam->getPose();
+		const Sophus::SE3& org_pose = cameras.at(i);
+		Sophus::SE3 pose_err = opt_pose * org_pose.inverse();
+		sum_rot_error += pose_err.so3().log().norm();
+		sum_trans_error += pose_err.translation().norm();
+	}
+	std::cout << "Mean rot error: " << sum_rot_error / (double)(cameras.size())
+	<< "\tMean trans error: " <<  sum_trans_error / (double)(cameras.size()) << std::endl;
+```
+
+## 3. 实验
+
+为了能够与真值对比，我采用了仿真实验。就是人为的仿真出m个相机，n个地图点和一些观测。然后给数据加一些噪声，测试算法的有效性。仿真实验有明确的ground truth，调试程序非常好用。下面给出一组数据的结果。
+
+> 相机数量：6
+>
+> 地图点数量：275
+>
+> 观测数量：1650
+
+**3.1 motion only BA实验（固定地图点，只优化位姿）**
+
+首先，我们可以不添加任何噪声进行实验，可以发现优化后的结果与真值完全一样。
+
+然后，添加如下所示的噪声，进行测试
+
+> mpt_noise = 0.01;  // m
+>
+> cam_trans_noise = 0.1; // m
+>
+> cam_rot_noise = 0.1; // rad
+>
+> ob_noise = 1.0;  // pixel
+
+![文章配图](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-02.jpg)
+
+**3.2 struct only BA实验（固定相机，只优化地图点）**
+
+添加如下所示的噪声，进行测试
+
+> mpt_noise = 0.1;
+>
+> cam_trans_noise = 0.0;
+>
+> cam_rot_noise = 0.00;
+>
+> ob_noise = 1.0;
+
+![文章配图](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-03.jpg)
+
+**3.3 Full BA实验（只固定第一个相机，优化其余相机和地图点）**
+
+添加如下所示的噪声，进行测试
+
+> mpt_noise = 0.05;
+>
+> cam_trans_noise = 0.1;
+>
+> cam_rot_noise = 0.1;
+>
+> ob_noise = 1.0;
+
+![文章配图](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-04.jpg)
+
+**实测发现，算法可以很好的收敛。**
+
+**相机位姿的估计精度会比地图点的精度更高，因为一个相机可以看到几百个地图点，而一个地图点只能被几个相机看到；相机的约束方程数量远大于地图点的约束方程数量。**
+
+**还发现，计算速度很慢，主要的原因在于**
+
+> 1. 内存频繁拷贝
+>
+> 2. 增量方程求解速度很慢
+>
+> 3. 没有利用稀疏矩阵的性质
+>
+> 4. Eigen的特性不熟悉
+>
+> ......
+
+总之，还有一大堆问题需要解决。这只是一个很基础的版本。以后有时间再搞吧。
+
+## **参考资料**
+
+[1] Triggs B . Bundle Adjustment - A Modern Synthesis[M]// Vision Algorithms: Theory and Practice. Springer Berlin Heidelberg, 1999.
+
+[2] 视觉SLAM十四讲
+
+[3] Methods for Non-Linear Least Squares Problems
