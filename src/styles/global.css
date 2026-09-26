@@ -4,3 +4,4 @@
 .mobile-menu{display:none}
 @media(max-width:800px){.menu-toggle{display:inline-flex;align-items:center;margin-left:auto}.mobile-menu.is-open{display:flex;position:absolute;left:16px;right:16px;top:76px;width:auto;flex-direction:column;gap:0;padding:8px 16px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 34px rgba(30,20,80,.12)}.mobile-menu.is-open a{padding:13px 0;border-bottom:1px solid var(--line);color:var(--ink)}.mobile-menu.is-open a:last-child{border-bottom:0}.desktop-nav{display:none}}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hero .eyebrow,.section .eyebrow{font-size:15px;letter-spacing:.16em}
