@@ -1,8 +1,60 @@
 ---
-import { getCollection } from 'astro:content'; import BaseLayout from '../../../layouts/BaseLayout.astro'; import { type Locale } from '../../../data/site';
-export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }]; const locale = Astro.params.lang as Locale; const items = (await getCollection('notes', ({ data }) => data.lang === locale && !data.draft)).sort((a, b) => {
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { type Locale } from '../../../data/site';
+
+export const getStaticPaths = () => [{ params: { lang: 'en' } }, { params: { lang: 'zh' } }];
+
+const locale = Astro.params.lang as Locale;
+const labels = locale === 'zh'
+  ? { all: '全部', SLAM: 'SLAM', PhoneAI: 'PhoneAI', aviation: '航空', AI: 'AI', engineering: '工程' }
+  : { all: 'All', SLAM: 'SLAM', PhoneAI: 'Phone AI', aviation: 'Aviation', AI: 'AI', engineering: 'Engineering' };
+const categoryKey = (category: string) => ({
+  '航空': 'aviation',
+  'Aviation': 'aviation',
+  'Phone AI': 'PhoneAI',
+  '工程': 'engineering',
+  'Engineering': 'engineering',
+}[category] || category);
+const items = (await getCollection('notes', ({ data }) => data.lang === locale && !data.draft)).sort((a, b) => {
   const rank = (item: typeof a) => item.data.priority !== 0 ? item.data.priority : 1000;
   return rank(a) - rank(b) || (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0) || a.data.title.localeCompare(b.data.title, locale);
 });
+const categories = [...new Set(items.map((item) => categoryKey(item.data.categories[0] || 'SLAM')))];
 ---
-<BaseLayout locale={locale} title={locale === 'zh' ? '技术笔记' : 'Notes'}><section class="shell page-intro"><p class="eyebrow">NOTES</p><h1 class="visually-hidden">{locale === 'zh' ? '技术笔记' : 'Technical notes'}</h1></section><section class="shell note-list page-grid">{items.map((item, index) => <a class="note-row" href={`/${locale}/notes/${item.data.slug || item.id.split('/')[0]}`}><span class="note-index">{String(index + 1).padStart(2, '0')}</span><span><strong>{item.data.title}</strong><small>{item.data.tags.join(' · ')}</small></span><span>↗</span></a>)}</section></BaseLayout>
+<BaseLayout locale={locale} title={locale === 'zh' ? '技术笔记' : 'Notes'}>
+  <section class="shell page-intro">
+    <p class="eyebrow">NOTES</p>
+    <h1 class="visually-hidden">{locale === 'zh' ? '技术笔记' : 'Technical notes'}</h1>
+    <div class="note-filters" aria-label={locale === 'zh' ? '文章分类' : 'Article categories'}>
+      <button class="note-filter active" type="button" data-filter="all" aria-pressed="true">{labels.all}</button>
+      {categories.map((category) => <button class="note-filter" type="button" data-filter={category} aria-pressed="false">{labels[category as keyof typeof labels] || category}</button>)}
+    </div>
+  </section>
+  <section class="shell note-list page-grid" data-note-list>
+    {items.map((item, index) => <a class="note-row" data-category={categoryKey(item.data.categories[0] || 'SLAM')} href={'/' + locale + '/notes/' + (item.data.slug || item.id.split('/')[0])}>
+      <span class="note-index">{String(index + 1).padStart(2, '0')}</span>
+      <span><strong>{item.data.title}</strong><small>{item.data.tags.join(' · ')}</small></span>
+      <span>↗</span>
+    </a>)}
+  </section>
+</BaseLayout>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-filter]');
+  const rows = document.querySelectorAll<HTMLElement>('[data-category]');
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const filter = button.dataset.filter;
+      buttons.forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      rows.forEach((row) => {
+        row.hidden = filter !== 'all' && row.dataset.category !== filter;
+      });
+    });
+  });
+</script>

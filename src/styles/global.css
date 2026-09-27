@@ -12,3 +12,4 @@
 .desktop-nav a.active:after{content:"";position:absolute;left:0;right:0;bottom:-27px;height:3px;border-radius:999px;background:var(--purple)}
 .mobile-menu a.active{color:var(--purple);font-weight:750}
 @media(max-width:800px){.desktop-nav{display:none}.desktop-nav a.active:after{display:none}}
+.note-filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.note-filter{appearance:none;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:inherit;font-size:13px;font-weight:750;padding:9px 14px;cursor:pointer;transition:color .2s,border-color .2s,background .2s}.note-filter:hover,.note-filter:focus-visible{border-color:var(--purple);color:var(--purple)}.note-filter.active{border-color:var(--purple);background:var(--purple);color:#fff}.note-row[hidden]{display:none}
