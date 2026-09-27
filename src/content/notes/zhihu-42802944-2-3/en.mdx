@@ -1,0 +1,135 @@
+---
+type: note
+title: "[SLAM 14 Lectures] Chapter 3 Summary"
+lang: en
+date: 2018-08-23
+updated: 2018-08-23
+status: "published"
+featured: false
+priority: 34
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42802944
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I have been reading *14 Lectures on Visual SLAM* and use this note to record key points.
+
+## Rigid-body motion in 3D space
+
+**Vector dot product:**
+
+$$
+\mathbf a\cdot\mathbf b=\sum_{i=1}^{N}a_i b_i
+=\lVert\mathbf a\rVert\lVert\mathbf b\rVert\cos\angle(\mathbf a,\mathbf b).
+$$
+
+**Vector cross product:**
+
+$$
+\mathbf a\times\mathbf b=\mathbf a^\wedge\mathbf b,
+\qquad
+\mathbf a^\wedge=
+\begin{bmatrix}
+0&-a_3&a_2\\
+a_3&0&-a_1\\
+-a_2&a_1&0
+\end{bmatrix}.
+$$
+
+Its magnitude is $\lVert\mathbf a\rVert\lVert\mathbf b\rVert\sin\angle(\mathbf a,\mathbf b)$. The cross product describes the rotation of a vector; think of its axis of rotation.
+
+**Euclidean transformation between coordinate frames:** representations of the same vector in different coordinate systems satisfy
+
+$$
+[\mathbf e_1\ \mathbf e_2\ \mathbf e_3]
+\begin{bmatrix}a_1\\a_2\\a_3\end{bmatrix}
+=
+[\mathbf e'_1\ \mathbf e'_2\ \mathbf e'_3]
+\begin{bmatrix}a'_1\\a'_2\\a'_3\end{bmatrix}.
+$$
+
+Multiplying both sides by
+
+$$
+\begin{bmatrix}
+\mathbf e_1^\mathsf T\\
+\mathbf e_2^\mathsf T\\
+\mathbf e_3^\mathsf T
+\end{bmatrix}
+$$
+
+gives
+
+$$
+\begin{bmatrix}a_1\\a_2\\a_3\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf e_1^\mathsf T\mathbf e'_1&\mathbf e_1^\mathsf T\mathbf e'_2&\mathbf e_1^\mathsf T\mathbf e'_3\\
+\mathbf e_2^\mathsf T\mathbf e'_1&\mathbf e_2^\mathsf T\mathbf e'_2&\mathbf e_2^\mathsf T\mathbf e'_3\\
+\mathbf e_3^\mathsf T\mathbf e'_1&\mathbf e_3^\mathsf T\mathbf e'_2&\mathbf e_3^\mathsf T\mathbf e'_3
+\end{bmatrix}
+\begin{bmatrix}a'_1\\a'_2\\a'_3\end{bmatrix}
+=\mathbf R\mathbf a'.
+$$
+
+This introduces the **rotation matrix** $\mathbf R$. A rotation matrix is orthogonal—its inverse is its transpose—and the set of rotation matrices is the special orthogonal group:
+
+$$
+\mathrm{SO}(n)=
+\left\{\mathbf R\in\mathbb R^{n\times n}\mid
+\mathbf R\mathbf R^\mathsf T=\mathbf I,\ \det(\mathbf R)=1\right\}.
+$$
+
+For convenient computation, introduce **homogeneous coordinates and the homogeneous transformation matrix**. Transformation matrices belong to the special Euclidean group:
+
+$$
+\mathrm{SE}(3)=
+\left\{\mathbf T=
+\begin{bmatrix}\mathbf R&\mathbf t\\\mathbf 0^\mathsf T&1\end{bmatrix}
+\in\mathbb R^{4\times4}\ \middle|\
+\mathbf R\in\mathrm{SO}(3),\ \mathbf t\in\mathbb R^3\right\}.
+$$
+
+A rotation matrix uses nine values for six degrees of freedom, which is redundant and inconvenient in optimization. Rotation vectors and Euler angles are therefore introduced.
+
+**Rotation vector / axis-angle.** Any rotation can be represented by an axis $\mathbf n$ and rotation angle $\theta$. The rotation vector is $\theta\mathbf n$. Rodrigues' formula converts between axis-angle and a rotation matrix:
+
+$$
+\mathbf R=\cos\theta\,\mathbf I+
+(1-\cos\theta)\mathbf n\mathbf n^\mathsf T+
+\sin\theta\,\mathbf n^\wedge.
+$$
+
+Euler angles are more intuitive and can use ZYX, ZYZ, XYZ, and other conventions, but they suffer from gimbal lock.
+
+**Any 3D-rotation representation using only three real numbers has singularities.** Euler angles, axis-angle, and Lie algebra coordinates all have this issue.
+
+**Quaternions solve this compactly without singularities. Any rotation can be represented by two opposite quaternions; one quaternion uniquely determines a rotation.**
+
+## Common Eigen operations
+
+For matrices whose dimensions are unknown at compile time:
+
+> Initialize with `Eigen::MatrixXd matrix;`, then dynamically allocate with `matrix.resize(m, n)`.
+
+Solving the linear system $Ax=b$ with Eigen:
+
+~~~cpp
+x = A.ldlt().solve(b);  // A symmetric positive semidefinite. #include <Eigen/Cholesky>
+x = A.llt().solve(b);   // A symmetric positive definite.     #include <Eigen/Cholesky>
+x = A.lu().solve(b);    // Stable and fast.                    #include <Eigen/LU>
+x = A.qr().solve(b);    // No pivoting.                        #include <Eigen/QR>
+x = A.svd().solve(b);   // Stable, slowest.                    #include <Eigen/SVD>
+
+// .ldlt() -> .matrixL() and .matrixD()
+// .llt()  -> .matrixL()
+// .lu()   -> .matrixL() and .matrixU()
+// .qr()   -> .matrixQ() and .matrixR()
+// .svd()  -> .matrixU(), .singularValues(), and .matrixV()
+~~~

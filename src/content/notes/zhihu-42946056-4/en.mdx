@@ -1,0 +1,186 @@
+---
+type: note
+title: "[SLAM 14 Lectures] Chapter 4 Summary"
+lang: en
+date: 2018-08-25
+updated: 2018-08-25
+status: "published"
+featured: false
+priority: 33
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42946056
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I have been reading *14 Lectures on Visual SLAM* and use this note to record key points.
+
+This chapter introduces Lie groups and Lie algebras.
+
+**Why use Lie groups and Lie algebras?** They simplify optimization problems involving pose variables. Using rotation and transformation matrices makes optimization constrained because a rotation matrix must remain orthogonal. Expressing rigid-body motion with Lie groups and Lie algebras turns it into an unconstrained optimization problem. This is their main use in visual SLAM.
+
+## Definition of a group
+
+**A group is an algebraic structure consisting of a set and an operation.** Let the set be $A$ and the operation be $\cdot$. It satisfies:
+
+1. **Closure:** $\forall a_1,a_2\in A,\ a_1\cdot a_2\in A$.
+2. **Associativity:** $\forall a_1,a_2,a_3\in A,\ (a_1\cdot a_2)\cdot a_3=a_1\cdot(a_2\cdot a_3)$.
+3. **Identity:** $\exists a_0\in A$ such that $\forall a\in A,\ a_0\cdot a=a\cdot a_0=a$.
+4. **Inverse:** $\forall a\in A,\ \exists a^{-1}\in A$ such that $a\cdot a^{-1}=a_0$.
+
+**Common groups:**
+
+1. General linear group $\mathrm{GL}(n)$: invertible $n\times n$ matrices under multiplication.
+2. Special orthogonal group $\mathrm{SO}(n)$: rotation matrices; $\mathrm{SO}(2)$ and $\mathrm{SO}(3)$ are common.
+3. Special Euclidean group $\mathrm{SE}(n)$: $n$-dimensional Euclidean transformations, including $\mathrm{SE}(2)$ and $\mathrm{SE}(3)$.
+
+**A Lie group is a group with continuous, smooth structure.**
+
+## Definition of a Lie algebra
+
+Every Lie group has a corresponding Lie algebra that describes its local properties.
+
+A Lie algebra consists of vector space $\mathbb V$, scalar field $\mathbb F$, and a binary operation (the Lie bracket) $[,]$. The triple $(\mathbb V,\mathbb F,[,])$ is a Lie algebra if it satisfies:
+
+1. **Closure:** $\forall X,Y\in\mathbb V,\ [X,Y]\in\mathbb V$.
+2. **Bilinearity:** for $\forall X,Y,Z\in\mathbb V$ and $a,b\in\mathbb F$, $[aX+bY,Z]=a[X,Z]+b[Y,Z]$ and $[Z,aX+bY]=a[Z,X]+b[Z,Y]$.
+3. **Alternating property:** $\forall X\in\mathbb V,\ [X,X]=0$.
+4. **Jacobi identity:** $\forall X,Y,Z\in\mathbb V$, $[X,[Y,Z]]+[Z,[X,Y]]+[Y,[Z,X]]=0$.
+
+## Lie algebra $\mathfrak{so}(3)$
+
+$$
+\mathfrak{so}(3)=
+\left\{\phi\in\mathbb R^3,\
+\Phi=\phi^\wedge\in\mathbb R^{3\times3}\right\}.
+$$
+
+1. Its elements are 3D vectors or $3\times3$ skew-symmetric matrices.
+2. Its Lie bracket is $[\phi_1,\phi_2]=(\Phi_1\Phi_2-\Phi_2\Phi_1)^\vee$.
+3. Its relation to $\mathrm{SO}(3)$ is $\mathbf R=\exp(\phi^\wedge)$.
+
+## Lie algebra $\mathfrak{se}(3)$
+
+$$
+\mathfrak{se}(3)=
+\left\{
+\xi=\begin{bmatrix}\rho\\\phi\end{bmatrix}\in\mathbb R^6,
+\rho\in\mathbb R^3,\phi\in\mathfrak{so}(3),
+\xi^\wedge=
+\begin{bmatrix}\phi^\wedge&\rho\\\mathbf0^\mathsf T&0\end{bmatrix}
+\in\mathbb R^{4\times4}
+\right\}.
+$$
+
+1. Its elements are six-dimensional vectors: the first three components relate to translation and the last three to rotation.
+2. Its Lie bracket is $[\xi_1,\xi_2]=(\xi_1^\wedge\xi_2^\wedge-\xi_2^\wedge\xi_1^\wedge)^\vee$.
+3. Its relation to $\mathrm{SE}(3)$ is $\mathbf T=\exp(\xi^\wedge)$.
+
+## Exponential and logarithmic maps
+
+![Article illustration](/media/notes/zhihu-42946056-4/image-01.jpg)
+
+## Lie-algebra derivatives and perturbation models
+
+For general matrix exponentials, the following is not true:
+
+$$
+\ln(\exp(\mathbf A)\exp(\mathbf B))=\mathbf A+\mathbf B.
+$$
+
+The **Baker–Campbell–Hausdorff (BCH)** formula gives the approximation
+
+$$
+\ln(\exp(\phi_1^\wedge)\exp(\phi_2^\wedge))^\vee
+\approx
+\begin{cases}
+\mathbf J_l(\phi_2)^{-1}\phi_1+\phi_2,&\text{when }\phi_1\text{ is small},\\
+\mathbf J_r(\phi_1)^{-1}\phi_2+\phi_1,&\text{when }\phi_2\text{ is small}.
+\end{cases}
+$$
+
+This supports differentiation of rigid-body motion from the definition of a derivative:
+
+$$
+\frac{\partial\mathbf R\mathbf p}{\partial\varphi}
+=\lim_{\varphi\to0}
+\frac{\exp(\varphi^\wedge)\exp(\phi^\wedge)\mathbf p-\exp(\phi^\wedge)\mathbf p}{\varphi}
+=-(\mathbf R\mathbf p)^\wedge.
+$$
+
+$$
+\frac{\partial\mathbf T\mathbf p}{\partial\delta\xi}
+=
+\begin{bmatrix}
+\mathbf I&-(\mathbf R\mathbf p+\mathbf t)^\wedge\\
+\mathbf0^\mathsf T&\mathbf0^\mathsf T
+\end{bmatrix}
+=(\mathbf T\mathbf p)^\odot.
+$$
+
+## Visual-SLAM application
+
+Suppose we solve a motion-only bundle-adjustment problem:
+
+$$
+\begin{aligned}
+\xi^*&=\operatorname*{arg\,min}_{\xi}\frac{1}{2}\lVert\mathbf e\rVert^2,\\
+\mathbf e&=\mathbf u_i-\frac{1}{s_i}\mathbf K\exp(\xi^\wedge)\mathbf p_i,\\
+\mathbf T&=\exp(\xi^\wedge).
+\end{aligned}
+$$
+
+With Gauss–Newton, take the linear term of the Taylor expansion of the residual:
+
+$$
+\mathbf e(\xi\oplus\delta\xi)=\mathbf e(\xi)+\mathbf J\delta\xi,
+\qquad
+\mathbf J=\frac{\partial\mathbf e}{\partial\delta\xi}.
+$$
+
+The key is computing Jacobian $\mathbf J$. Since $\mathbf u_i$ is a $2\times1$ vector independent of the derivative, introduce the map point in camera coordinates, $\mathbf P'$:
+
+$$
+\mathbf e=\mathbf u_i-\frac{1}{s_i}\mathbf K\mathbf P',
+\qquad
+\mathbf P'=\exp(\xi^\wedge)\mathbf p_i=\mathbf T\mathbf p_i.
+$$
+
+By the chain rule,
+
+$$
+\mathbf J=
+\frac{\partial\mathbf e}{\partial\delta\xi}
+=
+\frac{\partial\mathbf e}{\partial\mathbf P'}
+\frac{\partial\mathbf P'}{\partial\delta\xi}.
+$$
+
+The first factor is the derivative of the projection model:
+
+$$
+\frac{\partial\mathbf e}{\partial\mathbf P'}
+=
+-\begin{bmatrix}
+\frac{f_x}{Z'}&0&-\frac{f_xX'}{Z'^2}\\
+0&\frac{f_y}{Z'}&-\frac{f_yY'}{Z'^2}
+\end{bmatrix}.
+$$
+
+The second factor comes from the Lie-algebra perturbation model:
+
+$$
+\frac{\partial\mathbf P'}{\partial\delta\xi}
+=
+\frac{\partial\mathbf T\mathbf p_i}{\partial\delta\xi}
+=
+\begin{bmatrix}\mathbf I&-\mathbf P'^\wedge\end{bmatrix}
+=(\mathbf T\mathbf p_i)^\odot.
+$$
+
+This is the practical use of Lie algebra: it enables unconstrained optimization.

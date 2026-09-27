@@ -1,0 +1,218 @@
+---
+type: note
+title: "[SINS] Strapdown Inertial Navigation Update Algorithm"
+lang: en
+date: 2021-12-12
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 2
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/441287506
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I recently learned some material about high-accuracy strapdown inertial navigation and summarize it here. I am still new to this area, so corrections are welcome.
+
+This article implements a north-oriented strapdown INS update algorithm. Given initial position, attitude, and velocity, it integrates IMU measurements to obtain real-time position and attitude. The main references are Gongmin Yan's *Strapdown Inertial Navigation Algorithms and Integrated Navigation Principles* and the [PSINS](http://www.psins.org.cn/sy) toolbox.
+
+## 1. Algorithm
+
+### 1.1 Attitude update
+
+The attitude differential equation is
+
+$$
+\dot{\mathbf C}^n_b=\mathbf C^n_b(\boldsymbol\omega^b_{nb}\times).
+$$
+
+Updating attitude directly with this equation is complicated. Decompose the rotation matrix into a product of two matrices:
+
+$$
+\mathbf C^{n(m)}_{b(m)}
+=\mathbf C^{n(m)}_i\mathbf C^i_{b(m)}.
+$$
+
+The two factors on the right can be updated separately:
+
+$$
+\mathbf C^i_{b(m)}
+=\mathbf C^i_{b(m-1)}\mathbf C^{b(m-1)}_{b(m)},
+\qquad
+\mathbf C^{n(m)}_i
+=\mathbf C^{n(m)}_{n(m-1)}\mathbf C^{n(m-1)}_i.
+$$
+
+Together, this yields the practical attitude-update form:
+
+$$
+\mathbf C^{n(m)}_{b(m)}
+=\mathbf C^{n(m)}_{n(m-1)}
+\mathbf C^{n(m-1)}_{b(m-1)}
+\mathbf C^{b(m-1)}_{b(m)}.
+$$
+
+The left factor represents change in the local navigation frame caused by velocity and Earth rotation. Both change slowly, so Euler integration is sufficient:
+
+$$
+\mathbf C^{n(m)}_{n(m-1)}
+=\mathbf C^{n(m-1)}_{n(m)}
+=\mathbf M^\mathsf T(\boldsymbol\phi^n_{in})
+\approx\mathbf M^\mathsf T(\boldsymbol\omega^n_{in(m)}\Delta T),
+$$
+
+$$
+\boldsymbol\phi^n_{in}=\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en},
+\qquad
+\boldsymbol\omega^n_{ie}=
+\begin{bmatrix}0\\\omega_{ie}\cos L\\\omega_{ie}\sin L\end{bmatrix},
+$$
+
+$$
+\boldsymbol\omega^n_{en}=
+\begin{bmatrix}
+-\frac{v_N}{R_M+h}\\
+\frac{v_E}{R_N+h}\\
+\frac{v_E}{R_N+h}\tan L
+\end{bmatrix}.
+$$
+
+The right factor changes quickly and needs a higher-accuracy integration method. Here a two-sample algorithm is used:
+
+$$
+\mathbf C^{b(m-1)}_{b(m)}=\mathbf M(\boldsymbol\phi^b_{ib(m)}),
+$$
+
+$$
+\boldsymbol\phi^b_{ib(m)}
+=(\Delta\boldsymbol\theta_{m1}+\Delta\boldsymbol\theta_{m2})
++\frac{2}{3}\Delta\boldsymbol\theta_{m1}\times\Delta\boldsymbol\theta_{m2}.
+$$
+
+### 1.2 Velocity update
+
+The specific-force equation is
+
+$$
+\dot{\mathbf v}^n_{en}
+=\mathbf C^n_b\mathbf f^b_{sf}
+-(2\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en})\times\mathbf v^n_{en}
++\mathbf g^n.
+$$
+
+Integrating it gives
+
+$$
+\mathbf v^{n(m)}_m
+=\mathbf v^{n(m-1)}_{m-1}
++\Delta\mathbf v^n_{sf(m)}
++\Delta\mathbf v^n_{cor/g(m)}.
+$$
+
+The second term is the velocity increment caused by harmful acceleration:
+
+$$
+\Delta\mathbf v^n_{cor/g(m)}
+=\int_{m-1}^{m}
+[-(2\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en})\times\mathbf v^n_{en}
++\mathbf g^n]dt.
+$$
+
+Its integrand changes slowly, so trapezoidal integration gives
+
+$$
+\Delta\mathbf v^n_{cor/g(m)}
+=[-(2\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en})\times\mathbf v^n_{en}
++\mathbf g^n]_{m-1/2}\Delta T.
+$$
+
+Obtain half-step values by extrapolation:
+
+$$
+x_{m-1/2}=x_{m-1}+\frac{x_{m-1}-x_{m-2}}{2}
+=\frac{3x_{m-1}-x_{m-2}}{2},
+\quad
+x=\boldsymbol\omega^n_{ie},\boldsymbol\omega^n_{en},\mathbf v^n,\mathbf g^n.
+$$
+
+The third term is the velocity increment caused by specific force:
+
+$$
+\Delta\mathbf v^n_{sf(m)}
+=\int_{m-1}^{m}\mathbf C^n_b\mathbf f^b_{sf}dt.
+$$
+
+Because the rotation matrix and specific force change quickly, use high-accuracy integration:
+
+$$
+\Delta\mathbf v^n_{sf(m)}
+=
+\left[\mathbf I-\frac{\Delta T}{2}(\boldsymbol\omega^n_{in(m-1/2)}\times)\right]
+\mathbf C^{n(m-1)}_{b(m-1)}
+(\Delta\mathbf v_m+\Delta\mathbf v^b_{rot}+\Delta\mathbf v^b_{scul}).
+$$
+
+Here
+
+$$
+\Delta\mathbf v^b_{rot}=\frac12\Delta\boldsymbol\theta_m\times\Delta\mathbf v_m
+$$
+
+is rotation-error compensation, and
+
+$$
+\Delta\mathbf v^b_{scul}
+=\frac23(\Delta\boldsymbol\theta_{m1}\times\Delta\mathbf v_{m2}
++\Delta\mathbf v_{m1}\times\Delta\boldsymbol\theta_{m2})
+$$
+
+is the two-sample sculling-error compensation. $\Delta\boldsymbol\theta_m$ and $\Delta\mathbf v_m$ are the IMU's angle and velocity increments.
+
+### 1.3 Position update
+
+The position differential equation is
+
+$$
+\dot{\mathbf p}=\mathbf M\mathbf v^n,
+\qquad
+\mathbf p=
+\begin{bmatrix}L\\\lambda\\h\end{bmatrix},
+$$
+
+$$
+\mathbf M=
+\begin{bmatrix}
+0&\frac{1}{R_M+h}&0\\
+\frac{\sec L}{R_N+h}&0&0\\
+0&0&1
+\end{bmatrix}.
+$$
+
+Position-update error is generally small, so simple trapezoidal integration is sufficient:
+
+$$
+\mathbf p_m=\mathbf p_{m-1}
++\mathbf M_{m-1/2}(\mathbf v^n_{m-1}+\mathbf v^n_m)\frac{\Delta T}{2}.
+$$
+
+Obtain $\mathbf M_{m-1/2}$ by simple extrapolation.
+
+## 2. Code
+
+[ydsf16/TinyGrapeKit — InsUpdate](https://github.com/ydsf16/TinyGrapeKit/tree/master/app/SINS/Core/InsUpdate)
+
+## 3. Experiment
+
+The same data set as [Initial Alignment for High-Accuracy Strapdown INS](https://zhuanlan.zhihu.com/p/441031920) is used: a SPANISA vehicle test recorded by a NovAtel 100C, with IE post-processing results available as ground truth.
+
+Comparing INS integration with ground truth, over more than one hour the maximum attitude error is under 1.5 arcminutes (about $0.025^\circ$), velocity error is under $2\,\mathrm{m/s}$, and position error is below $1500\,\mathrm m$. The accuracy is high.
+
+![INS integration versus IE ground truth. The left plot shows AVP values; the right plot compares INS integration and IE ground truth. Rendered with PSINS.](/media/notes/zhihu-441287506-sins/image-01.jpg)
+
+![INS trajectory (red) versus ground-truth trajectory (black). Rendered with QGIS.](/media/notes/zhihu-441287506-sins/image-02.jpg)

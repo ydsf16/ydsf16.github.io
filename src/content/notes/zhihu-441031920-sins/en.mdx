@@ -1,0 +1,118 @@
+---
+type: note
+title: "[SINS] Initial Alignment for High-Accuracy Strapdown INS"
+lang: en
+date: 2021-12-04
+updated: 2024-08-01
+status: "published"
+featured: false
+priority: 3
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/441031920
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I recently learned some material about high-accuracy strapdown inertial navigation and summarize it here. I am still new to this area, so corrections are welcome.
+
+High-accuracy gyroscopes can sense Earth's rotation rate ($\sim15^\circ/\mathrm h$), while accelerometers measure gravity. Under stationary conditions, a high-accuracy IMU can therefore determine its own attitude without external aiding and perform initial alignment.
+
+## Coarse alignment on a stationary base
+
+In the local navigation frame (ENU), Earth gravity is
+
+$$
+\mathbf g^n=
+\begin{bmatrix}0\\0\\-g\end{bmatrix}.
+$$
+
+Earth's rotation rate is
+
+$$
+\boldsymbol\omega^n_{ie}=
+\begin{bmatrix}
+0\\
+\omega_{ie}\cos L\\
+\omega_{ie}\sin L
+\end{bmatrix}.
+$$
+
+Here $\omega_{ie}$ is Earth's rotation rate, approximately $15.041067^\circ/\mathrm h$, and $L$ is geographical latitude.
+
+The inertial-navigation angular-rate measurement relation and the specific-force equation are
+
+$$
+\mathbf C^n_b\boldsymbol\omega^b_{ib}
+=\boldsymbol\omega^n_{ib}
+=\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en}+\boldsymbol\omega^n_{nb},
+$$
+
+$$
+\dot{\mathbf v}^n=
+\mathbf C^n_b\mathbf f^b_{sf}
+-2(\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en})\times\mathbf v^n
++\mathbf g^n.
+$$
+
+On a stationary base, acceleration and velocity are approximately zero and $\boldsymbol\omega^n_{ie}+\boldsymbol\omega^n_{en}$ is very small. With these approximations,
+
+$$
+\tilde{\mathbf C}^n_b\tilde{\boldsymbol\omega}^b_{ib}
+=\boldsymbol\omega^n_{ie},
+\qquad
+\tilde{\mathbf C}^n_b\tilde{\mathbf f}^b_{sf}
+=-\mathbf g^n.
+$$
+
+Solving the two equations gives the attitude matrix:
+
+$$
+\hat{\mathbf C}^n_b=
+\begin{bmatrix}
+-(\tilde{\mathbf f}^b_{sf}\times\tilde{\boldsymbol\omega}^b_{ib})^\mathsf T/
+\lVert\tilde{\mathbf f}^b_{sf}\times\tilde{\boldsymbol\omega}^b_{ib}\rVert\\
+(\tilde{\mathbf f}^b_{sf}\times\tilde{\boldsymbol\omega}^b_{ib}\times\tilde{\mathbf f}^b_{sf})^\mathsf T/
+\lVert\tilde{\mathbf f}^b_{sf}\times\tilde{\boldsymbol\omega}^b_{ib}\times\tilde{\mathbf f}^b_{sf}\rVert\\
+(\tilde{\mathbf f}^b_{sf})^\mathsf T/
+\lVert\tilde{\mathbf f}^b_{sf}\rVert
+\end{bmatrix}.
+$$
+
+The attitude matrix therefore has no explicit geographic-position term.
+
+## Experiment
+
+Professor Gongmin Yan has open-sourced a high-accuracy integrated-navigation algorithm and provides high-accuracy inertial-navigation data. We use one of those data sets for the experiment.
+
+The SPANISA vehicle test uses a NovAtel 100C fiber-optic IMU. It includes stationary data at both the beginning and end, and also provides an IE post-processing result that can serve as ground truth for evaluating static-alignment accuracy.
+
+**Starting position**
+
+| Method | Yaw (degree) | Pitch (degree) | Roll (degree) |
+| --- | ---: | ---: | ---: |
+| IE post-processing ground truth | 116.4122 | 1.1547 | -0.6703 |
+| Stationary-base coarse alignment | 116.9759 | 1.2903 | -0.5747 |
+| Error | 0.5637 | 0.1355 | 0.0955 |
+
+**Ending position**
+
+| Method | Yaw (degree) | Pitch (degree) | Roll (degree) |
+| --- | ---: | ---: | ---: |
+| IE post-processing ground truth | -66.1869 | 1.2109 | -0.0910 |
+| Stationary-base coarse alignment | -67.5176 | 1.3439 | -0.0046 |
+| Error | -1.3307 | 0.1330 | 0.0864 |
+
+The static-alignment accuracy for roll and pitch is very high; yaw is less accurate.
+
+For factors that affect stationary-base alignment errors, see reference [1]. Its conclusion is reproduced below.
+
+![Article illustration](/media/notes/zhihu-441031920-sins/image-01.png)
+
+## Source code
+
+[ydsf16/TinyGrapeKit — SINS](https://github.com/ydsf16/TinyGrapeKit/tree/master/app/SINS)
