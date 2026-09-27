@@ -1,0 +1,216 @@
+---
+type: note
+title: "[ORB-SLAM2] ORB Features in ORB-SLAM: Extraction"
+lang: en
+date: 2019-04-09
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 23
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/61738607
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> A major innovation of ORB-SLAM is that every module uses the same feature: ORB. This makes the system simpler and more robust. This article first introduces the original ORB feature, then the improvements made by ORB-SLAM. Compared with SIFT and SURF, ORB reaches real-time CPU performance, has limited scale invariance and rotation invariance, and improves the noise robustness of the BRIEF descriptor. ORB is reported to be about 100 times faster than SIFT and 10 times faster than SURF. ORB stands for Oriented FAST and Rotated BRIEF.
+
+1. **Limited scale invariance.** An image pyramid provides it. Since the pyramid has finite levels, the invariance only holds over a bounded scale range.
+2. **Rotation invariance.** Compute the feature orientation from the intensity centroid, then calculate a rotated BRIEF descriptor.
+3. **Noise robustness.** BRIEF comparisons use the intensity over a $5\times5$ neighborhood rather than a single pixel.
+4. **Some illumination invariance.** FAST detection and rBRIEF both compare intensities.
+5. **Speed.** FAST corners and BRIEF descriptors are both fast; ORB is roughly 100× faster than SIFT and 10× faster than SURF.
+
+## 0. Extraction overview
+
+1. Construct the pyramid.
+2. Extract FAST corners.
+3. Compute orientation $\theta$ with the intensity-centroid method.
+4. Compute the rotated BRIEF descriptor.
+
+The following sections explain these four steps.
+
+---
+
+## 1. Constructing the pyramid
+
+The image pyramid is a standard construction, so it is not expanded here.
+
+---
+
+## 2. Extracting FAST corners
+
+### 2.1 Allocating the number of features per level
+
+Higher pyramid levels have smaller image areas and should contain fewer features. Features can be allocated in proportion to area. Suppose level zero has width $W$, height $L$, scale factor $s$ with $0<s<1$, and $n$ levels. The total pyramid area is
+
+$$
+\begin{aligned}
+S &= LW(s^2)^0+LW(s^2)^1+\cdots+LW(s^2)^{n-1}\\
+  &= \underbrace{LW}_{C}\frac{1-(s^2)^n}{1-s^2}.
+\end{aligned}
+$$
+
+The number of features per unit area is
+
+$$
+N_{\mathrm{avg}}=\frac{N}{S}
+=\frac{N(1-s^2)}{C(1-(s^2)^n)}.
+$$
+
+Therefore level zero receives
+
+$$
+N_0=\frac{N(1-s^2)}{1-(s^2)^n},
+$$
+
+and level $\alpha$ receives
+
+$$
+N_\alpha=\frac{N(1-s^2)}{1-(s^2)^n}(s^2)^\alpha.
+$$
+
+In practice, OpenCV allocates by side length rather than area, replacing $s^2$ in the formulas above with $s$.
+
+### 2.2 What is a FAST corner and how is it extracted?
+
+FAST determines whether a pixel is a keypoint by comparing its intensity with points on a circle of radius three around it.
+
+1. Choose pixel $p$ with intensity $I_p$.
+2. Set a threshold $t$, for example 20% of the central-pixel intensity.
+3. Select the 16 pixels on the radius-three circle centered at $p$.
+4. If $n$ consecutive pixels are brighter than $I_p+t$ or darker than $I_p-t$, classify $p$ as a FAST corner. Common variants are FAST-9, FAST-11, and FAST-12. For FAST-12, first check the pixels at 12, 3, 6, and 9 o'clock (positions 1, 5, 9, and 13). Run the complete test only when at least three pass.
+
+Processing every image pixel produces many FAST corners. They may cluster, so non-maximum suppression is applied. Its score can be the sum of the absolute intensity differences between the center and the surrounding 16 pixels:
+
+$$
+c=\sum_{i=1}^{16}\left|I_p-I_i\right|.
+$$
+
+To select the strongest $N_\alpha$ corners, calculate a Harris response and retain the $N_\alpha$ highest-response features at every level.
+
+---
+
+## 3. Oriented FAST: computing the rotation angle
+
+ORB first calculates the intensity centroid of a circular region. The vector from the circle center to that centroid defines the keypoint orientation. The radius is 15 because the patch is usually $31\times31$.
+
+With the keypoint as the coordinate origin, the intensity centroid is
+
+$$
+c_x=\frac{\sum_{x=-R}^{R}\sum_{y=-R}^{R}xI(x,y)}
+{\sum_{x=-R}^{R}\sum_{y=-R}^{R}I(x,y)}
+=\frac{m_{10}}{m_{00}},
+\qquad
+c_y=\frac{\sum_{x=-R}^{R}\sum_{y=-R}^{R}yI(x,y)}
+{\sum_{x=-R}^{R}\sum_{y=-R}^{R}I(x,y)}
+=\frac{m_{01}}{m_{00}}.
+$$
+
+The orientation is
+
+$$
+\theta=\operatorname{atan2}(c_y,c_x)=\operatorname{atan2}(m_{01},m_{10}).
+$$
+
+At this point we have both FAST corners and their orientations. The orientation guides descriptor extraction so that the descriptor is computed in the same direction every time, producing rotation invariance.
+
+This is Oriented FAST.
+
+---
+
+## 4. Rotation-aware BRIEF (rBRIEF)
+
+### 4.1 BRIEF descriptor
+
+BRIEF is a binary descriptor with fast computation and matching.
+
+To compute it, take a $31\times31$ patch around a keypoint and choose $N$ point pairs in the patch, typically $N=256$. For every pair, compare the two intensities to obtain a binary result, 0 or 1. Concatenating the 256 results forms a BRIEF descriptor.
+
+BRIEF uses Hamming distance for matching: count the bits that differ. The two toy descriptors below differ in four bits. With 256 pairs, the distance range is 0–256.
+
+$$
+\begin{array}{rrrrrr}
+1&0&1&1&1&0\\
+1&1&0&0&1&1
+\end{array}
+$$
+
+### 4.2 Steered BRIEF
+
+BRIEF alone has no rotation invariance. Steered BRIEF rotates the original 256 pair coordinates according to the orientation computed by Oriented FAST, then samples the intensities at the rotated locations.
+
+$$
+S=
+\begin{bmatrix}
+x_1&\cdots&x_n\\
+y_1&\cdots&y_n
+\end{bmatrix},
+\qquad
+S_\theta=R_\theta S.
+$$
+
+Here $S$ contains the original 256-pair coordinates and $S_\theta$ the rotated coordinates.
+
+### 4.3 Rotation-aware BRIEF
+
+The preceding rotation step solves the rotation problem but degrades some descriptor performance. ORB addresses this with learning: select the best 256 pair locations from a large training set, then use those locations for every feature extraction.
+
+### 4.4 Improved noise robustness
+
+When computing a BRIEF descriptor, ORB uses the intensity of a surrounding $5\times5$ patch rather than each individual pixel. This works as low-pass filtering and improves robustness to noise.
+
+---
+
+## 5. ORB-SLAM improvements to ORB features
+
+ORB-SLAM does not use OpenCV's implementation because OpenCV ORB features can be overly concentrated. Clustering reduces SLAM accuracy and lowers the information content of an image for loop closure. See [the companion article on ORB extraction strategies](https://zhuanlan.zhihu.com/p/57235987) for the impact on ORB-SLAM2.
+
+ORB-SLAM improves the spatial uniformity of feature distribution.
+
+A simple option is to divide the image into cells and retain the best $n$ features in each cell. This can fail in low-texture cells that contain fewer than $n$ detectable features: the image then has fewer features than required, and SLAM can fail to track.
+
+ORB-SLAM solves this by reducing the FAST threshold automatically when a cell cannot produce FAST corners. Its changes are mainly in FAST extraction:
+
+1. At each pyramid level, divide the image into $30\times30$-pixel cells.
+2. Extract FAST corners in every cell independently. If a cell yields no corners, lower its FAST threshold, allowing weak-texture regions to contribute corners.
+3. This produces a large set of FAST corners.
+4. Use a quadtree to select $N_\alpha$ corners with a uniform distribution.
+
+The quadtree procedure is as follows:
+
+1. If the image is wide, initially split it into left and right $w/h$ portions. A $640\times480$ image generally starts with one node.
+2. When a node contains more than one point, split it into four nodes and discard empty nodes.
+3. Continue splitting newly created nodes that contain more than one feature.
+4. Stop when the total node count exceeds $N_\alpha$ or no node can be split further.
+5. Select the highest-quality FAST corner from every node.
+
+The following image illustrates the process.
+
+![Article illustration](/media/notes/zhihu-61738607-orb-slam2-orb-slam-orb/image-01.jpg)
+
+## References
+
+1. Rublee E, Rabaud V, Konolige K, et al. ORB: An efficient alternative to SIFT or SURF. ICCV, 2012.
+2. [ORBextractor.cc in ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2/blob/master/src/ORBextractor.cc)
+3. [An introduction to image-feature matching in traditional computer vision: SIFT and ORB](https://zhuanlan.zhihu.com/p/52140541)
+4. [OpenCV Fundamentals 22: BRIEF, ORB, and an unfinished story](https://zhuanlan.zhihu.com/p/37057908)
+5. [OpenCV Fundamentals 21: FAST algorithm](https://zhuanlan.zhihu.com/p/36703820)
+
+---
+
+**More SLAM articles**
+
+- [SLAM ground-truth trajectory acquisition setup](https://zhuanlan.zhihu.com/p/60589790)
+- [PnP: EPnP solution](https://zhuanlan.zhihu.com/p/59070440)
+- [ORB feature-extraction strategy and its impact on ORB-SLAM2](https://zhuanlan.zhihu.com/p/57235987)
+- [ArUco EKF SLAM](https://zhuan.zhihu.com/p/45207081)
+
+**Related code**
+
+[ydsf16 on GitHub](https://github.com/ydsf16)

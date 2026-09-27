@@ -1,0 +1,388 @@
+---
+type: note
+title: "[Optimization] Levenberg–Marquardt Least-Squares Optimization"
+lang: en
+date: 2018-08-19
+updated: 2018-08-20
+status: "published"
+featured: false
+priority: 36
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/42415718
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Levenberg–Marquardt (LM) is a trust-region method. It constrains the step length to a trusted region where the Taylor expansion is a good approximation. LM is a damped Gauss–Newton method.
+
+## 1. Theory
+
+**Least-squares problem**
+
+$$
+\begin{aligned}
+x &= \operatorname*{arg\,min}_x F(x)
+= \operatorname*{arg\,min}_x\frac{1}{2}\sum_{i=1}^{N}\lVert f_i(x)\rVert^2,\\
+F(x) &= \frac{1}{2}\sum_{i=1}^{N}\lVert f_i(x)\rVert^2
+=\frac{1}{2}\lVert\mathbf f(x)\rVert^2
+=\frac{1}{2}\mathbf f(x)^\mathsf{T}\mathbf f(x).
+\end{aligned}
+$$
+
+Use the first-order Taylor expansion of $\mathbf f$:
+
+$$
+\mathbf f(x+h)=\mathbf f(x)+\mathbf J(x)h+O(h^\mathsf{T}h).
+$$
+
+Dropping higher-order terms and substituting into $F$ gives
+
+$$
+F(x+h)\approx L(h)=\frac{1}{2}\mathbf f^\mathsf{T}\mathbf f+
+h^\mathsf{T}\mathbf J^\mathsf{T}\mathbf f+
+\frac{1}{2}h^\mathsf{T}\mathbf J^\mathsf{T}\mathbf J h.
+$$
+
+The damping method adds $\frac{1}{2}\mu h^\mathsf{T}h$:
+
+$$
+h=\operatorname*{arg\,min}_h G(h)
+=\operatorname*{arg\,min}_h\left(
+\frac{1}{2}\mathbf f^\mathsf{T}\mathbf f+
+h^\mathsf{T}\mathbf J^\mathsf{T}\mathbf f+
+\frac{1}{2}h^\mathsf{T}\mathbf J^\mathsf{T}\mathbf J h+
+\frac{1}{2}\mu h^\mathsf{T}h\right).
+$$
+
+Taking the derivative and setting it to zero yields
+
+$$
+\begin{aligned}
+\mathbf J^\mathsf{T}\mathbf f+\mathbf J^\mathsf{T}\mathbf J h+\mu h&=0,\\
+(\mathbf J^\mathsf{T}\mathbf J+\mu\mathbf I)h&=-\mathbf J^\mathsf{T}\mathbf f,\\
+(\mathbf H+\mu\mathbf I)h&=-g.
+\end{aligned}
+$$
+
+**What the damping parameter $\mu$ does:**
+
+1. With $\mu>0$, $\mathbf H+\mu\mathbf I$ is positive definite, so $h$ is a descent direction.
+2. When $\mu$ is large, the method behaves like gradient descent. This is useful far from the solution.
+3. When $\mu$ is small, the method approaches Gauss–Newton and gains quadratic convergence near the solution.
+
+Choosing $\mu$ matters. At initialization, use
+
+$$
+\mathbf A_0=\mathbf J(x_0)^\mathsf{T}\mathbf J(x_0),
+\qquad
+\mu_0=\tau\max_i\{a^0_{ii}\}.
+$$
+
+For subsequent iterations, use the cost gain:
+
+$$
+\varrho=\frac{F(x)-F(x+h)}{L(0)-L(h)}.
+$$
+
+**Stopping criteria**
+
+1. The first-order derivative is zero; in practice, its norm is compared with a selected threshold.
+2. The step $h$ is sufficiently small.
+3. The maximum iteration count is reached.
+
+**LM algorithm**
+
+```text
+Initialize x, μ, and iteration count k.
+while the stopping condition is not met and k < kmax
+    Compute the increment h and ρ.
+    if a first-order, step-size, or iteration-limit condition is met
+        found = true
+    else if ρ > 0
+        Accept the step; update x and damping parameter μ.
+    else
+        Reject the step; adjust μ.
+    k = k + 1
+end
+```
+
+## 2. Implementation
+
+**Problem (the same as in the Gauss–Newton example).** For $y=\exp(ax^2+bx+c)$, given $N$ observations $\{x_i,y_i\}$, estimate $X=[a,b,c]^\mathsf{T}$.
+
+**Analysis.** Let $f(X)=y-\exp(ax^2+bx+c)$. The observations form the nonlinear system
+
+$$
+F(X)=
+\begin{bmatrix}
+y_1-\exp(ax_1^2+bx_1+c)\\
+\vdots\\
+y_N-\exp(ax_N^2+bx_N+c)
+\end{bmatrix}.
+$$
+
+The least-squares objective is $x=\operatorname*{arg\,min}_x\frac12\lVert F(X)\rVert^2$, and its Jacobian is
+
+$$
+J(X)=
+\begin{bmatrix}
+-x_1^2\exp(ax_1^2+bx_1+c)&-x_1\exp(ax_1^2+bx_1+c)&-\exp(ax_1^2+bx_1+c)\\
+\vdots&\vdots&\vdots\\
+-x_N^2\exp(ax_N^2+bx_N+c)&-x_N\exp(ax_N^2+bx_N+c)&-\exp(ax_N^2+bx_N+c)
+\end{bmatrix}.
+$$
+
+The implementation follows the procedure above:
+
+[ydsf16/LevenbergMarquardt](https://github.com/ydsf16/LevenbergMarquardt)
+
+```cpp
+```cpp
+/**
+ * This file is part of LevenbergMarquardt Solver.
+ *
+ * Copyright (C) 2018-2020 Dongsheng Yang <ydsf16@buaa.edu.cn> (Beihang University)
+ * For more information see <https://github.com/ydsf16/LevenbergMarquardt>
+ *
+ * LevenbergMarquardt is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * LevenbergMarquardt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with LevenbergMarquardt. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <iostream>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
+#include <opencv2/opencv.hpp>
+#include <eigen3/Eigen/Cholesky>
+#include <chrono>
+
+/* Timer */
+class Runtimer{
+public:
+    inline void start()
+    {
+        t_s_  = std::chrono::steady_clock::now();
+    }
+
+    inline void stop()
+    {
+        t_e_ = std::chrono::steady_clock::now();
+    }
+
+    inline double duration()
+    {
+        return std::chrono::duration_cast<std::chrono::duration<double>>(t_e_ - t_s_).count() * 1000.0;
+    }
+
+private:
+    std::chrono::steady_clock::time_point t_s_; //start time ponit
+    std::chrono::steady_clock::time_point t_e_; //stop time point
+};
+
+/* Optimization equation */
+class LevenbergMarquardt{
+public:
+    LevenbergMarquardt(double* a, double* b, double* c):
+    a_(a), b_(b), c_(c)
+    {
+        epsilon_1_ = 1e-6;
+        epsilon_2_ = 1e-6;
+        max_iter_ = 50;
+        is_out_ = true;
+    }
+
+    void setParameters(double epsilon_1, double epsilon_2, int max_iter, bool is_out)
+    {
+        epsilon_1_ = epsilon_1;
+        epsilon_2_ = epsilon_2;
+        max_iter_ = max_iter;
+        is_out_ = is_out;
+    }
+
+    void addObservation(const double& x, const double& y)
+    {
+        obs_.push_back(Eigen::Vector2d(x, y));
+    }
+
+    void calcJ_fx()
+    {
+        J_ .resize(obs_.size(), 3);
+        fx_.resize(obs_.size(), 1);
+
+        for ( size_t i = 0; i < obs_.size(); i ++)
+        {
+            const Eigen::Vector2d& ob = obs_.at(i);
+            const double& x = ob(0);
+            const double& y = ob(1);
+            double j1 = -x*x*exp(*a_ * x*x + *b_*x + *c_);
+            double j2 = -x*exp(*a_ * x*x + *b_*x + *c_);
+            double j3 = -exp(*a_ * x*x + *b_*x + *c_);
+            J_(i, 0 ) = j1;
+            J_(i, 1) = j2;
+            J_(i, 2) = j3;
+            fx_(i, 0) = y - exp( *a_ *x*x + *b_*x +*c_);
+        }
+    }
+
+    void calcH_g()
+    {
+        H_ = J_.transpose() * J_;
+        g_ = -J_.transpose() * fx_;
+    }
+
+    double getCost()
+    {
+        Eigen::MatrixXd cost= fx_.transpose() * fx_;
+        return cost(0,0);
+    }
+
+    double F(double a, double b, double c)
+    {
+        Eigen::MatrixXd fx;
+        fx.resize(obs_.size(), 1);
+
+        for ( size_t i = 0; i < obs_.size(); i ++)
+        {
+            const Eigen::Vector2d& ob = obs_.at(i);
+            const double& x = ob(0);
+            const double& y = ob(1);
+            fx(i, 0) = y - exp( a *x*x + b*x +c);
+        }
+        Eigen::MatrixXd F = 0.5 * fx.transpose() * fx;
+        return F(0,0);
+    }
+
+    double L0_L( Eigen::Vector3d& h)
+    {
+           Eigen::MatrixXd L = -h.transpose() * J_.transpose() * fx_ - 0.5 * h.transpose() * J_.transpose() * J_ * h;
+           return L(0,0);
+    }
+
+    void solve()
+    {
+        int k = 0;
+        double nu = 2.0;
+        calcJ_fx();
+        calcH_g();
+        bool found = ( g_.lpNorm<Eigen::Infinity>() < epsilon_1_ );
+
+        std::vector<double> A;
+        A.push_back( H_(0, 0) );
+        A.push_back( H_(1, 1) );
+        A.push_back( H_(2,2) );
+        auto max_p = std::max_element(A.begin(), A.end());
+        double mu = *max_p;
+
+        double sumt =0;
+
+        while ( !found && k < max_iter_)
+        {
+            Runtimer t;
+            t.start();
+
+            k = k +1;
+            Eigen::Matrix3d G = H_ + mu * Eigen::Matrix3d::Identity();
+            Eigen::Vector3d h = G.ldlt().solve(g_);
+
+            if( h.norm() <= epsilon_2_ * ( sqrt(*a_**a_ + *b_**b_ + *c_**c_ ) +epsilon_2_ ) )
+                found = true;
+            else
+            {
+                double na = *a_ + h(0);
+                double nb = *b_ + h(1);
+                double nc = *c_ + h(2);
+
+                double rho =( F(*a_, *b_, *c_) - F(na, nb, nc) )  / L0_L(h);
+
+                if( rho > 0)
+                {
+                    *a_ = na;
+                    *b_ = nb;
+                    *c_ = nc;
+                    calcJ_fx();
+                    calcH_g();
+
+                    found = ( g_.lpNorm<Eigen::Infinity>() < epsilon_1_ );
+                    mu = mu * std::max<double>(0.33, 1 - std::pow(2*rho -1, 3));
+                    nu = 2.0;
+                }
+                else
+                {
+                    mu = mu * nu;
+                    nu = 2*nu;
+                }// if rho > 0
+            }// if step is too small
+
+            t.stop();
+            if( is_out_ )
+            {
+                std::cout << "Iter: " << std::left <<std::setw(3) << k << " Result: "<< std::left <<std::setw(10)  << *a_ << " " << std::left <<std::setw(10)  << *b_ << " " << std::left <<std::setw(10) << *c_ <<
+                " step: " << std::left <<std::setw(14) << h.norm() << " cost: "<< std::left <<std::setw(14)  << getCost() << " time: " << std::left <<std::setw(14) << t.duration()  <<
+                " total_time: "<< std::left <<std::setw(14) << (sumt += t.duration()) << std::endl;
+            }
+        } // while
+
+        if( found  == true)
+            std::cout << "\nConverged\n\n";
+        else
+            std::cout << "\nDiverged\n\n";
+
+    }//function
+
+
+
+    Eigen::MatrixXd fx_;
+    Eigen::MatrixXd J_; // Jacobian matrix
+    Eigen::Matrix3d H_; // H matrix
+    Eigen::Vector3d g_;
+
+    std::vector< Eigen::Vector2d> obs_; // observations
+
+   /* Three parameters to estimate */
+   double* a_, *b_, *c_;
+
+    /* parameters */
+    double epsilon_1_, epsilon_2_;
+    int max_iter_;
+    bool is_out_;
+};//class LevenbergMarquardt
+int main(int argc, char **argv) {
+    const double aa = 0.1, bb = 0.5, cc = 2; // parameters of the ground-truth equation
+    double a =0.0, b=0.0, c=0.0; // initial value
+
+    /* Construct the problem */
+    LevenbergMarquardt lm(&a, &b, &c);
+    lm.setParameters(1e-10, 1e-10, 100, true);
+
+    /* Generate data */
+    const size_t N = 100; // number of observations
+    cv::RNG rng(cv::getTickCount());
+    for( size_t i = 0; i < N; i ++)
+    {
+        /* Generate data with Gaussian noise */
+        double x = rng.uniform(0.0, 1.0) ;
+        double y = exp(aa*x*x + bb*x + cc) + rng.gaussian(0.05);
+
+        /* Add to observations */
+        lm.addObservation(x, y);
+    }
+    /* Solve with LM */
+    lm.solve();
+
+    return 0;
+}
+```
