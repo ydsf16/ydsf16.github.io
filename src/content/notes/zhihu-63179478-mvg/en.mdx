@@ -1,0 +1,127 @@
+---
+type: note
+title: "[MVG] Triangulating Map Points"
+lang: en
+date: 2019-04-21
+updated: 2019-04-21
+status: "published"
+featured: false
+priority: 20
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/63179478
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> In feature-based visual SLAM such as ORB-SLAM, map points usually receive an initial estimate by triangulation and are then refined by minimizing reprojection error. This article gives the detailed triangulation derivation.
+
+A 3D point has homogeneous coordinates $[x,y,z,1]^\mathsf T$. Its image projection is
+
+$$
+\lambda
+\begin{bmatrix}u\\v\\1\end{bmatrix}
+=
+\underbrace{\mathbf K[\mathbf R\mid\mathbf t]}_{\mathbf P}
+\begin{bmatrix}x\\y\\z\\1\end{bmatrix},
+\qquad
+\lambda\mathbf u=\mathbf P\mathbf X.
+$$
+
+Taking the left cross product with $\mathbf u$ gives
+
+$$
+\mathbf u^\wedge\mathbf P\mathbf X=0.
+$$
+
+Expanding yields
+
+$$
+\begin{bmatrix}
+0&-1&v\\
+1&0&-u\\
+-v&u&0
+\end{bmatrix}
+\begin{bmatrix}\mathbf P_1\\\mathbf P_2\\\mathbf P_3\end{bmatrix}
+\mathbf X=0,
+$$
+
+and therefore
+
+$$
+\begin{cases}
+(v\mathbf P_3-\mathbf P_2)\mathbf X=0,\\
+(\mathbf P_1-u\mathbf P_3)\mathbf X=0,\\
+(u\mathbf P_2-v\mathbf P_1)\mathbf X=0.
+\end{cases}
+$$
+
+The three equations supply only two independent constraints because the first equation multiplied by $-u$ minus the second equation multiplied by $v$ equals the third.
+
+One frame supplies two equations, so two frames supply four:
+
+$$
+\underbrace{
+\begin{bmatrix}
+v_1\mathbf P_3^1-\mathbf P_2^1\\
+\mathbf P_1^1-u_1\mathbf P_3^1\\
+v_2\mathbf P_3^2-\mathbf P_2^2\\
+\mathbf P_1^2-u_2\mathbf P_3^2
+\end{bmatrix}}_{\mathbf H}\mathbf X=0.
+$$
+
+Solve this with SVD. Homogeneous coordinate $\mathbf X$ is the singular vector of $\mathbf H$ associated with its smallest singular value.
+
+```cpp
+void triangulate ( const Eigen::Matrix3d& K,
+				   const Eigen::Matrix4d T1, const Eigen::Matrix4d& T2,
+				   const Eigen::Vector2d& uu1, const Eigen::Vector2d& uu2,
+				   Eigen::Vector4d& X )
+{
+	// Construct P1 and P2
+	const Eigen::Matrix<double, 3, 4> P1 = K * T1.block(0,0, 3, 4);
+	const Eigen::Matrix<double, 3, 4> P2 = K * T2.block(0, 0, 3, 4);
+
+	// Get matrix rows
+	const Eigen::Matrix<double, 1, 4>& P11 = P1.block(0, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P12 = P1.block(1, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P13 = P1.block(2, 0, 1, 4);
+
+	const Eigen::Matrix<double, 1, 4>& P21 = P2.block(0, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P22 = P2.block(1, 0, 1, 4);
+	const Eigen::Matrix<double, 1, 4>& P23 = P2.block(2, 0, 1, 4);
+
+	const double& u1 = uu1[0];
+	const double& v1 = uu1[1];
+	const double& u2 = uu2[0];
+	const double& v2 = uu2[1];
+
+	// Construct H matrix.
+	Eigen::Matrix4d H;
+	H.block(0, 0, 1, 4) = v1 * P13 - P12;
+	H.block(1, 0, 1, 4) = P11 - u1 * P13;
+	H.block(2, 0, 1, 4) = v2 * P23 - P22;
+	H.block(3, 0, 1, 4) = P21 - u2 * P23;
+
+	// SVD
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd ( H, Eigen::ComputeFullU | Eigen::ComputeFullV );
+	Eigen::Matrix4d V = svd.matrixV();
+
+	X = V.block(0, 3, 4, 1);
+	X = X / X(3, 0);
+} // triangulate
+```
+
+
+**Full project**
+
+[ydsf16/MVG_Algorithm](https://github.com/ydsf16/MVG_Algorithm)
+
+## References
+
+1. *Multiple View Geometry in Computer Vision*.
+2. [Multiple-view geometry: triangulating 3D point coordinates](https://zhuanlan.zhihu.com/p/55530787)

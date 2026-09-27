@@ -1,0 +1,146 @@
+---
+type: note
+title: "[LiDAR SLAM] A Simple K-Means Implementation"
+lang: en
+date: 2019-04-30
+updated: 2019-05-01
+status: "published"
+featured: false
+priority: 18
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/64180937
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> K-means is a clustering algorithm. This article provides a simple implementation.
+
+K-means animation:
+
+https://www.zhihu.com/video/1106986187683876864
+
+## Problem statement
+
+Given data points $X=(x_1,x_2,\ldots,x_n)$, each of dimension $d$, K-means partitions the $n$ points into $k$ clusters, $S=\{S_1,S_2,\ldots,S_k\}$. It minimizes the total squared distance from each point to its cluster center:
+
+$$
+\operatorname*{arg\,min}\sum_{i=1}^{k}\sum_{x\in S_i}\lVert x-\mu_i\rVert^2.
+$$
+
+See the [Wikipedia article on K-means clustering](https://en.wikipedia.org/wiki/K-means_clustering) for a detailed introduction.
+
+## K-means algorithm
+
+1. **Input:** a set of points and the number of clusters $k$. **Output:** a cluster assignment for every point.
+2. Randomly select $k$ points as the initial means.
+3. Assign every point to its nearest mean by Euclidean distance.
+4. Recalculate the mean of every cluster.
+5. Stop when assignments, total cost, or means no longer change.
+
+K-means does not necessarily find the global optimum.
+
+## Implementation
+
+The full source is below. A depth image from the TUM RGB-D data set is converted to a 3D point cloud and segmented with K-means.
+
+![K-means segmentation of a point cloud.](/media/notes/zhihu-64180937-lidar-slam-k-means/image-01.jpg)
+
+```cpp
+void Kmeans::clustering ( const std::vector< Eigen::Vector3d >& point_cloud, int k, int max_iters, double epsilon, std::vector< int >& classes )
+{
+    if ( point_cloud.size() < k ) {
+        return;
+    }
+    // classes.reserve ( point_cloud.size() );
+    // classes.shrink_to_fit();
+    classes = std::vector<int> ( point_cloud.size(), 0 );
+
+    // Step 1: randomly select k points. TODO
+    std::vector<Eigen::Vector3d> means; // means for k clusters
+    means.reserve ( k );
+
+    cv::RNG rng ( cv::getTickCount() );
+    std::set<int> selected_ids;
+    while ( selected_ids.size() < k ) {
+        int id = rng.uniform ( 0, point_cloud.size() );
+        if ( ! selected_ids.count ( id ) ) {
+            selected_ids.insert ( id );
+        }
+    } // selected IDs
+    std::set<int>::const_iterator iter;
+    for ( iter = selected_ids.begin(); iter != selected_ids.end(); ++iter ) {
+        means.push_back ( point_cloud.at ( *iter ) );
+    }
+
+    // Start iterations
+    for ( size_t nit = 0; nit < max_iters; ++nit ) {
+        // Step 2: assign points to clusters.
+        // For each point
+        for ( size_t i = 0; i < point_cloud.size(); i ++ ) {
+            // Point.
+            const Eigen::Vector3d& pt = point_cloud.at ( i );
+
+            // Initialize parameters
+            int min_class_id = -1;
+            double min_dist = std::numeric_limits<double>::max();
+
+            for ( size_t j = 0; j < k ; j ++ ) {
+                const Eigen::Vector3d& mean = means.at ( j );
+				double dist = ( pt-mean ).norm(); // Euclidean distance
+                if ( dist < min_dist ) {
+                    min_dist = dist;
+                    min_class_id = j;
+                }
+            }
+
+            classes.at ( i ) = min_class_id; // Assign cluster ID.
+        } // Assign every point to its nearest cluster.
+
+        // Step 3: compute a new center for each cluster.
+        std::vector<Eigen::Vector3d> new_means ( k, Eigen::Vector3d ( 0.0,0.0,0.0 ) ); // Accumulate for each cluster
+        std::vector<int> npts_class ( k, 0 ); // number of points in each cluster
+        for ( size_t i = 0; i < point_cloud.size(); i ++ ) {
+            // Point
+            const Eigen::Vector3d& pt = point_cloud.at ( i );
+            const int& class_id = classes.at ( i );
+
+            // sum
+            new_means.at ( class_id ) += pt;
+            npts_class.at ( class_id ) ++;
+        }
+
+        for ( size_t i = 0; i < k; i ++ ) {
+            new_means.at ( i ) /= ( double ) ( npts_class.at ( i ) );
+        }
+
+        // Step 4: check convergence
+        double delta_mean = 0.0;
+        for ( size_t i = 0; i < k; i ++ ) {
+            delta_mean += ( new_means.at ( i ) - means.at ( i ) ).norm();
+        }
+
+        if ( delta_mean < epsilon ) {
+            break;
+        }
+
+        // Copy centers.
+        means = new_means;
+    } // max iterations.
+
+} //  clustering
+```
+
+
+**Full project, including the test code**
+
+[ydsf16/lidar_slam](https://github.com/ydsf16/lidar_slam)
+
+## References
+
+1. [K-means clustering on Wikipedia](https://en.wikipedia.org/wiki/K-means_clustering)
+2. [K-means implementation and optimization](https://zhuanlan.zhihu.com/p/20445085)
