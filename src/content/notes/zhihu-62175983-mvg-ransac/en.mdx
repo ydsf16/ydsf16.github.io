@@ -1,0 +1,12 @@
+---
+type: note
+title: "[MVG] Robust Estimation: RANSAC and Robust Kernels"
+lang: en
+date: 2019-04-12
+tags: [RANSAC, robust estimation, geometry]
+categories: [Spatial AI, Technical Notes]
+---
+
+RANSAC estimates a model from repeatedly sampled minimal subsets, then chooses the hypothesis with the strongest inlier support. It is effective when correspondences contain a significant proportion of outliers.
+
+Robust loss kernels play a complementary role in optimization by reducing the influence of large residuals. In visual geometry, a RANSAC front end plus robust nonlinear refinement is a durable combination.

@@ -1,0 +1,12 @@
+---
+type: note
+title: "[Fourteen Lectures 2] Summary of Chapter 3"
+lang: en
+date: 2018-08-23
+tags: [SLAM, geometry, Lie groups]
+categories: [Spatial AI, Technical Notes]
+---
+
+Chapter 3 introduces the mathematical tools behind rigid-body motion: coordinate transforms, rotation matrices, quaternions, Euler angles, Lie groups, Lie algebras, and the exponential map.
+
+For SLAM implementation, the important lesson is to choose a rotation representation appropriate to the operation. Rotation matrices are convenient for composition, quaternions avoid singularities and are compact, and Lie-algebra increments provide a minimal local parameterization for optimization.

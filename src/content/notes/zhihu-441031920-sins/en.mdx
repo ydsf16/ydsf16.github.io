@@ -1,0 +1,12 @@
+---
+type: note
+title: "[SINS] High-Accuracy Initial Alignment for Strapdown INS"
+lang: en
+date: 2021-12-04
+tags: [SINS, inertial navigation, alignment]
+categories: [Spatial AI, Technical Notes]
+---
+
+Initial alignment estimates the attitude needed before a strapdown inertial-navigation system can navigate accurately. Static alignment uses gravity and Earth rotation; dynamic alignment additionally uses motion and external observations.
+
+Accuracy is limited by sensor bias, noise, latitude, observation duration, and vibration. A practical implementation needs explicit frame definitions, bias handling, and validation against known attitude or trajectory data.

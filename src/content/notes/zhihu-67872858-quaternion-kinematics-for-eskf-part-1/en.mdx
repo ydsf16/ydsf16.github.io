@@ -1,0 +1,12 @@
+---
+type: note
+title: "Quaternion Kinematics for ESKF: Part 1"
+lang: en
+date: 2019-10-20
+tags: [ESKF, quaternion, IMU]
+categories: [Spatial AI, Technical Notes]
+---
+
+This first note summarizes quaternion kinematics for an error-state Kalman filter. It establishes rotation representations, quaternion multiplication, the exponential map, and small-angle attitude errors.
+
+The main idea is to maintain a nominal orientation while filtering a local error state. This keeps orientation on the rotation manifold and makes the linearized filter update well behaved.

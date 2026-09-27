@@ -1,0 +1,12 @@
+---
+type: note
+title: "[PR-1] Occupancy Grid Mapping"
+lang: en
+date: 2018-08-28
+tags: [mapping, occupancy grid, robotics]
+categories: [Spatial AI, Technical Notes]
+---
+
+Occupancy-grid mapping divides an environment into cells and estimates the probability that each cell is occupied. Range measurements are converted into free-space and occupied-cell evidence, then fused over time.
+
+Using log-odds makes updates simple and numerically stable: new evidence is additive, while prior and sensor-model assumptions remain explicit. The method is a practical foundation for robot navigation and localization.

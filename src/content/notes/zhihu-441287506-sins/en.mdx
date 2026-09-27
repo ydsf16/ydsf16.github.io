@@ -1,0 +1,12 @@
+---
+type: note
+title: "[SINS] Strapdown Inertial-Navigation Update Algorithms"
+lang: en
+date: 2021-12-12
+tags: [SINS, inertial navigation, IMU]
+categories: [Spatial AI, Technical Notes]
+---
+
+Strapdown inertial navigation updates attitude, velocity, and position directly from gyroscope and accelerometer measurements. The update must account for navigation-frame rotation, gravity, Earth rotation when required, and integration error.
+
+This note organizes the propagation steps and their implementation concerns: coning and sculling corrections, coordinate-frame transforms, numerical integration, and error accumulation. These details determine whether a textbook equation becomes a usable navigation system.

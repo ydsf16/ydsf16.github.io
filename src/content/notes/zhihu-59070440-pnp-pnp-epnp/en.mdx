@@ -1,0 +1,12 @@
+---
+type: note
+title: "[PnP] Solving PnP with EPnP"
+lang: en
+date: 2019-03-17
+tags: [PnP, EPnP, SLAM]
+categories: [Spatial AI, Technical Notes]
+---
+
+EPnP represents each 3D point as a weighted combination of four control points. Camera-space control points are recovered from image constraints, then used to compute the camera pose efficiently.
+
+Its computational cost grows linearly with correspondence count, making it attractive for real-time pose initialization. As with other PnP solvers, RANSAC and subsequent nonlinear refinement are important with noisy matches.

@@ -1,0 +1,12 @@
+---
+type: note
+title: "Quaternion Kinematics for ESKF: Part 2"
+lang: en
+date: 2019-10-30
+tags: [ESKF, quaternion, IMU]
+categories: [Spatial AI, Technical Notes]
+---
+
+This second note continues the error-state Kalman-filter treatment of quaternion attitude estimation. It focuses on the relation between nominal-state propagation, local orientation error, linearization, and covariance evolution.
+
+The implementation must use one perturbation convention consistently, normalize quaternions where appropriate, and reset the error state correctly after applying a correction.
