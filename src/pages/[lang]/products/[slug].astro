@@ -2,6 +2,37 @@
 import { getCollection, render } from 'astro:content'; import BaseLayout from '../../../layouts/BaseLayout.astro'; import { type Locale } from '../../../data/site';
 export async function getStaticPaths() { const items = await getCollection('products'); return items.map((item) => ({ params: { lang: item.data.lang, slug: item.data.slug || item.id.split('/')[0] }, props: { item } })); }
 const { item } = Astro.props; const locale = Astro.params.lang as Locale; const { Content } = await render(item);
+const productSlug = item.data.slug || item.id.split('/')[0];
+const isSensorRecorder = productSlug === 'sensor-recorder-pro';
+const formatTree = locale === 'zh' ? `SR_yyyy-MM-dd_HH-mm-ss/
+├── meta.json
+├── wide.mp4
+├── wide_info.csv
+├── ultrawide.mp4
+├── ultra_info.csv
+├── audio.m4a
+├── audio_info.csv
+├── accelerometer.csv
+├── gyroscope.csv
+├── imu.csv
+├── device_motion.csv
+├── magnetometer.csv
+├── barometer.csv
+└── geo_location.csv` : `SR_yyyy-MM-dd_HH-mm-ss/
+├── meta.json
+├── wide.mp4
+├── wide_info.csv
+├── ultrawide.mp4
+├── ultra_info.csv
+├── audio.m4a
+├── audio_info.csv
+├── accelerometer.csv
+├── gyroscope.csv
+├── imu.csv
+├── device_motion.csv
+├── magnetometer.csv
+├── barometer.csv
+└── geo_location.csv`;
 ---
 <BaseLayout locale={locale} title={item.data.title}>
   <article class="shell detail-page">
@@ -9,7 +40,7 @@ const { item } = Astro.props; const locale = Astro.params.lang as Locale; const 
     <div class="product-head">
       <div>
         <h1>{item.data.title}</h1>
-        <p class="detail-lede"><Content /></p>
+        <div class="product-intro prose"><Content /></div>
         <div class="detail-meta">{item.data.platforms.map((platform) => <span>{platform}</span>)}{item.data.tags.map((tag) => <span>{tag}</span>)}</div>
         <div class="detail-actions">
           {item.data.appStoreUrl && <a class="button primary" href={item.data.appStoreUrl}>App Store ↗</a>}
@@ -19,6 +50,8 @@ const { item } = Astro.props; const locale = Astro.params.lang as Locale; const 
       </div>
       {item.data.releaseImage ? <img class="product-release-image" src={item.data.releaseImage} alt={`${item.data.title} latest release`} /> : <div class="product-mark">{item.data.platforms[0] || 'LAB'}<strong>{item.data.status}</strong></div>}
     </div>
+    {item.data.features.length > 0 && <section class="product-section"><h2>{locale === 'zh' ? '采集能力' : 'Capture capabilities'}</h2><div class="feature-grid">{item.data.features.map((feature) => <div>{feature}</div>)}</div></section>}
+    {isSensorRecorder && <section class="product-section data-format"><h2>{locale === 'zh' ? '数据格式' : 'Data format'}</h2><p>{locale === 'zh' ? '每次记录会保存为一个独立的 Session 文件夹，包含通用媒体文件和 CSV 数据文件：' : 'Each recording is saved as an independent Session folder containing standard media files and CSV data:'}</p><pre class="data-tree"><code>{formatTree}</code></pre><ul>{(locale === 'zh' ? [<><code>wide_info.csv</code> / <code>ultra_info.csv</code>：包含 <code>sensor_sec</code>、<code>utc_sec</code>、曝光、ISO、分辨率和相机内参等信息。</>, <><code>audio_info.csv</code>：包含 <code>sensor_sec</code>、<code>utc_sec</code>、时长、采样率和声道数。</>, <><code>accelerometer.csv</code>：包含 <code>sensor_sec</code>、<code>utc_sec</code>、<code>ax</code>、<code>ay</code>、<code>az</code>。</>, <><code>gyroscope.csv</code>：包含 <code>sensor_sec</code>、<code>utc_sec</code>、<code>gx</code>、<code>gy</code>、<code>gz</code>。</>, <><code>imu.csv</code>：包含对齐后的陀螺仪、加速度计和时间戳。</>, <><code>device_motion.csv</code>：包含四元数、roll / pitch / yaw、重力和用户加速度。</>, <><code>magnetometer.csv</code>：包含 <code>sensor_sec</code>、<code>utc_sec</code>、<code>mx</code>、<code>my</code>、<code>mz</code>。</>, <><code>barometer.csv</code>：包含时间戳、气压和相对高度。</>, <><code>geo_location.csv</code>：包含时间戳、纬度、经度、高度、速度、航向和定位精度。</>] : [<><code>wide_info.csv</code> / <code>ultra_info.csv</code>: exposure, ISO, resolution, camera intrinsics, <code>sensor_sec</code> and <code>utc_sec</code>.</>, <><code>audio_info.csv</code>: duration, sample rate, channel count, <code>sensor_sec</code> and <code>utc_sec</code>.</>, <><code>accelerometer.csv</code>: <code>sensor_sec</code>, <code>utc_sec</code>, <code>ax</code>, <code>ay</code> and <code>az</code>.</>, <><code>gyroscope.csv</code>: <code>sensor_sec</code>, <code>utc_sec</code>, <code>gx</code>, <code>gy</code> and <code>gz</code>.</>, <><code>imu.csv</code>: aligned gyroscope, accelerometer and timestamps.</>, <><code>device_motion.csv</code>: quaternion, roll / pitch / yaw, gravity and user acceleration.</>, <><code>magnetometer.csv</code>: <code>sensor_sec</code>, <code>utc_sec</code>, <code>mx</code>, <code>my</code> and <code>mz</code>.</>, <><code>barometer.csv</code>: timestamps, pressure and relative altitude.</>, <><code>geo_location.csv</code>: timestamp, latitude, longitude, altitude, speed, course and accuracy.</>]).map((field) => <li>{field}</li>)}</ul><a class="text-link" href={`/${locale}/notes/phone-as-sensor-recorder-pro`}>{locale === 'zh' ? '查看完整技术文档 ↗' : 'Read the full technical note ↗'}</a><img class="data-visualization" src="/media/products/sensor-recorder-pro/data-visualization.png" alt={locale === 'zh' ? '传感器数据可视化' : 'Sensor data visualization'} loading="lazy" /></section>}
     {item.data.gallery.length > 0 && <section class="product-gallery" aria-label="Product screenshots">{item.data.gallery.map((image, index) => <img src={image} alt={`${item.data.title} ${locale === 'zh' ? '产品展示' : 'product preview'} ${index + 1}`} loading={index === 0 ? 'eager' : 'lazy'} />)}</section>}
     <nav class="product-links" aria-label="Product resources"><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/privacy`}>Privacy ↗</a><a href={`/${locale}/products/${item.data.slug || item.id.split('/')[0]}/support`}>Support ↗</a>{item.data.docsUrl && <a href={item.data.docsUrl}>Documentation ↗</a>}</nav>
   </article>

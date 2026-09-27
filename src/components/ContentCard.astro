@@ -5,8 +5,10 @@ const section = kind === 'product' ? 'products' : kind === 'project' ? 'projects
 const href = `/${locale}/${section}/${data.slug || item.id.split('/')[0]}`;
 ---
 <article class="content-card">
-  <div class="card-topline"><span class="pill">{data.status || (kind === 'product' ? 'Product' : 'Project')}</span><span class="arrow">↗</span></div>
+  <div class="card-topline"><span class="pill">{data.status || (kind === 'product' ? 'Product' : 'Project')}</span><span class="card-badges">{kind === 'product' && data.platforms?.includes('iOS') && <span class="platform-badge"> iOS App</span>}{kind === 'product' && data.githubUrl && <span class="platform-badge">GitHub · Open Source</span>}<span class="arrow">↗</span></span></div>
   <h3><a href={href}>{data.title}</a></h3>
   <p>{data.summary || 'More details from TinyGrape Lab.'}</p>
-  <div class="tag-row">{data.tags.slice(0, 3).map((tag: string) => <span>{tag}</span>)}</div>
+  {kind === 'product' && data.cardImage && <a class="card-cover" href={href} aria-label={data.title}><img src={data.cardImage} alt="" loading="lazy" /></a>}
+  {kind === 'product' && data.features?.length > 0 && <div class="card-features">{data.features.slice(0, 5).map((feature: string) => <span>{feature}</span>)}{data.features.length > 5 && <span class="feature-more">+{data.features.length - 5}</span>}</div>}
+  {kind !== 'product' && <div class="tag-row">{data.tags.slice(0, 3).map((tag: string) => <span>{tag}</span>)}</div>}
 </article>
