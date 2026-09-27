@@ -1,0 +1,322 @@
+---
+type: note
+title: "[PR-3] ArUco EKF SLAM: Extended Kalman Filter SLAM"
+lang: en
+date: 2018-09-23
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 30
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/45207081
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> This article implements the EKF-SLAM algorithm from Chapter 10 of *Probabilistic Robotics*, specifically the known-data-association case.
+
+## ArUco EKF SLAM
+
+[ArUco EKF-SLAM video](https://www.zhihu.com/video/1027276196236513280)
+
+EKF-SLAM is generally landmark-based. This project uses artificial landmarks—ArUco markers. Each marker has a unique ID, and PnP can estimate its pose relative to the camera. OpenCV provides detection and pose estimation in its [ArUco module](https://docs.opencv.org/3.3.0/d9/d6d/tutorial_table_of_content_aruco.html).
+
+![ArUco marker](/media/notes/zhihu-45207081-pr-3-aruco-ekf-slam-slam/image-01.png)
+
+Several ArUco markers are attached to the floor and a camera-and-encoder-equipped robot is driven around the room. EKF jointly estimates the marker locations and robot pose.
+
+![Experimental setup](/media/notes/zhihu-45207081-pr-3-aruco-ekf-slam-slam/image-02.jpg)
+
+The key to EKF-SLAM is the **motion model** and **measurement model**. Its augmented state is
+
+$$
+\mathbf X =
+\begin{bmatrix}
+x & y & \theta & m_{x,1} & m_{y,1} & \cdots & m_{x,N} & m_{y,N}
+\end{bmatrix}^{\mathsf T}.
+$$
+
+The first three entries are robot pose; the remaining $2N$ entries are $N$ landmark positions.
+
+## 1. Motion model
+
+### 1.1 Odometry model
+
+Using the odometry model from *Introduction to Autonomous Mobile Robots*, with pose $\boldsymbol\xi_{t-1}=[x,y,\theta]_{t-1}^{\mathsf T}$:
+
+$$
+\begin{aligned}
+\begin{bmatrix}x\\y\\\theta\end{bmatrix}_t
+&=
+\begin{bmatrix}x\\y\\\theta\end{bmatrix}_{t-1}
++
+\begin{bmatrix}
+\Delta s\cos(\theta+\Delta\theta/2)\\
+\Delta s\sin(\theta+\Delta\theta/2)\\
+\Delta\theta
+\end{bmatrix},\\
+\Delta\theta &= \frac{\Delta s_r-\Delta s_l}{b},
+&\Delta s &= \frac{\Delta s_r+\Delta s_l}{2},\\
+\Delta s_{l/r} &= k_{l/r}\Delta e_{l/r},
+&\Delta s_{l/r} &\sim \mathcal N\left(\widehat{\Delta s}_{l/r},
+\left\lVert k\widehat{\Delta s}_{l/r}\right\rVert^2\right).
+\end{aligned}
+$$
+
+$k_{l/r}$ converts encoder increment $\Delta e_{l/r}$ to wheel displacement, and $b$ is wheelbase. The displacement increments are Gaussian: their mean comes from the encoder and their standard deviation is proportional to magnitude.
+
+With pose covariance $\mathbf\Sigma_{\xi,t-1}$ and control covariance $\mathbf\Sigma_u$,
+
+$$
+\mathbf\Sigma_{\xi,t}
+=
+\mathbf G_\xi\mathbf\Sigma_{\xi,t-1}\mathbf G_\xi^{\mathsf T}
++
+\mathbf G_u'\mathbf\Sigma_u{\mathbf G_u'}^{\mathsf T}.
+\tag{2}
+$$
+
+The pose Jacobian is
+
+$$
+\mathbf G_\xi =
+\begin{bmatrix}
+1&0&-\Delta s\sin(\theta+\Delta\theta/2)\\
+0&1&\Delta s\cos(\theta+\Delta\theta/2)\\
+0&0&1
+\end{bmatrix}.
+\tag{3}
+$$
+
+For $\mathbf u=[\Delta s_r,\Delta s_l]^{\mathsf T}$, the control Jacobian is
+
+$$
+\mathbf G_u' =
+\begin{bmatrix}
+\frac12c-\frac{\Delta s}{2b}s & \frac12c+\frac{\Delta s}{2b}s\\
+\frac12s+\frac{\Delta s}{2b}c & \frac12s-\frac{\Delta s}{2b}c\\
+\frac1b&-\frac1b
+\end{bmatrix},
+\quad
+c=\cos(\theta+\Delta\theta/2),\quad
+s=\sin(\theta+\Delta\theta/2).
+\tag{4}
+$$
+
+### 1.2 EKF-SLAM prediction
+
+After augmenting with landmarks,
+
+$$
+\mathbf X_t =
+\mathbf X_{t-1}
++
+\mathbf F
+\begin{bmatrix}
+\Delta s\cos(\theta+\Delta\theta/2)\\
+\Delta s\sin(\theta+\Delta\theta/2)\\
+\Delta\theta
+\end{bmatrix},
+\tag{5}
+$$
+
+where $\mathbf F$ injects robot motion into the first three state entries. Covariance prediction is
+
+$$
+\overline{\mathbf\Sigma}_t
+=
+\mathbf G_t\mathbf\Sigma_{t-1}\mathbf G_t^{\mathsf T}
++
+\mathbf G_u\mathbf\Sigma_u\mathbf G_u^{\mathsf T},
+\tag{6}
+$$
+
+where
+
+$$
+\mathbf G_t=
+\begin{bmatrix}\mathbf G_\xi&\mathbf0\\\mathbf0&\mathbf I\end{bmatrix},
+\qquad
+\mathbf G_u=\mathbf F\mathbf G_u'.
+\tag{7--8}
+$$
+
+Equivalently,
+
+$$
+\overline{\mathbf\Sigma}_t =
+\begin{bmatrix}
+\mathbf G_\xi\mathbf\Sigma_{xx}\mathbf G_\xi^{\mathsf T}
+& \mathbf G_\xi\mathbf\Sigma_{xm}\\
+(\mathbf G_\xi\mathbf\Sigma_{xm})^{\mathsf T}&\mathbf\Sigma_{mm}
+\end{bmatrix}
++
+\mathbf F\mathbf G_u'\mathbf\Sigma_u{\mathbf G_u'}^{\mathsf T}\mathbf F^{\mathsf T}.
+$$
+
+Prediction changes the robot covariance and the pose-to-map cross-covariance.
+
+## 2. Measurement model
+
+ArUco gives a six-degree-of-freedom pose, but the implementation converts it to a range-bearing observation. Let one marker be $\mathbf m=[m_x,m_y]^{\mathsf T}$. With marker-to-camera pose $\mathbf T_{cm}$ and camera-to-robot pose $\mathbf T_{rc}$,
+
+$$
+\mathbf T_{rm}=\mathbf T_{rc}\mathbf T_{cm}.
+$$
+
+The translation $(x,y)$ yields
+
+$$
+r=\sqrt{x^2+y^2},
+\qquad
+\phi=\operatorname{atan2}(y,x),
+\qquad
+\mathbf z=[r,\phi]^{\mathsf T}.
+$$
+
+The observation-noise approximation is
+
+$$
+\mathbf Q =
+\begin{bmatrix}
+\lVert k_r r\rVert^2&0\\
+0&\lVert k_\phi\phi\rVert^2
+\end{bmatrix}.
+\tag{10}
+$$
+
+![Coordinate convention](/media/notes/zhihu-45207081-pr-3-aruco-ekf-slam-slam/image-03.jpg)
+
+For landmark $i$,
+
+$$
+\mathbf z_t^i=h(\mathbf X_t)+\boldsymbol\delta_t^i,
+\qquad
+\boldsymbol\delta_t^i\sim\mathcal N(\mathbf0,\mathbf Q_t),
+\tag{11}
+$$
+
+with
+
+$$
+\begin{aligned}
+r_t^i &= \sqrt{(m_{x,i}-x)^2+(m_{y,i}-y)^2},\\
+\phi_t^i &= \operatorname{atan2}(m_{y,i}-y,m_{x,i}-x)-\theta.
+\end{aligned}
+\tag{12}
+$$
+
+Only $\boldsymbol\nu=[x,y,\theta,m_{x,i},m_{y,i}]^{\mathsf T}$ participates. Let $\delta_x=m_{x,i}-x$, $\delta_y=m_{y,i}-y$, and $q=\delta_x^2+\delta_y^2$. Its local Jacobian is
+
+$$
+\mathbf H_\nu =
+\frac1q
+\begin{bmatrix}
+-\sqrt q\,\delta_x&-\sqrt q\,\delta_y&0&\sqrt q\,\delta_x&\sqrt q\,\delta_y\\
+\delta_y&-\delta_x&-q&-\delta_y&\delta_x
+\end{bmatrix}.
+\tag{13}
+$$
+
+A selector $\mathbf F_i$ expands it to the full $3+2N$ state:
+
+$$
+\mathbf H_t^i=\mathbf H_\nu\mathbf F_i.
+\tag{14}
+$$
+
+The EKF update is
+
+$$
+\begin{aligned}
+\mathbf K_t^i &=
+\overline{\mathbf\Sigma}_t{\mathbf H_t^i}^{\mathsf T}
+\left(\mathbf H_t^i\overline{\mathbf\Sigma}_t{\mathbf H_t^i}^{\mathsf T}+\mathbf Q_t\right)^{-1},\\
+\boldsymbol\mu_t &=
+\overline{\boldsymbol\mu}_t+\mathbf K_t^i(\mathbf z_t^i-\widehat{\mathbf z}_t^i),\\
+\mathbf\Sigma_t&=
+(\mathbf I-\mathbf K_t^i\mathbf H_t^i)\overline{\mathbf\Sigma}_t.
+\end{aligned}
+\tag{15}
+$$
+
+$$
+\widehat{\mathbf z}_t^i =
+\begin{bmatrix}
+\sqrt{(\bar m_{x,i}-\bar x)^2+(\bar m_{y,i}-\bar y)^2}\\
+\operatorname{atan2}(\bar m_{y,i}-\bar y,\bar m_{x,i}-\bar x)-\bar\theta
+\end{bmatrix}.
+\tag{16}
+$$
+
+Apply this correction to each observed landmark.
+
+## 3. Map construction
+
+The landmark count can grow online. When a new marker is observed as $\mathbf z=[r,\phi]^{\mathsf T}$, its world position is
+
+$$
+\begin{bmatrix}m_x\\m_y\end{bmatrix}
+=
+r\begin{bmatrix}\cos(\theta+\phi)\\\sin(\theta+\phi)\end{bmatrix}
++\begin{bmatrix}x\\y\end{bmatrix}.
+\tag{17}
+$$
+
+### 3.1 Covariance of a new landmark
+
+$$
+\mathbf\Sigma_m
+=
+\mathbf G_p\mathbf\Sigma_\xi\mathbf G_p^{\mathsf T}
++
+\mathbf G_z\mathbf Q\mathbf G_z^{\mathsf T},
+\tag{18}
+$$
+
+$$
+\mathbf G_p =
+\begin{bmatrix}
+1&0&-r\sin(\theta+\phi)\\
+0&1&r\cos(\theta+\phi)
+\end{bmatrix},
+\qquad
+\mathbf G_z =
+\begin{bmatrix}
+\cos(\theta+\phi)&-r\sin(\theta+\phi)\\
+\sin(\theta+\phi)&r\cos(\theta+\phi)
+\end{bmatrix}.
+\tag{19--20}
+$$
+
+### 3.2 Cross-covariance with the old state
+
+$$
+\mathbf\Sigma_{mx}=\mathbf G_{fx}\mathbf\Sigma_t,
+\qquad
+\mathbf G_{fx} =
+\begin{bmatrix}
+1&0&-r\sin(\theta+\phi)&0&\cdots&0\\
+0&1&r\cos(\theta+\phi)&0&\cdots&0
+\end{bmatrix}.
+$$
+
+Append the new landmark mean, its covariance, and this cross-covariance to the augmented state.
+
+![Covariance expansion](/media/notes/zhihu-45207081-pr-3-aruco-ekf-slam-slam/image-04.jpg)
+
+## 4. Implementation
+
+- Complete source: [ydsf16/aruco_ekf_slam](https://github.com/ydsf16/aruco_ekf_slam)
+- Two Falconbot experimental datasets: [Baidu Netdisk](https://pan.baidu.com/s/1EX9CYmdEUR2BJh7v5dTNfA)
+
+## 5. References
+
+- *Probabilistic Robotics*
+- *Introduction to Autonomous Mobile Robots*
+- [Freiburg SLAM Course](http://ais.informatik.uni-freiburg.de/teaching/ws13/mapping/)

@@ -1,0 +1,401 @@
+---
+type: note
+title: "[PR-2] Particle Filter / Monte Carlo Localization"
+lang: en
+date: 2018-09-05
+updated: 2018-09-06
+status: "published"
+featured: false
+priority: 31
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/43523632
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> *Probabilistic Robotics* (PR) is a classic introduction to mobile robotics. It focuses primarily on theory and supplies pseudocode rather than implementations. This PR series recreates selected methods from my own understanding.
+
+**This article describes particle-filter localization on a grid map. The map is known in advance and was built with gmapping.**
+
+[Particle-filter localization video](https://www.zhihu.com/video/1020748273266536448)
+
+## 1. Algorithm flow
+
+Chapter 8 of *Probabilistic Robotics* covers the underlying theory.
+
+![Particle-filter localization](/media/notes/zhihu-43523632-pr-2-pf/image-01.jpg)
+
+The algorithm has two key stages:
+
+1. Update particles.
+2. Resample particles.
+
+## 2. Particle update
+
+Particle update needs a **motion model** and a **measurement model**.
+
+### Motion model
+
+The motion model is the Chapter 5 odometry sampling algorithm, **sample_motion_model_odometry**. Its input comes from the difference between two odometry poses. The textbook form does not account for pure rotation or reverse driving, so the implementation adds explicit handling for both.
+
+```cpp
+#include <particle_filter_localization/motion_model.h>
+
+MotionModel::MotionModel ( const double& alpha1, const double& alpha2, const double& alpha3, const double& alpha4 ):
+alpha1_(alpha1), alpha2_(alpha2), alpha3_(alpha3), alpha4_(alpha4)
+{
+    rng_ = cv::RNG(cv::getTickCount());
+}
+
+void MotionModel::sampleMotionModelOdometry ( const double& delta_rot1, const double& delta_trans, const double& delta_rot2, Pose2d& xt )
+{
+    /* Handle reverse motion */
+    double delta_rot1_PI = delta_rot1 - PI;
+    double delta_rot2_PI = delta_rot2 - PI;
+    Pose2d::NormAngle(delta_rot1_PI);
+    Pose2d::NormAngle(delta_rot2_PI);
+    double delta_rot1_noise = std::min(fabs(delta_rot1), fabs( delta_rot1_PI) );
+    double delta_rot2_noise = std::min(fabs(delta_rot2), fabs( delta_rot2_PI) );
+
+    double delta_rot1_2 = delta_rot1_noise*delta_rot1_noise;
+    double delta_rot2_2 = delta_rot2_noise * delta_rot2_noise;
+    double delta_trans_2 = delta_trans * delta_trans;
+
+    /* Sample */
+    double delta_rot1_hat = delta_rot1 - rng_.gaussian(alpha1_ * delta_rot1_2 + alpha2_ * delta_trans_2);
+    double delta_trans_hat = delta_trans - rng_.gaussian(alpha3_ * delta_trans_2 + alpha4_ * delta_rot1_2 + alpha4_ * delta_rot2_2);
+    double delta_rot2_hat = delta_rot2 - rng_.gaussian(alpha1_ * delta_rot2_2 + alpha2_ * delta_trans_2);
+
+    xt.x_ += delta_trans_hat * cos( xt.theta_ + delta_rot1_hat );
+    xt.y_  += delta_trans_hat * sin( xt.theta_ + delta_rot1_hat );
+    xt.theta_ +=  (delta_rot1_hat + delta_rot2_hat);
+    xt.NormAngle(xt.theta_);
+}
+```
+
+The four noise parameters should ideally be estimated statistically. Here they are set directly. Larger values indicate less trustworthy odometry and make particles diverge more readily during prediction.
+
+### Motion update
+
+```cpp
+void Localizer::motionUpdate ( const Pose2d& odom )
+{
+    const double MIN_DIST = 0.02; // TODO param 如果运动太近的话就不更新了，防止出现角度计算错误
+    if ( !is_init_ ) //First update
+    {
+        last_odom_pose_ = odom;
+        is_init_ = true;
+        return;
+    }
+
+    /* Compute u_t */
+    double dx = odom.x_ - last_odom_pose_.x_;
+    double dy = odom.y_ - last_odom_pose_.y_;
+    double delta_trans = sqrt ( dx * dx + dy * dy );
+    double delta_rot1 = atan2 ( dy,  dx ) - last_odom_pose_.theta_;
+    Pose2d::NormAngle ( delta_rot1 );
+    /* Handle pure rotation */
+    if(delta_trans < 0.01)
+        delta_rot1 = 0;
+    double delta_rot2 = odom.theta_ - last_odom_pose_.theta_ - delta_rot1;
+    Pose2d::NormAngle ( delta_rot2 );
+    /* Update every particle */
+    for ( size_t i = 0; i < nParticles_; i ++ )
+    {
+        motion_model_->sampleMotionModelOdometry ( delta_rot1, delta_trans, delta_rot2, particles_.at ( i ).pose_ ); // for each particle
+    }
+
+    last_odom_pose_ = odom;
+}
+```
+
+### Measurement model
+
+The measurement model is the Chapter 6 likelihood-field range-finder model, **likelihood_field_range_finder_model**.
+
+For speed, the likelihood field is precomputed. The parameter $\sigma$ strongly affects convergence and can be chosen from lidar and map accuracy; this implementation uses $0.25\,\mathrm m$.
+
+```cpp
+#include <particle_filter_localization/measurement_model.h>
+#define PI 3.1415926
+
+MeasurementModel::MeasurementModel ( GridMap* map, const double& sigma, const double& rand ):
+map_(map), sigma_(sigma), rand_(rand)
+{
+    /* Initialize the likelihood field; its cells are half the occupancy-grid cell size */
+    size_x_ = 2 * map->size_x_;
+    size_y_ = 2 * map->size_y_;
+    init_x_ = 2 * map->init_x_;
+    init_y_ = 2 * map->init_y_;
+    cell_size_ = 0.5 * map->cell_size_;
+
+    likelihood_data_.resize(size_x_ , size_y_);
+    likelihood_data_.setZero();
+
+    /* Build a KD-tree for obstacles */
+    pcl::PointCloud<pcl::PointXY>::Ptr cloud (new pcl::PointCloud<pcl::PointXY>);
+
+    for(int i = 0; i < map->size_x_;  i ++)
+        for(int j = 0; j < map->size_y_; j ++)
+        {
+            if(map->bel_data_(i, j) == 1.0) //Add obstacle cells to the KD-tree
+            {
+                pcl::PointXY pt;
+                pt.x = (i - map->init_x_) * map->cell_size_;
+                pt.y = (j - map->init_y_) * map->cell_size_;
+                cloud->push_back(pt);
+            }
+        }
+    kd_tree_.setInputCloud(cloud);
+
+    /* Compute likelihood for every cell */
+    for(double i = 0; i < size_x_; i += 0.9)
+        for(double j = 0; j < size_y_; j +=0.9)
+        {
+            /* Compute x and y */
+            double x = ( i - init_x_)* cell_size_;
+            double y = ( j- init_y_ ) * cell_size_;
+            double likelihood =  likelihoodFieldRangFinderModel(x, y);
+            setGridLikelihood(x, y, likelihood);
+        }
+}
+
+double MeasurementModel::likelihoodFieldRangFinderModel ( const double& x, const double& y )
+{
+    /* Find the nearest distance */
+    pcl::PointXY search_point;
+    search_point.x = x;
+    search_point.y = y;
+    std::vector<int> k_indices;
+    std::vector<float> k_sqr_distances;
+    int nFound =  kd_tree_.nearestKSearch(search_point, 1, k_indices, k_sqr_distances);
+    double dist = k_sqr_distances.at(0);
+
+    /* Gaussian + random */
+    return gaussion(0.0, sigma_, dist) + rand_;
+}
+
+double MeasurementModel::gaussion ( const double& mu, const double& sigma, double x)
+{
+    return (1.0 / (sqrt( 2 * PI ) * sigma) ) * exp( -0.5 * (x-mu) * (x-mu) / (sigma* sigma) );
+}
+
+bool MeasurementModel::getIdx ( const double& x, const double& y, Eigen::Vector2i& idx )
+{
+    int xidx = cvFloor( x / cell_size_ ) + init_x_;
+    int yidx  = cvFloor( y /cell_size_ )+ init_y_;
+
+    if((xidx < 0) || (yidx < 0) || (xidx >= size_x_) || (yidx >= size_y_))
+        return false;
+    idx << xidx , yidx;
+    return true;
+}
+
+double MeasurementModel::getGridLikelihood ( const double& x, const double& y)
+{
+    Eigen::Vector2i idx;
+    if(!getIdx(x, y, idx))
+        return rand_;
+    return likelihood_data_(idx(0), idx(1));
+}
+
+bool MeasurementModel::setGridLikelihood ( const double& x, const double& y, const double& likelihood )
+{
+    Eigen::Vector2i idx;
+    if(!getIdx(x, y, idx))
+        return false;
+    likelihood_data_(idx(0), idx(1)) = likelihood;
+    return true;
+}
+
+cv::Mat MeasurementModel::toCvMat()
+{
+    /* Construct an OpenCV-format image */
+    cv::Mat map(cv::Size(size_x_, size_y_), CV_64FC1, likelihood_data_.data(), cv::Mat::AUTO_STEP);
+    /* Flip */
+    cv::flip(map, map, 0);
+    return map;
+}
+```
+
+### Measurement update
+
+Every particle evaluates all laser beams to obtain its weight. This implementation **adds** likelihoods rather than multiplying them, because direct multiplication converges too quickly. Resampling is invoked from measurement update, but only periodically: frequent resampling quickly causes particle degeneracy. Augmented MCL plus KLD sampling would be preferable; this version uses the simplest resampling approach.
+
+```cpp
+void Localizer::measurementUpdate ( const sensor_msgs::LaserScanConstPtr& scan )
+{
+    if ( !is_init_ )
+    {
+        return;
+    }
+
+    /* Read laser data */
+    const double& ang_min = scan->angle_min;
+    const double& ang_max = scan->angle_max;
+    const double& ang_inc = scan->angle_increment;
+    const double& range_max = scan->range_max;
+    const double& range_min = scan->range_min;
+
+    for ( size_t np = 0; np < nParticles_; np ++ )
+    {
+        Particle& pt = particles_.at ( np );
+        /* for every laser beam */
+        for ( size_t i = 0; i < scan->ranges.size(); i ++ )
+        {
+            /* Read this beam range */
+            const double& R = scan->ranges.at ( i );
+            if ( R > range_max || R < range_min )
+                continue;
+
+            double angle = ang_inc * i + ang_min;
+            double cangle = cos ( angle );
+            double sangle = sin ( angle );
+            Eigen::Vector2d p_l (
+                R * cangle,
+                R* sangle
+            ); //Coordinates in the laser frame
+
+            /* Transform to the world frame */
+            Pose2d laser_pose = pt.pose_ * robot_->T_r_l_;
+            Eigen::Vector2d p_w = laser_pose * p_l;
+
+            /* Update weight */
+            double likelihood = measurement_model_->getGridLikelihood ( p_w ( 0 ), p_w ( 1 ) );
+
+            /* Sum laser-beam likelihoods; multiplication converges too quickly */
+            pt.weight_ += likelihood;
+        }// for every laser beam
+    } // for every particle
+
+    /* Normalize weights */
+    normalization();
+
+    /* TODO 这里最好使用书上的Argument 的重Sample + KLD重Sample方法.
+     *重Sample频率太高会导致粒子迅速退化*/
+    static int cnt = 0;
+    if ( ( cnt ++ ) % 10 == 0 ) //减少重Sample的次数
+        reSample();    //重Sample
+}
+```
+
+## 3. Resampling
+
+The implementation uses basic low-variance resampling. It requires a large number of particles for reliable localization. A fuller implementation could add Augmented MCL and KLD-sampling MCL from the book.
+
+```cpp
+void Localizer::reSample()
+{
+    if ( !is_init_ )
+        return;
+
+    /* 重Sample */
+    std::vector<Particle> new_particles;
+    cv::RNG rng ( cv::getTickCount() );
+    long double inc = 1.0 / nParticles_;
+    long double r = rng.uniform ( 0.0, inc );
+    long double c = particles_.at ( 0 ).weight_;
+    int i = 0;
+
+    for ( size_t m = 0; m < nParticles_; m ++ )
+    {
+        long double U = r + m * inc;
+        while ( U > c )
+        {
+            i = i+1;
+            c = c + particles_.at ( i ).weight_;
+        }
+        particles_.at ( i ).weight_ = inc;
+        new_particles.push_back ( particles_.at ( i ) );
+    }
+    particles_ = new_particles;
+}
+```
+
+## 4. ROS node
+
+```cpp
+void odometryCallback ( const nav_msgs::OdometryConstPtr& odom )
+{
+    /* Read robot pose */
+    double x = odom->pose.pose.position.x;
+    double y = odom->pose.pose.position.y;
+    double theta = tf::getYaw ( odom->pose.pose.orientation );
+    Pose2d rpose ( x, y, theta );
+
+    /* Motion update */
+    g_localizer->motionUpdate ( rpose );
+
+    /* Publish particles */
+    geometry_msgs::PoseArray pose_array;
+    g_localizer->particles2RosPoseArray ( pose_array );
+    g_particles_puber.publish ( pose_array );
+
+}
+
+void laserCallback ( const sensor_msgs::LaserScanConstPtr& scan )
+{
+    /* Measurement update */
+    g_localizer->measurementUpdate ( scan );
+
+    /* Publish map at a lower frequency */
+    static int cnt = 0;
+    if( (cnt ++) % 100 == 0)
+    {
+        nav_msgs::OccupancyGrid occ_map;
+        g_map->toRosOccGridMap ( "odom", occ_map );
+        g_map_puber.publish ( occ_map );
+    }
+}
+```
+
+At initialization, poses are assumed uniformly distributed over the map. Moving from that uniform distribution to a converged estimate requires many particles.
+
+```cpp
+Localizer::Localizer ( Robot* robot, GridMap* map, MotionModel* motion_model, MeasurementModel* measurement_model , size_t nParticles ) :
+    robot_ ( robot ), map_ ( map ), motion_model_ ( motion_model ), measurement_model_ ( measurement_model ),nParticles_ ( nParticles )
+{
+    is_init_ = false;
+
+    /* Initialize particles */
+    const double minX = map->minX();
+    const double maxX = map->maxX();
+    const double minY = map->minY();
+    const double maxY = map->maxY();
+    cv::RNG rng ( cv::getTickCount() );
+    size_t N = 0;
+    double weight = 1.0 / nParticles;
+    while ( N < nParticles )
+    {
+        double x = rng.uniform ( minX, maxX );
+        double y = rng.uniform ( minY, maxY );
+        double th = rng.uniform ( -PI, PI );
+
+        /* Check map bounds and traversability */
+        double bel;
+        if ( !map->getGridBel ( x, y, bel ) )
+        {
+            continue;
+        }
+        if ( bel != 0.0 ) //0.0 denotes a traversable cell
+        {
+            continue;
+        }
+
+        /* Construct a particle */
+        N++;
+        Particle pt ( Pose2d ( x, y, th ), weight );
+        particles_.push_back ( pt );
+    }
+}
+```
+
+## Source and dataset
+
+- Complete project: [ydsf16/particle_filter_localization](https://github.com/ydsf16/particle_filter_localization)
+- Lidar dataset: [Baidu Netdisk](https://pan.baidu.com/s/1j_SSEtaq7D0XwaED0Jg4Ew)

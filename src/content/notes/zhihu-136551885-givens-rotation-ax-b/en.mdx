@@ -1,0 +1,262 @@
+---
+type: note
+title: "Solving $Ax=b$ with Givens Rotations"
+lang: en
+date: 2020-04-28
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 10
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/136551885
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Many engineering problems reduce to solving $Ax=b$, where $A$ is a matrix and $b$ a column vector. QR, LLT, and other decompositions can solve it. This article introduces Givens rotations, used in SLAM algorithms such as MSCKF and iSAM.
+
+## 1. Solving $Ax=b$ with QR decomposition
+
+Before introducing Givens rotations, consider QR decomposition. Matrix $\mathbf A$ can be decomposed into orthogonal matrix $\mathbf Q$ and upper-triangular matrix $\mathbf R$:
+
+$$
+\mathbf A=\mathbf Q
+\begin{bmatrix}\mathbf R\\\mathbf0\end{bmatrix}.
+\tag{1}
+$$
+
+Then
+
+$$
+\mathbf Q
+\begin{bmatrix}\mathbf R\\\mathbf0\end{bmatrix}\mathbf x=\mathbf b.
+\tag{2}
+$$
+
+Multiply both sides by $\mathbf Q^\mathsf T$:
+
+$$
+\begin{bmatrix}\mathbf R\\\mathbf0\end{bmatrix}\mathbf x
+=\mathbf Q^\mathsf T\mathbf b
+=\begin{bmatrix}\mathbf d\\\mathbf c\end{bmatrix}.
+$$
+
+Taking the upper part gives
+
+$$
+\mathbf R\mathbf x=\mathbf d.
+\tag{3}
+$$
+
+Because $\mathbf R$ is upper triangular, solve from the final row upward by back substitution.
+
+> This approach needs a QR decomposition and storage of $\mathbf Q$. Givens rotations produce (3) without explicitly forming $\mathbf Q$.
+
+## 2. Givens rotation
+
+The goal is to zero elements below the upper triangle of $\mathbf A$.
+
+### 2.1 Two-dimensional case
+
+For
+
+$$
+\mathbf A=
+\begin{bmatrix}a_{11}&a_{12}\\a_{21}&a_{22}\end{bmatrix},
+$$
+
+zero $a_{21}$ by multiplying $\mathbf A$ on the left by a Givens rotation matrix:
+
+$$
+\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}
+\begin{bmatrix}a_{11}&a_{12}\\a_{21}&a_{22}\end{bmatrix}
+=
+\begin{bmatrix}b_{11}&b_{12}\\0&b_{22}\end{bmatrix}.
+$$
+
+The rotation must satisfy
+
+$$
+a_{11}\sin\theta+a_{21}\cos\theta=0,
+\qquad
+\theta=\operatorname{atan}\left(-\frac{a_{21}}{a_{11}}\right).
+$$
+
+Since $a_{11}$ and $a_{21}$ are known, the Givens matrix is known and transforms $\mathbf A$ to upper-triangular form. In practice, calculate sine and cosine directly with a numerically stable method rather than calculating $\theta$.
+
+For $\mathbf A\mathbf x=\mathbf b$, multiply both sides by the same Givens matrix:
+
+$$
+\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}
+\mathbf A\mathbf x
+=
+\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}
+\mathbf b,
+$$
+
+so
+
+$$
+\begin{bmatrix}b_{11}&b_{12}\\0&b_{22}\end{bmatrix}
+\begin{bmatrix}x_1\\x_2\end{bmatrix}
+=
+\begin{bmatrix}d_1\\d_2\end{bmatrix}.
+$$
+
+Back substitution gives $x_2=d_2/b_{22}$ and $x_1=(d_1-b_{12}x_2)/b_{11}$.
+
+### 2.2 Overdetermined case
+
+For
+
+$$
+\mathbf A=
+\begin{bmatrix}
+a_{11}&a_{12}\\
+a_{21}&a_{22}\\
+a_{31}&a_{32}
+\end{bmatrix},
+$$
+
+zero $a_{21}$, $a_{31}$, and $a_{32} in order. Start at the bottom of the leftmost column and move right.
+
+First, use $G_1$ to zero $a_{31}$:
+
+$$
+\begin{bmatrix}\cos\theta_1&0&-\sin\theta_1\\0&1&0\\\sin\theta_1&0&\cos\theta_1\end{bmatrix}
+\begin{bmatrix}a_{11}&a_{12}\\a_{21}&a_{22}\\a_{31}&a_{32}\end{bmatrix}
+=
+\begin{bmatrix}b_{11}&b_{12}\\a_{21}&a_{22}\\0&b_{32}\end{bmatrix}.
+$$
+
+Next, use $G_2$ to zero $a_{21}$:
+
+$$
+\begin{bmatrix}\cos\theta_2&-\sin\theta_2&0\\\sin\theta_2&\cos\theta_2&0\\0&0&1\end{bmatrix}
+\begin{bmatrix}b_{11}&b_{12}\\a_{21}&a_{22}\\0&b_{32}\end{bmatrix}
+=
+\begin{bmatrix}c_{11}&c_{12}\\0&c_{22}\\0&b_{32}\end{bmatrix}.
+$$
+
+Finally, use $G_3$ to zero $b_{32}$:
+
+$$
+\begin{bmatrix}1&0&0\\0&\cos\theta_3&-\sin\theta_3\\0&\sin\theta_3&\cos\theta_3\end{bmatrix}
+\begin{bmatrix}c_{11}&c_{12}\\0&c_{22}\\0&b_{32}\end{bmatrix}
+=
+\begin{bmatrix}c_{11}&c_{12}\\0&d_{22}\\0&0\end{bmatrix}.
+$$
+
+This transforms $\mathbf A$ into an upper-triangular matrix. The product of the three rotations is $\mathbf Q^\mathsf T$:
+
+$$
+\mathbf Q^\mathsf T=\mathbf G_3\mathbf G_2\mathbf G_1.
+$$
+
+### 2.3 Summary
+
+- Process columns from left to right.
+- Within each column, process from bottom to top.
+- Each Givens matrix is determined by the element to eliminate and its corresponding diagonal element.
+
+QR decompositions are not unique. Different results from Givens rotations, MATLAB, or Eigen are not necessarily wrong. If diagonal matrix $\mathbf D$ has entries $+1$ or $-1$, then $\mathbf Q\mathbf D$ and $\mathbf D\mathbf R$ define another QR decomposition.
+
+## 3. Implementation
+
+```cpp
+// Note: i is col, j is row.
+void GivensCosSin(const double aii, const double aji, double* c, double* s) {
+    if (std::abs(aji) < 1e-12) {
+        *c = 1.;
+        *s = 0.;
+    } else if (std::abs(aji) > std::abs(aii)) {
+        const double aii_over_aji = aii / aji;
+        const double one_over_sqrt = 1. / std::sqrt(1. + aii_over_aji * aii_over_aji);
+        *c = - aii_over_aji * one_over_sqrt;
+        *s = one_over_sqrt;
+    } else {
+        const double aji_over_aii = aji / aii;
+        const double one_over_sqrt = 1. / std::sqrt(1 + aji_over_aii * aji_over_aii);
+        *c = one_over_sqrt;
+        *s = - aji_over_aii * one_over_sqrt;
+    }
+}
+
+// A * x = b to R * x = d.
+void GivensRotationQRInPlace(Eigen::MatrixXd* A, Eigen::VectorXd* b) {
+    Eigen::MatrixXd& AA = *A;
+    Eigen::VectorXd& bb = *b;
+    const int rows = AA.rows();
+    const int cols = AA.cols();
+
+    assert(rows > cols);
+    assert(rows == bb.rows());
+
+    // Traverse all columns
+    for (int col = 0; col < cols; ++col) {
+        // Bottom to up.
+        for (int row = rows - 1; row > col; --row) {
+            // Compute cos_theta, sin_theta
+            double c, s;
+            GivensCosSin(AA(col, col), AA(row, col), &c, &s);
+
+            // Porcess A.
+            // For all elements at the ith, and jth rows.
+            for (int n = col; n < cols; ++n) {
+                const double a = AA(col, n);
+                const double b = AA(row, n);
+                AA(col, n) = c * a - s * b;
+                AA(row, n) = s * a + c * b;
+            }
+
+            // Process b.
+            {
+                const double a = bb(col);
+                const double b = bb(row);
+                bb(col) = c * a - s * b;
+                bb(row) = s * a + c * b;
+            }
+        }
+    }
+}
+
+bool BackSubstitution(const Eigen::MatrixXd& R, const Eigen::VectorXd& d, Eigen::VectorXd* x) {
+    x->resize(R.rows());
+    // From bottom to up.
+    for (int row = R.rows() - 1; row >= 0; --row) {
+        if (std::abs(R(row, row)) < 1e-12) {
+            return false;
+        }
+
+        double tmp = 0.;
+        for (size_t col = row + 1; col < R.cols(); ++col) {
+            tmp += R(row, col) * (*x)(col);
+        }
+
+        (*x)(row) = (d(row) - tmp) /  R(row, row);
+    }
+
+    return true;
+}
+
+bool SolveLinearSystemInPlace(Eigen::MatrixXd* A, Eigen::VectorXd* b, Eigen::VectorXd* x) {
+    // Ax=b to Rx=d.
+    GivensRotationQRInPlace(A, b);
+
+    // Solve Rx = d.
+    return BackSubstitution(A->topRows(A->cols()), b->topRows(A->cols()), x);
+}
+```
+
+
+## 4. References
+
+- Joan Sola. *Course on SLAM*.
+- Timothy Sauer. *Numerical Analysis*.
+- Michael Kaess. *iSAM: Incremental Smoothing and Mapping*.
+- G. Golub and C. V. Loan. *Matrix Computations*, 3rd ed.

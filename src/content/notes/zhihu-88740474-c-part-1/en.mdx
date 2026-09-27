@@ -1,0 +1,141 @@
+---
+type: note
+title: "C++ Concurrent Programming: Part 1"
+lang: en
+date: 2019-10-27
+updated: 2019-10-29
+status: "published"
+featured: false
+priority: 14
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/88740474
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> In some cases, multithreading can substantially improve program runtime. In SLAM, one thread commonly performs high-frequency odometry or localization while another performs lower-frequency map construction or measurement processing. Heavy map construction then does not block high-frequency localization output. Since C++11, the standard library has supported multithreaded programming. This article summarizes those facilities, based on *The C++ Standard Library*.
+
+## 1. High-level interfaces: async and future
+
+Suppose we need to calculate
+
+$$
+r=f_1()+f_2()+f_3()+f_4().
+$$
+
+A single thread evaluates these functions serially, so runtime is the sum of all four function runtimes plus the addition time.
+
+With multiple threads, the four functions can run in parallel and their results can be added afterward. Runtime then approaches that of the slowest function plus the addition time. The async interface starts asynchronous work and future retrieves its result later.
+
+```cpp
+#include <chrono>
+#include <future>
+#include <iostream>
+#include <thread>
+
+double function(const double var) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    return var;
+}
+
+int main(int argc, char** agrv) {
+    // Compute f1 + f2 + f3 + f4 using one thread.
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+    double result = function(1.) + function(2.) + function(3.) + function(4.);
+
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    double time_cost = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000.;
+    std::cout << std::fixed << "Sigal thread result: " << result << " and time cost: " << time_cost << std::endl;
+
+    // Compute f1 + f2 + f3 + f4 using four threads.
+    t1 = std::chrono::steady_clock::now();
+
+    std::future<double> f1(std::async(std::launch::async, function, 1.));
+    auto f2 = std::async(std::launch::async, function, 2.);
+    auto f3 = std::async(std::launch::async, function, 3.);
+    result = function(4.) + f1.get() + f2.get() + f3.get();
+
+    t2 = std::chrono::steady_clock::now();
+    time_cost = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000.;
+    std::cout << std::fixed << "Multi-threads result: " << result << " and time cost: " << time_cost << std::endl;
+
+    return 1;
+}
+
+
+Result:
+
+![Single-thread versus multithreaded timing.](/media/notes/zhihu-88740474-c-part-1/image-01.png)
+
+The single-thread runtime is almost four times the multithreaded runtime. See *The C++ Standard Library* for detailed use of async, future, and shared_future.
+
+## 2. Thread synchronization and concurrency issues
+
+The four threads above are independent and do not exchange data. In SLAM, however, a frontend localization thread and a backend mapping thread share map data. Similar data sharing is common in other multithreaded applications.
+
+> The only safe way to concurrently access the same data by multiple threads without synchronization is when all threads only read the data.
+
+When multiple threads read and write the same data, a data race occurs. Use a mutex and lock to solve it. The following example reads and writes one shared value from two threads.
+
+```cpp
+
+
+Result:
+
+![Mutex-protected shared-variable output.](/media/notes/zhihu-88740474-c-part-1/image-02.jpg)
+
+## 3. Producer–consumer data exchange: condition variables
+
+In SLAM, the frontend often selects keyframes and sends them to the backend mapping module. Keyframes are therefore shared between frontend and backend threads, and the backend must be notified when data arrives.
+
+A condition variable provides both capabilities:
+
+```cpp
+#include <chrono>
+#include <iostream>
+#include <mutex>
+#include <random>
+#include <thread>
+
+double g_common_var = 0;
+std::mutex g_common_var_mutex;
+
+void Thread() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0., 1000.);
+
+    for (size_t i = 0; i < 100; ++i) {
+        double random_common = dis(gen);
+        {
+            // or std::unique_lock<std::mutex> ul(g_common_var_mutex);
+            std::lock_guard<std::mutex> lg(g_common_var_mutex);
+            std::cout << std::fixed << "[Read] The common var in thread " << std::this_thread::get_id() << " is " << g_common_var << std::endl;
+            g_common_var = random_common;
+            std::cout << "[Write] The common var in thread " << std::this_thread::get_id() << " is " << g_common_var << std::endl << std::endl;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+
+int main(int argc, char** argv) {
+    std::thread t1(Thread);
+    std::thread t2(Thread);
+
+    t1.join();
+    t2.join();
+
+    return 1;
+}
+
+
+Result:
+
+![Condition-variable producer–consumer output.](/media/notes/zhihu-88740474-c-part-1/image-03.jpg)

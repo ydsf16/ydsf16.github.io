@@ -1,0 +1,644 @@
+---
+type: note
+title: "Quaternion Kinematics for ESKF: Notes, Part 1"
+lang: en
+date: 2019-10-20
+updated: 2019-11-27
+status: "published"
+featured: false
+priority: 15
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/67872858
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Notes while reading Joan Solà’s *Quaternion Kinematics for the Error-State Kalman Filter*. This is a condensed study record of the source material.
+
+## 1. Quaternion definition and basic properties
+
+### Definition
+
+A quaternion has one real part and three imaginary parts:
+
+$$
+Q=q_w+q_xi+q_yj+q_zk\in\mathbb H.
+$$
+
+Equivalent notation is
+
+$$
+Q=q_w+\mathbf q_v
+=\langle q_w,\mathbf q_v\rangle
+=[q_w,q_x,q_y,q_z]^{\mathsf T}.
+$$
+
+A quaternion with zero real part is pure imaginary; one with zero vector part is a real number.
+
+### Properties
+
+**Sum**
+
+$$
+\mathbf p+\mathbf q=
+\begin{bmatrix}p_w+q_w\\\mathbf p_v+\mathbf q_v\end{bmatrix}.
+$$
+
+**Product**
+
+$$
+\mathbf p\otimes\mathbf q=
+\begin{bmatrix}
+p_wq_w-\mathbf p_v^{\mathsf T}\mathbf q_v\\
+p_w\mathbf q_v+q_w\mathbf p_v+\mathbf p_v\times\mathbf q_v
+\end{bmatrix}.
+$$
+
+Quaternion multiplication is not commutative,
+
+$$
+\mathbf p\otimes\mathbf q\ne\mathbf q\otimes\mathbf p,
+$$
+
+but is associative and distributive:
+
+$$
+(\mathbf p\otimes\mathbf q)\otimes\mathbf r
+=
+\mathbf p\otimes(\mathbf q\otimes\mathbf r),
+$$
+
+$$
+\mathbf p\otimes(\mathbf q+\mathbf r)
+=
+\mathbf p\otimes\mathbf q+\mathbf p\otimes\mathbf r,
+\qquad
+(\mathbf p+\mathbf q)\otimes\mathbf r
+=
+\mathbf p\otimes\mathbf r+\mathbf q\otimes\mathbf r.
+$$
+
+Products can be written as matrix multiplication:
+
+$$
+\mathbf q_1\otimes\mathbf q_2
+=
+[\mathbf q_1]_L\mathbf q_2
+=
+[\mathbf q_2]_R\mathbf q_1,
+$$
+
+$$
+[\mathbf q]_L=
+q_w\mathbf I+
+\begin{bmatrix}
+0&-\mathbf q_v^{\mathsf T}\\
+\mathbf q_v&[\mathbf q_v]_\times
+\end{bmatrix},
+\qquad
+[\mathbf q]_R=
+q_w\mathbf I+
+\begin{bmatrix}
+0&-\mathbf q_v^{\mathsf T}\\
+\mathbf q_v&-[\mathbf q_v]_\times
+\end{bmatrix}.
+$$
+
+The cross-product matrix is
+
+$$
+[\mathbf a]_\times=
+\begin{bmatrix}
+0&-a_z&a_y\\
+a_z&0&-a_x\\
+-a_y&a_x&0
+\end{bmatrix},
+\qquad
+\mathbf a\times\mathbf b=[\mathbf a]_\times\mathbf b.
+$$
+
+**Identity, conjugate, norm, and inverse**
+
+$$
+\mathbf 1=
+\begin{bmatrix}1\\\mathbf0\end{bmatrix},
+\qquad
+\mathbf q^*=
+\begin{bmatrix}q_w\\-\mathbf q_v\end{bmatrix}.
+$$
+
+$$
+\mathbf q^*\otimes\mathbf q
+=
+\mathbf q\otimes\mathbf q^*
+=
+q_w^2+q_x^2+q_y^2+q_z^2,
+\qquad
+(\mathbf p\otimes\mathbf q)^*
+=
+\mathbf q^*\otimes\mathbf p^*.
+$$
+
+$$
+\lVert\mathbf q\rVert
+=
+\sqrt{\mathbf q\otimes\mathbf q^*}
+=
+\sqrt{q_w^2+q_x^2+q_y^2+q_z^2},
+\qquad
+\lVert\mathbf p\otimes\mathbf q\rVert
+=
+\lVert\mathbf p\rVert\lVert\mathbf q\rVert.
+$$
+
+$$
+\mathbf q^{-1}
+=
+\frac{\mathbf q^*}{\lVert\mathbf q\rVert^2}.
+$$
+
+For a unit quaternion, inverse equals conjugate:
+
+$$
+\mathbf q^{-1}=\mathbf q^*,
+\qquad
+\mathbf q=
+\begin{bmatrix}
+\cos\theta\\
+\mathbf u\sin\theta
+\end{bmatrix}.
+$$
+
+Unit quaternions represent rigid-body rotations.
+
+### Useful identities
+
+The quaternion commutator is
+
+$$
+\mathbf p\otimes\mathbf q-\mathbf q\otimes\mathbf p
+=
+2\mathbf p_v\times\mathbf q_v.
+$$
+
+For pure quaternions,
+
+$$
+\mathbf p_v\otimes\mathbf q_v
+=
+-\mathbf p_v^{\mathsf T}\mathbf q_v+\mathbf p_v\times\mathbf q_v,
+\qquad
+\mathbf q_v\otimes\mathbf q_v=-\lVert\mathbf q_v\rVert^2.
+$$
+
+If $\mathbf v=\mathbf u\theta$, then
+
+$$
+\mathbf v^2=-\theta^2,\quad
+\mathbf v^3=-\mathbf u\theta^3,\quad
+\mathbf v^4=\theta^4,\quad
+\mathbf v^5=\mathbf u\theta^5.
+$$
+
+Therefore, the exponential of a pure quaternion is
+
+$$
+e^{\mathbf v}
+=
+e^{\mathbf u\theta}
+=
+\sum_{k=0}^{\infty}\frac{\mathbf v^k}{k!}
+=
+\cos\theta+\mathbf u\sin\theta.
+$$
+
+It is a unit quaternion. For a general quaternion,
+
+$$
+e^{\mathbf q}
+=
+e^{q_w+\mathbf q_v}
+=
+e^{q_w}
+\begin{bmatrix}
+\cos\lVert\mathbf q_v\rVert\\
+\frac{\mathbf q_v}{\lVert\mathbf q_v\rVert}
+\sin\lVert\mathbf q_v\rVert
+\end{bmatrix}.
+$$
+
+For a unit quaternion,
+
+$$
+\log\mathbf q
+=
+\mathbf u\theta,
+\qquad
+\mathbf u=\frac{\mathbf q_v}{\lVert\mathbf q_v\rVert},
+\qquad
+\theta=\operatorname{atan2}(\lVert\mathbf q_v\rVert,q_w).
+$$
+
+For a general quaternion,
+
+$$
+\log\mathbf q
+=
+\log\lVert\mathbf q\rVert+\mathbf u\theta.
+$$
+
+Quaternion powers follow:
+
+$$
+\mathbf q^t=
+\exp(t\log\mathbf q),
+\qquad
+\mathbf q^t=
+\begin{bmatrix}
+\cos(t\theta)\\
+\mathbf u\sin(t\theta)
+\end{bmatrix}
+\quad\text{for a unit quaternion}.
+$$
+
+## 2. Rotations and cross-relations
+
+The rotation group $\operatorname{SO}(3)$ preserves vector norms, angles, and orientation:
+
+$$
+\lVert r(\mathbf v)\rVert=\lVert\mathbf v\rVert,
+\qquad
+\langle r(\mathbf v),r(\mathbf w)\rangle
+=
+\langle\mathbf v,\mathbf w\rangle,
+$$
+
+$$
+\mathbf u\times\mathbf v=\mathbf w
+\Longleftrightarrow
+r(\mathbf u)\times r(\mathbf v)=r(\mathbf w).
+$$
+
+### Matrix representation of $\operatorname{SO}(3)$
+
+$$
+r(\mathbf v)=\mathbf R\mathbf v,
+\qquad
+\mathbf R^{\mathsf T}\mathbf R=\mathbf I,
+\qquad
+\mathbf R^{-1}=\mathbf R^{\mathsf T},
+\qquad
+\det\mathbf R=1.
+$$
+
+The exponential maps are
+
+$$
+\exp:\mathfrak{so}(3)\rightarrow\operatorname{SO}(3),
+\qquad
+[\mathbf v]_\times\mapsto e^{[\mathbf v]_\times},
+$$
+
+$$
+\operatorname{Exp}:\mathbb R^3\rightarrow\operatorname{SO}(3),
+\qquad
+\mathbf v\mapsto\operatorname{Exp}(\mathbf v)=e^{[\mathbf v]_\times}.
+$$
+
+Rodrigues’ formula for $\mathbf v=\phi\mathbf u$ is
+
+$$
+\mathbf R
+=
+\mathbf I+\sin\phi[\mathbf u]_\times+
+(1-\cos\phi)[\mathbf u]_\times^2
+=
+\mathbf I\cos\phi+
+[\mathbf u]_\times\sin\phi+
+\mathbf u\mathbf u^{\mathsf T}(1-\cos\phi).
+$$
+
+The logarithmic maps are
+
+$$
+\log:\operatorname{SO}(3)\rightarrow\mathfrak{so}(3),
+\qquad
+\log(\mathbf R)=[\mathbf u\phi]_\times,
+$$
+
+$$
+\phi=\arccos\left(\frac{\operatorname{trace}(\mathbf R)-1}{2}\right),
+\qquad
+\mathbf u=\frac{(\mathbf R-\mathbf R^{\mathsf T})^\vee}{2\sin\phi},
+$$
+
+$$
+\operatorname{Log}:\operatorname{SO}(3)\rightarrow\mathbb R^3,
+\qquad
+\operatorname{Log}(\mathbf R)=\mathbf u\phi
+=
+\log(\mathbf R)^\vee.
+$$
+
+### Quaternion representation of $\operatorname{SO}(3)$
+
+The quaternion exponential is
+
+$$
+\exp:\mathbb H_p\rightarrow S^3,
+\qquad
+\mathbf V\mapsto e^{\mathbf V}.
+$$
+
+![Quaternion exponential map](/media/notes/zhihu-67872858-quaternion-kinematics-for-eskf-part-1/image-01.jpg)
+
+The capitalized map is
+
+$$
+\operatorname{Exp}:\mathbb R^3\rightarrow S^3,
+\qquad
+\operatorname{Exp}(\mathbf v)=e^{\mathbf v/2}.
+$$
+
+Thus
+
+$$
+\dot{\mathbf q}=\frac12\mathbf q\otimes\boldsymbol\omega,
+\qquad
+\mathbf q=e^{\boldsymbol\omega t/2},
+$$
+
+and for a rotation vector $\phi\mathbf u$,
+
+$$
+\mathbf q
+=
+\operatorname{Exp}(\phi\mathbf u)
+=
+\begin{bmatrix}
+\cos(\phi/2)\\
+\mathbf u\sin(\phi/2)
+\end{bmatrix}.
+$$
+
+The quaternion logarithms are
+
+$$
+\log(\mathbf q)=\mathbf u\theta,
+\qquad
+\operatorname{Log}(\mathbf q)=\mathbf u\phi=2\log(\mathbf q),
+$$
+
+$$
+\phi=2\operatorname{atan2}(\lVert\mathbf q_v\rVert,q_w),
+\qquad
+\mathbf u=\frac{\mathbf q_v}{\lVert\mathbf q_v\rVert}.
+$$
+
+![Quaternion–rotation-matrix relation](/media/notes/zhihu-67872858-quaternion-kinematics-for-eskf-part-1/image-02.jpg)
+
+Spherical linear interpolation is
+
+$$
+\mathbf q(t)
+=
+\mathbf q_0\otimes
+(\mathbf q_0^*\otimes\mathbf q_1)^t
+=
+\mathbf q_0\otimes
+\begin{bmatrix}
+\cos(t\Delta\phi/2)\\
+\mathbf u\sin(t\Delta\phi/2)
+\end{bmatrix},
+$$
+
+$$
+\mathbf R(t)
+=
+\mathbf R_0\operatorname{Exp}
+\left(t\operatorname{Log}(\mathbf R_0^{\mathsf T}\mathbf R_1)\right).
+$$
+
+## 3. Quaternion conventions
+
+Hamilton uses a right-handed convention; JPL uses a left-handed convention.
+
+![Hamilton and JPL conventions](/media/notes/zhihu-67872858-quaternion-kinematics-for-eskf-part-1/image-03.jpg)
+
+## 4. Perturbations, derivatives, and integrals
+
+### Plus and minus operators on $\operatorname{SO}(3)$
+
+Define plus by
+
+$$
+\mathbf S=\mathbf R\oplus\boldsymbol\theta
+=
+\mathbf R\operatorname{Exp}(\boldsymbol\theta),
+$$
+
+with equivalent quaternion form
+
+$$
+\mathbf q_s=\mathbf q_r\oplus\boldsymbol\theta
+=
+\mathbf q_r\otimes\operatorname{Exp}(\boldsymbol\theta).
+$$
+
+Define minus by
+
+$$
+\boldsymbol\theta
+=
+\mathbf S\ominus\mathbf R
+=
+\operatorname{Log}(\mathbf R^{-1}\mathbf S),
+$$
+
+$$
+\boldsymbol\theta
+=
+\mathbf q_s\ominus\mathbf q_r
+=
+\operatorname{Log}(\mathbf q_r^*\otimes\mathbf q_s).
+$$
+
+### Four derivative definitions
+
+For vector-space functions,
+
+$$
+\frac{\partial f(\mathbf x)}{\partial\mathbf x}
+=
+\lim_{\delta\mathbf x\to0}
+\frac{f(\mathbf x+\delta\mathbf x)-f(\mathbf x)}
+{\delta\mathbf x},
+$$
+
+$$
+f(\mathbf x+\Delta\mathbf x)
+\approx
+f(\mathbf x)+
+\frac{\partial f(\mathbf x)}{\partial\mathbf x}\Delta\mathbf x.
+$$
+
+For $\operatorname{SO}(3)\rightarrow\operatorname{SO}(3)$,
+
+$$
+\frac{\partial f(\mathbf R)}{\partial\boldsymbol\theta}
+=
+\lim_{\delta\boldsymbol\theta\to0}
+\frac{
+f(\mathbf R\oplus\delta\boldsymbol\theta)\ominus f(\mathbf R)
+}{\delta\boldsymbol\theta},
+$$
+
+$$
+f(\mathbf R\oplus\Delta\boldsymbol\theta)
+\approx
+f(\mathbf R)
+\operatorname{Exp}
+\left(
+\frac{\partial f(\mathbf R)}{\partial\boldsymbol\theta}
+\Delta\boldsymbol\theta
+\right).
+$$
+
+For vector-space to $\operatorname{SO}(3)$,
+
+$$
+\frac{\partial f(\mathbf x)}{\partial\mathbf x}
+=
+\lim_{\delta\mathbf x\to0}
+\frac{f(\mathbf x+\delta\mathbf x)\ominus f(\mathbf x)}
+{\delta\mathbf x}.
+$$
+
+For $\operatorname{SO}(3)$ to vector space,
+
+$$
+\frac{\partial f(\mathbf R)}{\partial\boldsymbol\theta}
+=
+\lim_{\delta\boldsymbol\theta\to0}
+\frac{
+f(\mathbf R\operatorname{Exp}(\delta\boldsymbol\theta))-f(\mathbf R)
+}{\delta\boldsymbol\theta}.
+$$
+
+### Useful rotation Jacobians
+
+$$
+\frac{\partial(\mathbf q\otimes\mathbf a\otimes\mathbf q^*)}
+{\partial\mathbf a}
+=
+\frac{\partial(\mathbf R\mathbf a)}{\partial\mathbf a}
+=
+\mathbf R.
+$$
+
+For $\mathbf q=[w,\mathbf v]^{\mathsf T}$,
+
+$$
+\frac{\partial(\mathbf q\otimes\mathbf a\otimes\mathbf q^*)}
+{\partial\mathbf q}
+=
+2\begin{bmatrix}
+w\mathbf a+\mathbf v\times\mathbf a&
+\mathbf v^{\mathsf T}\mathbf a\mathbf I+
+\mathbf v\mathbf a^{\mathsf T}-
+\mathbf a\mathbf v^{\mathsf T}-
+w[\mathbf a]_\times
+\end{bmatrix}.
+$$
+
+The right Jacobian of $\operatorname{SO}(3)$ is
+
+$$
+\mathbf J_r(\boldsymbol\theta)
+=
+\lim_{\delta\boldsymbol\theta\to0}
+\frac{
+\operatorname{Log}
+\left(
+\operatorname{Exp}(\boldsymbol\theta)^{\mathsf T}
+\operatorname{Exp}(\boldsymbol\theta+\delta\boldsymbol\theta)
+\right)
+}{\delta\boldsymbol\theta}.
+$$
+
+It enables first-order expansions:
+
+$$
+\operatorname{Exp}(\boldsymbol\theta+\delta\boldsymbol\theta)
+\approx
+\operatorname{Exp}(\boldsymbol\theta)
+\operatorname{Exp}
+\left(\mathbf J_r(\boldsymbol\theta)\delta\boldsymbol\theta\right),
+$$
+
+$$
+\operatorname{Log}
+\left(
+\operatorname{Exp}(\boldsymbol\theta)
+\operatorname{Exp}(\delta\boldsymbol\theta)
+\right)
+\approx
+\boldsymbol\theta+
+\mathbf J_r^{-1}(\boldsymbol\theta)\delta\boldsymbol\theta.
+$$
+
+### Time derivatives and integration
+
+$$
+\dot{\mathbf q}
+=
+\frac12\boldsymbol\Omega(\boldsymbol\omega_L)\mathbf q
+=
+\frac12\mathbf q\otimes\boldsymbol\omega_L,
+\qquad
+\dot{\mathbf R}=\mathbf R[\boldsymbol\omega_L]_\times.
+$$
+
+Zeroth-order integration is
+
+$$
+\mathbf q_{n+1}
+\approx
+\mathbf q_n\otimes
+\operatorname{Exp}(\boldsymbol\omega_n\Delta t)
+$$
+
+for forward Euler, or use $\boldsymbol\omega_{n+1}$ for backward Euler. Midpoint integration uses
+
+$$
+\bar{\boldsymbol\omega}
+=
+\frac{\boldsymbol\omega_{n+1}+\boldsymbol\omega_n}{2},
+\qquad
+\mathbf q_{n+1}
+\approx
+\mathbf q_n\otimes
+\operatorname{Exp}(\bar{\boldsymbol\omega}\Delta t).
+$$
+
+The first-order approximation is
+
+$$
+\mathbf q_{n+1}
+\approx
+\mathbf q_n\otimes
+\left(
+\operatorname{Exp}(\bar{\boldsymbol\omega}\Delta t)
++
+\frac{\Delta t^2}{24}
+\begin{bmatrix}
+0\\
+\boldsymbol\omega_n\times\boldsymbol\omega_{n+1}
+\end{bmatrix}
+\right).
+$$

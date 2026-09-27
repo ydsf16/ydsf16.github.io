@@ -1,0 +1,405 @@
+---
+type: note
+title: "[V-SLAM] Implementing Bundle Adjustment"
+lang: en
+date: 2019-05-04
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 17
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/64471565
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> SLAM back ends are commonly filter-based or optimization-based. Optimization can linearize repeatedly and is generally more accurate; ORB-SLAM and DSO are representative systems. Bundle Adjustment (BA) is the core optimization problem. This article introduces purely visual BA, a small implementation, and simulation tests.
+
+## 1. Fundamentals
+
+Feature-based visual SLAM minimizes reprojection error to optimize camera poses and map-point positions.
+
+### 1.1 Map-point parameterization
+
+A point can use Cartesian coordinates $\mathbf X=[x,y,z]^{\mathsf T}$ or inverse depth. This implementation uses the conventional Cartesian form.
+
+### 1.2 Camera model
+
+With a pinhole camera, a 3D point $\mathbf X$ projects to pixel $\mathbf u$:
+
+$$
+\lambda\mathbf u=
+\mathbf K\mathbf T\mathbf X
+=
+\begin{bmatrix}f_x&0&c_x\\0&f_y&c_y\\0&0&1\end{bmatrix}
+\begin{bmatrix}\mathbf R&\mathbf t\end{bmatrix}
+\begin{bmatrix}x\\y\\z\\1\end{bmatrix}.
+\tag{1}
+$$
+
+$\mathbf K$ is the intrinsic matrix, $\mathbf T$ the pose, and $\mathbf X$ the homogeneous map point. With known intrinsics,
+
+$$
+\mathbf u=\pi(\mathbf T,\mathbf X).
+\tag{2}
+$$
+
+### 1.3 Error and least squares
+
+$$
+\{\mathbf T_i,\mathbf X_j\}
+=
+\arg\min_{\{i,j,k\}\in\chi}
+\rho\left(
+\left\lVert
+\underbrace{\mathbf z_k-\pi(\mathbf T_i,\mathbf X_j)}_{\mathbf e}
+\right\rVert_{\boldsymbol\Sigma}^2
+\right)
+=
+\arg\min
+\sum_{\{i,j,k\}\in\chi}
+\rho(\mathbf e^{\mathsf T}\boldsymbol\Sigma^{-1}\mathbf e).
+\tag{3}
+$$
+
+The variables are camera poses $\mathbf T_i$ and map points $\mathbf X_j$, $\chi$ contains all 3D-to-2D observations, $\mathbf e$ is residual, and $\rho$ is the robust kernel. Use Huber:
+
+$$
+\rho(x)=
+\begin{cases}
+x,&\sqrt x<b,\\
+2b\sqrt x-b^2,&\text{otherwise}.
+\end{cases}
+\tag{4}
+$$
+
+As in g2o, express robustification as a weight:
+
+$$
+\mathbf e^{\mathsf T}(w\boldsymbol\Sigma^{-1})\mathbf e
+=
+\rho(\mathbf e^{\mathsf T}\boldsymbol\Sigma^{-1}\mathbf e),
+\qquad
+w=
+\frac{\rho(\mathbf e^{\mathsf T}\boldsymbol\Sigma^{-1}\mathbf e)}
+{\mathbf e^{\mathsf T}\boldsymbol\Sigma^{-1}\mathbf e}.
+\tag{5--6}
+$$
+
+The objective becomes
+
+$$
+\{\mathbf T_i,\mathbf X_j\}
+=
+\arg\min
+\sum_{\{i,j,k\}\in\chi}
+\mathbf e^{\mathsf T}(w\boldsymbol\Sigma^{-1})\mathbf e.
+\tag{7}
+$$
+
+### 1.4 Jacobians
+
+For $\mathbf e=\mathbf z-\pi(\mathbf T,\mathbf X)$, use a Lie-algebra pose perturbation. Define
+
+$$
+\begin{bmatrix}x'\\y'\\z'\end{bmatrix}
+=
+\begin{bmatrix}\mathbf R&\mathbf t\end{bmatrix}
+\begin{bmatrix}x\\y\\z\\1\end{bmatrix}.
+\tag{8}
+$$
+
+The pose Jacobian is
+
+$$
+\mathbf J_{\mathbf T}
+=
+-\begin{bmatrix}
+f_x/z'&0&-f_xx'/z'^2&-f_xx'y'/z'^2&f_x+f_xx'^2/z'^2&-f_xy'/z'\\
+0&f_y/z'&-f_yy'/z'^2&-f_y-f_yy'^2/z'^2&f_yx'y'/z'^2&f_yx'/z'
+\end{bmatrix},
+\tag{9}
+$$
+
+and the map-point Jacobian is
+
+$$
+\mathbf J_{\mathbf X}
+=
+-\begin{bmatrix}
+f_x/z'&0&-f_xx'/z'^2\\
+0&f_y/z'&-f_yy'/z'^2
+\end{bmatrix}\mathbf R.
+\tag{10}
+$$
+
+### 1.5 Solving increments
+
+Gauss–Newton and Levenberg–Marquardt solve
+
+$$
+\mathbf H\Delta\mathbf X=\mathbf b.
+\tag{11}
+$$
+
+BA’s Hessian is sparse.
+
+![Sparse Hessian structure](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-01.jpg)
+
+Its camera-only block $\mathbf C$ and map-point-only block $\mathbf M$ are block diagonal:
+
+$$
+\begin{bmatrix}\mathbf C&\mathbf E\\\mathbf E^{\mathsf T}&\mathbf M\end{bmatrix}
+\begin{bmatrix}\Delta\mathbf x_c\\\Delta\mathbf x_m\end{bmatrix}
+=
+\begin{bmatrix}\mathbf b_c\\\mathbf b_m\end{bmatrix}.
+\tag{12}
+$$
+
+Schur-complement elimination first solves camera increments:
+
+$$
+(\mathbf C-\mathbf E\mathbf M^{-1}\mathbf E^{\mathsf T})\Delta\mathbf x_c
+=
+\mathbf b_c-\mathbf E\mathbf M^{-1}\mathbf b_m,
+$$
+
+then map-point increments:
+
+$$
+\Delta\mathbf x_m=
+\mathbf M^{-1}(\mathbf b_m-\mathbf E^{\mathsf T}\Delta\mathbf x_c).
+$$
+
+$\mathbf M$ is block diagonal, so this is efficient.
+
+### 1.6 Gauge freedom
+
+BA must fix states or include priors; otherwise infinitely many globally transformed solutions have identical reprojection error. Conventionally fix the first pose. This solver directly fixes states.
+
+## 2. Implementation
+
+This small implementation solves only the formulation above. It uses dense storage, does not exploit sparse-matrix acceleration, implements LM only, supports motion-only, structure-only, and full BA without priors, and has limited invalid-input robustness. Complete source: [ydsf16/vslam](https://github.com/ydsf16/vslam).
+
+### 2.1 MapPoint
+
+Stores an optimizable map point and position increment. When its fixed flag is set, it is excluded from the state vector.
+
+```cpp
+class MapPoint{
+public:
+	MapPoint(const Eigen::Vector3d& position, int id, bool fixed = false);
+	const Eigen::Vector3d& getPosition();
+	void setPosition(const Eigen::Vector3d& position);
+	int getId();
+	void setId(int id);
+	void setFixed();
+	bool isFixed();
+	void addDeltaPosition(const Eigen::Vector3d& delta_position);
+	int state_index_;
+private:
+	Eigen::Vector3d position_;
+	int id_;
+	bool fixed_;
+}; //class MapPoint
+```
+
+### 2.2 Camera
+
+Stores an optimizable camera and its left-multiplicative pose increment. A fixed camera is excluded from the state vector.
+
+```cpp
+class Camera{
+public:
+	Camera(const Sophus::SE3& pose, int id, bool fixed = false);
+	const Sophus::SE3& getPose();
+	void setPose(const Sophus::SE3& pose);
+	int getId();
+	void setId(int id);
+	void setFixed();
+	bool isFixed();
+	void addDeltaPose(const Eigen::Matrix<double, 6, 1>& delta_pose);
+	void addDeltaPose(const Sophus::SE3& delta_pose);
+	int state_index_;
+private:
+	Sophus::SE3 pose_;
+	int id_;
+	bool fixed_;
+}; // class CameraPose
+```
+
+### 2.3 CostFunction
+
+Stores an observation, evaluates cost and Jacobians, and computes Huber weighting.
+
+```cpp
+class CostFunction{
+public:
+	CostFunction(MapPoint* map_point, Camera* camera,
+				 double fx, double fy, double cx, double cy, const Eigen::Vector2d& ob_z);
+	void setHuberParameter(double b = 1.0);
+	void setCovariance(const Eigen::Matrix2d& cov);
+	void computeInterVars(Eigen::Vector2d& e, Eigen::Matrix2d& weighted_info, double& weighted_e2);
+	void computeJT(Eigen::Matrix<double, 2, 6>& JT);
+	void computeJX(Eigen::Matrix<double, 2, 3>& JX);
+	MapPoint* map_point_;
+	Camera* camera_;
+private:
+	double fx_, fy_, cx_, cy_;
+	Eigen::Vector2d ob_z_;
+	Eigen::Matrix2d info_matrix_;
+	double huber_b_;
+}; // class CostFunction
+```
+
+### 2.4 BundleAdjustment
+
+Stores the full BA problem. Maps provide ID lookup, the cost-function set stores residual terms, and the implementation aggregates Jacobians, information, Hessian, and residuals for LM.
+
+```cpp
+class BundleAdjustment{
+public:
+	BundleAdjustment();
+	~BundleAdjustment(); // free memory.
+
+	void addMapPoint(MapPoint* mpt);
+	void addCamera(Camera* cam);
+	void addCostFunction(CostFunction* cost_func);
+	MapPoint* getMapPoint(int id);
+	Camera* getCamera(int id);
+	void setConvergenceCondition(int max_iters, double min_delta, double min_error);
+	void setVerbose(bool flag);
+	void optimize();
+
+private:
+	void optimizationInit();    // init for the optimization.
+	void computeStateIndexes(); // compute index for every state.
+	void computeHAndbAndError();
+	void solveNormalEquation();
+	void inverseM(const Eigen::MatrixXd& M, Eigen::MatrixXd& M_inv);
+	void updateStates();
+	void recoverStates();
+
+	std::map<int, MapPoint*> mappoints_; // all mappoints
+	std::map<int, Camera*> cameras_; // all cameras.
+	std::set<CostFunction*> cost_functions_; // all cost functions.
+
+	Eigen::MatrixXd J_; // Jocabian matrix.
+	Eigen::MatrixXd JTinfo_;
+	Eigen::MatrixXd H_; // Hassian matrix.
+	Eigen::MatrixXd r_; // residual vector.
+	Eigen::MatrixXd b_;
+	Eigen::MatrixXd info_matrix_; // information matrix.
+	Eigen::MatrixXd Delta_X_;     // Delta_X_
+	Eigen::MatrixXd I_;
+
+	int n_cam_state_; // number of cameras in the state vector.
+	int n_mpt_state_; // number of map points in the state vector.
+
+	/* Convergence condition */
+	int max_iters_;
+	double min_delta_;
+	double min_error_;
+	double sum_error2_;
+	double last_sum_error2_;
+
+	bool verbose_;
+}; // BundleAdjustment
+```
+
+### 2.5 Building a BA problem
+
+The workflow matches g2o:
+
+1. Create map points and cameras and add them to the BA object.
+2. Create observation cost functions and add them.
+3. Iterate optimization.
+4. Retrieve results by ID.
+
+```cpp
+BundleAdjustment ba_mba;
+	ba_mba.setConvergenceCondition(20, 1e-5, 1e-10);
+	ba_mba.setVerbose(true);
+
+	// add mappoints
+	for(size_t i = 0; i < noise_mappoints.size(); i ++)
+	{
+		const Eigen::Vector3d& npt = noise_mappoints.at(i);
+		MapPoint* mpt = new MapPoint(npt, i);
+		mpt->setFixed(); // fixed all mappoints.
+		ba_mba.addMapPoint(mpt);
+	} // add mappoints
+
+	// add cameras.
+	for(size_t i = 0; i < noise_cameras.size(); i ++)
+	{
+		const Sophus::SE3& ncam = noise_cameras.at(i);
+		Camera* cam = new Camera(ncam, i);
+		ba_mba.addCamera(cam);
+	} // add cameras.
+
+	// add observations
+	for(size_t i = 0; i < noise_observations.size(); i ++)
+	{
+		const Observation& ob = noise_observations.at(i);
+		MapPoint* mpt = ba_mba.getMapPoint(ob.mpt_id_);
+		Camera* cam = ba_mba.getCamera(ob.cam_id_);
+		CostFunction* cost_func = new CostFunction(mpt, cam, fx, fy, cx, cy, ob.ob_);
+		ba_mba.addCostFunction(cost_func);
+	} // add observations.
+
+	// Optimize
+	ba_mba.optimize();
+
+	// Compute pose Error
+	double sum_rot_error = 0.0;
+	double sum_trans_error = 0.0;
+	for(size_t i = 0; i < cameras.size(); i ++)
+	{
+		Camera* cam = ba_mba.getCamera(i);
+		const Sophus::SE3& opt_pose = cam->getPose();
+		const Sophus::SE3& org_pose = cameras.at(i);
+		Sophus::SE3 pose_err = opt_pose * org_pose.inverse();
+		sum_rot_error += pose_err.so3().log().norm();
+		sum_trans_error += pose_err.translation().norm();
+	}
+	std::cout << "Mean rot error: " << sum_rot_error / (double)(cameras.size())
+	<< "\tMean trans error: " <<  sum_trans_error / (double)(cameras.size()) << std::endl;
+```
+
+## 3. Experiments
+
+Simulation supplies known ground truth: generate cameras, map points, and observations, add noise, then evaluate recovery. The example uses 6 cameras, 275 map points, and 1,650 observations.
+
+### 3.1 Motion-only BA
+
+Fix map points and optimize poses. With no noise, optimized output equals ground truth. Test noise is map-point $0.01\,\mathrm m$, translation $0.1\,\mathrm m$, rotation $0.1\,\mathrm{rad}$, and observation $1\,\mathrm{pixel}$.
+
+![Motion-only BA](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-02.jpg)
+
+### 3.2 Structure-only BA
+
+Fix cameras and optimize map points with map-point noise $0.1$, zero camera noise, and one-pixel observation noise.
+
+![Structure-only BA](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-03.jpg)
+
+### 3.3 Full BA
+
+Fix only the first camera; optimize all other cameras and points with map-point noise $0.05$, translation noise $0.1$, rotation noise $0.1$, and one-pixel observation noise.
+
+![Full BA](/media/notes/zhihu-64471565-v-slam-bundle-adjustment/image-04.jpg)
+
+The solver converges well. Camera-pose accuracy is higher than map-point accuracy because a camera observes many points, while a point is observed by only a few cameras.
+
+Runtime is slow due to frequent memory copying, slow normal-equation solves, no use of sparse structure, and limited Eigen tuning. This is a foundational version.
+
+## References
+
+1. Triggs, B. *Bundle Adjustment — A Modern Synthesis*. Vision Algorithms: Theory and Practice, 1999.
+2. *14 Lectures on Visual SLAM*
+3. *Methods for Non-Linear Least Squares Problems*

@@ -1,0 +1,173 @@
+---
+type: note
+title: "[ORB-SLAM2] Loop Closure and the DBoW Visual Bag of Words"
+lang: en
+date: 2019-04-10
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 22
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/61850005
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> Loop detection reduces global error and is essential for a globally consistent SLAM map. It can also relocalize after tracking failure. The survey in [1] groups loop-closure methods as image-to-image, map-to-map, and image-to-map. Image-to-image, or appearance-based, adapts well to large scenes. Visual bag-of-words approaches are widely used in this category. DBoW2 was introduced for BRIEF descriptors [2], and DBoW3 later improved it.
+
+## 0. Loop-closure metrics
+
+A loop-closure result has four possible outcomes.
+
+![True/false positive/negative outcomes](/media/notes/zhihu-61850005-orb-slam2-dbow/image-01.png)
+
+On a large dataset, let their counts be $N_{TP}$, $N_{TN}$, $N_{FP}$, and $N_{FN}$. Precision and recall are
+
+$$
+\operatorname{Precision}=\frac{N_{TP}}{N_{TP}+N_{FP}},
+\qquad
+\operatorname{Recall}=\frac{N_{TP}}{N_{TP}+N_{FN}}.
+$$
+
+Precision asks what fraction of detected loops are real. SLAM demands it be very high: a false loop can have catastrophic consequences, so a detected loop normally receives further validation. Recall asks what fraction of actual loops are found. Both should be high, although they normally trade off. A precision–recall curve obtained by changing parameters is better when it approaches the upper-right corner.
+
+![Precision–recall curve, from [2]](/media/notes/zhihu-61850005-orb-slam2-dbow/image-02.jpg)
+
+## 1. DBoW2 visual bag of words
+
+The goal is to compare two images and decide whether they form a loop. Direct feature matching and counting matches is slow. Features already abstract image content, and they can be abstracted once more into visual words—think of words such as “car”, “cat”, and “person”.
+
+In the simplest binary form, DBoW2 clusters BRIEF features into $n$ words $w_1,\ldots,w_n$:
+
+$$
+A=1\cdot w_1+1\cdot w_2+0\cdot w_3+\cdots+1\cdot w_n
+=
+[w_1,w_2,\ldots,w_n]
+[1,1,0,\ldots,1]^{\mathsf T}.
+$$
+
+A fixed vocabulary represents image $A$ by
+
+$$
+\mathbf v_A=[1,1,0,\ldots,1]^{\mathsf T}.
+$$
+
+A simple similarity score is
+
+$$
+s(A,B)=1-\frac1n\lVert\mathbf v_A-\mathbf v_B\rVert_1.
+$$
+
+It resembles Hamming distance and measures nonmatching words. Actual DBoW2 also weighs word occurrence counts and uses more specific scoring.
+
+### Vocabulary tree and indexes
+
+DBoW2 trains words from features extracted across many images using K-means. It forms a $K$-ary tree: each level splits descriptors into $K$ clusters and leaf nodes become words. A depth-$d$ tree has $n=K^d$ words; the default $K=10,d=5$ yields 100,000 words.
+
+The tree provides:
+
+1. **Fast word assignment.** Instead of comparing a feature to every word, make $K$ comparisons per tree level.
+2. **Direct index.** Each node holds the indexes of image features assigned to it; matching can be restricted to features within the same node. ORB-SLAM uses this for frame matching.
+3. **Inverse index.** Every word stores images containing it and their weights, so loop search only visits keyframes that share words with the current keyframe.
+
+![Vocabulary tree and indexes](/media/notes/zhihu-61850005-orb-slam2-dbow/image-03.jpg)
+
+### TF–IDF weighting and similarity
+
+Frequently occurring words discriminate poorly. For example, a “floor-tile” word may occur everywhere. Inverse document frequency reduces their influence:
+
+$$
+\operatorname{IDF}_i=\log\frac n{n_i},
+$$
+
+where $n_i$ is the occurrence count of word $i$ and $n$ is the total word count during vocabulary training. A vocabulary thus contains the $K$-ary tree, direct/inverse indexes, and TF–IDF weights.
+
+For a query image, term frequency is
+
+$$
+\operatorname{TF}_i=\frac{n_i}{n},
+\qquad
+\eta_i=\operatorname{TF}_i\operatorname{IDF}_i.
+$$
+
+The weighted bag is
+
+$$
+A=\{(w_1,\eta_1),(w_2,\eta_2),\ldots,(w_N,\eta_N)\}:\mathbf v_A.
+$$
+
+DBoW2 supports L1, L2, chi-squared, and other scores. Its L1 form is
+
+$$
+s(\mathbf v_A,\mathbf v_B)
+=
+\frac12\sum_i
+\left(
+|v_{Ai}|+|v_{Bi}|-|v_{Ai}-v_{Bi}|
+\right).
+$$
+
+This score is much faster to compute than explicit feature matching.
+
+## 2. Loop closure in ORB-SLAM
+
+ORB-SLAM maintains a database whose inverse index stores keyframes observing each word. Each keyframe queries for loops before it is added; deleting a keyframe updates the database. This directly follows DBoW’s inverse-index idea.
+
+### 2.1 Searching for loop candidates
+
+ORB-SLAM also uses its covisibility graph.
+
+![Loop-candidate flow, adapted from Wu Bo [3]](/media/notes/zhihu-61850005-orb-slam2-dbow/image-04.jpg)
+
+1. **Temporal throttling.** At least ten keyframes pass between loop checks.
+2. **Relative threshold.** Score the current keyframe against covisible keyframes and take the minimum as the baseline. Since DBoW’s absolute score is not comparable across frames, a loop candidate must exceed that baseline.
+3. **Database filtering and grouping.** The inverse index retrieves frames with common words. Let the largest shared-word count be $M$. Reject frames below $0.8M$, frames below the relative-score baseline, and frames in the current covisibility graph. Group connected candidates, sum each group’s scores, find the best group score $S$, and retain groups above $0.75S$. This removes isolated candidates that are likely false.
+4. **Continuity check.** A reliable loop is a multi-frame-to-multi-frame relation, not an isolated pair.
+
+![Continuous-loop consistency, adapted from [4]](/media/notes/zhihu-61850005-orb-slam2-dbow/image-05.jpg)
+
+These steps prioritize precision; loop closure in SLAM requires near-perfect correctness.
+
+### 2.2 Geometric verification with Sim3
+
+For every candidate:
+
+1. Match current and candidate features using DBoW’s direct index; reject too few matches.
+2. Estimate an initial Sim3.
+3. Reproject candidate map points into the current frame for additional matches.
+4. Optimize Sim3 under RANSAC; the first candidate to pass becomes the loop frame.
+5. Build a local map from its covisible keyframes, reproject local points into the current frame, and accept only with enough matches.
+
+This returns a loop keyframe and the Sim3 transform between it and the current keyframe.
+
+### 2.3 Loop fusion
+
+Align the current keyframe and its neighborhood—covisible keyframes and their covisible neighbors—to the loop frame using Sim3. This quickly returns the camera and local map to loop-consistent poses while preserving trajectory continuity.
+
+Project map points from the loop frame and its covisible neighbors into the current frame, fuse matched points, and update covisibility relations. This stitches the two local maps together.
+
+### 2.4 Optimization
+
+Optimize the essential graph first, then run global bundle adjustment.
+
+## References
+
+1. Williams, B.; Cummins, M.; Neira, J.; et al. *A comparison of loop closing techniques in monocular SLAM*. Robotics and Autonomous Systems, 2009.
+2. Gálvez-López, D.; Tardós, J. D. *Bags of Binary Words for Fast Place Recognition in Image Sequences*. IEEE Transactions on Robotics, 2012.
+3. [ORB-SLAM2 source-code analysis — Wu Bo](http://paopaorobot.org/bbs/read.php?tid=59&fid=8)
+4. [Continuous loop-closure discussion](https://blog.csdn.net/chishuideyu/article/details/76165461)
+
+## Related reading
+
+- [ORB feature extraction in ORB-SLAM2](/en/notes/zhihu-61738607-orb-slam2-orb-slam-orb/)
+- [Monocular initialization in ORB-SLAM2](/en/notes/zhihu-61614421-orb-slam2/)
+- [SLAM trajectory ground-truth acquisition](/en/notes/zhihu-60589790-slam/)
+- [EPnP](/en/notes/zhihu-59070440-pnp-pnp-epnp/)
+- [PnP DLT](/en/notes/zhihu-58648937-pnp-pnp-dlt/)
+- [Chi-squared outlier rejection](/en/notes/zhihu-58556978-orb-slam2-chi-squared-outlier/)
+- [Particle filter localization](/en/notes/zhihu-43523632-pr-2-pf/)

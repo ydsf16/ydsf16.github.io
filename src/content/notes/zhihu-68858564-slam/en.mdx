@@ -1,0 +1,132 @@
+---
+type: note
+title: "SLAM, Localization, and Mapping Job-Hunting Notes"
+lang: en
+date: 2019-06-12
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 16
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/68858564
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I learned a great deal from others' job-hunting experience and would like to share my own notes and suggestions for SLAM positions.
+
+## Timing
+
+My job search lasted a little more than two months, from late March to early June 2019, near the spring-recruitment period. Searching during spring recruitment was difficult: many companies had not released graduate positions and submitting résumés was hard. **Try to apply during autumn recruitment, and apply early—the earlier, the more opportunities.**
+
+## Résumé
+
+**Fit is the most important thing in a résumé.** Tailor it to the job description, putting relevant and important information near the top where it is most visible.
+
+Referrals are preferable. None of the résumés I submitted without a referral led to an interview.
+
+When a referral reaches a department lead, attach a short project introduction in addition to the résumé. Images and text can explain the project clearly and create a stronger impression.
+
+## Interviews
+
+A résumé only opens the door to an interview; the interview is an opportunity to demonstrate more. In-person interviews are useful because they support richer demonstrations and easier communication. **Prepare a presentation that tells a coherent story about your work; bring diagrams, images, or video if useful.**
+
+Confidence matters. Keep going.
+
+## Interview questions
+
+My target companies worked on autonomous driving or robotics. Interviews varied: some first asked candidates to introduce projects and then tested fundamental SLAM and algorithm knowledge; others drilled into the résumé directly. The following are questions I encountered.
+
+### 1. SLAM questions
+
+1. What is loop closure? What methods are common? Which did you use, and what was novel?
+2. Explain Gauss–Newton and LM.
+3. Are you familiar with Ceres? Explain it.
+4. Describe the (extended) Kalman filter and particle filter. What problems did you encounter using Kalman filtering?
+5. Have you used sensors beyond vision, such as GPS or LiDAR?
+6. What are tightly and loosely coupled systems? What are their pros and cons?
+7. What differs between indoor SLAM and autonomous-driving SLAM?
+8. What methods construct map points?
+9. Given matched 2D features across consecutive frames with possible bad matches, how would you construct 3D points?
+10. What metric does RANSAC use to select its best model?
+11. What robust-estimation methods exist besides RANSAC?
+12. What robust kernels are available?
+13. How are 3D map points stored and represented?
+14. In bundle adjustment with $m$ cameras and $n$ points, why can camera poses approach ground truth much faster than map points during simulation?
+15. How does $\\lambda$ change in LM?
+16. How can 3D poses be represented?
+17. What is the relationship between Lie groups and Lie algebras?
+18. Derive $\\frac{\\partial R_1R_2}{\\partial R_1}$.
+19. Given an $H$-by-$W$ image or matrix, should elements be visited by row or column? How does this relate to cache?
+20. Write the monocular-camera projection and distortion models.
+21. Describe a SLAM algorithm you know—LiDAR or visual—and its advantages and limitations.
+22. Read Maplab and design a map-update workflow for an indoor service robot.
+23. Write code to deskew LiDAR data from a platform rotating at constant speed.
+24. Given two matched 3D point sets, calculate the relative pose transformation—known-correspondence ICP—and write code.
+25. Why does ORB-SLAM initialization calculate both homography $H$ and fundamental matrix $F$?
+26. Explain the Dog-Leg algorithm.
+27. What are marginalization, the First-Estimate Jacobian, consistency, and observability?
+28. What are the advantages and limitations of VINS-Mono?
+29. What is the essential difference, contribution, or novelty of your work?
+30. What are the essential and fundamental matrices?
+31. Given continuous pose-known frames, how would you measure lane-line coordinates in the world frame?
+32. How would you accurately localize with noisy GPS?
+33. How would you calibrate IMU–camera extrinsics?
+34. Given GPS and inertial-navigation errors, how would you obtain a centimeter-level map?
+35. What tricks are useful when calculating $H$ and $F$? This is really asking about normalization.
+36. Extract planes from a point cloud.
+37. Given an image and the camera-to-ground relationship, compute a bird's-eye view.
+38. Write the formula for bilinear interpolation.
+39. What differs between RGB-D SLAM and RGB SLAM?
+40. Design a localization system for a delivery robot travelling 3 km from a supermarket to a residential area: include sensors, algorithm flow, and pseudocode.
+41. What is ORB? How is its rotation invariance achieved, and how is BRIEF extracted?
+42. Write the formula and workflow for image undistortion.
+43. How are features extracted and distributed uniformly in ORB-SLAM?
+
+### 2. Algorithms, data structures, and C++
+
+1. What structure is the ORB-SLAM covisibility graph, and how is it stored?
+2. Write a quadtree.
+3. Traverse a binary tree without recursion.
+4. Find the largest connected component.
+5. How can multithreading be implemented?
+6. Describe std::vector and how it grows dynamically or shrinks capacity.
+7. Is Eigen row-major or column-major?
+8. What is the difference between unordered and ordered containers?
+9. How is Mat destructed?
+10. Explain smart pointers: shared_ptr and unique_ptr.
+11. What is a virtual function?
+12. How can ordinary pointers enforce unique ownership of a memory block?
+13. What is C++ RTTI?
+14. How does C++ implement polymorphism?
+15. When does a vector iterator become invalid?
+16. Reconstruct a binary tree.
+17. Write a CMakeLists.txt and gcc command.
+18. Given a graph and pairs of nodes, find a path between each pair.
+19. Implement a sparse-matrix data structure and sparse-matrix addition.
+20. In a checkerboard with a light at every corner, pressing a button toggles four neighboring lights. Given a random initial state, how can all lights be turned off?
+21. Implement binary search.
+22. Sort an array and discuss sorting algorithms.
+23. Given two 2D line segments, determine whether they intersect.
+24. Implement quicksort and reverse a linked list.
+25. Given two ascending sorted arrays of sizes $n$ and $m$, find the $k$th smallest number.
+
+## Preparation
+
+Many experienced practitioners already provide strong preparation advice and resources [1–6]. **Foundations matter more in today's job market. If possible, implement core SLAM algorithms yourself, including PnP, ICP, and BA, and practice basic algorithm problems.**
+
+**I wish everyone the best in finding an ideal role.**
+
+## References
+
+1. [SLAM job-hunting handbook](https://zhuanlan.zhihu.com/p/28565563)
+2. [SLAM and 3D-vision written-test and interview questions](https://zhuanlan.zhihu.com/p/63755692)
+3. [SLAM and 3D-vision job-hunting experience](https://zhuanlan.zhihu.com/p/56617825)
+4. [SLAM summer-internship job-hunting notes](https://zhuanlan.zhihu.com/p/67818202)
+5. [CS PhD SLAM / autonomous-driving job-hunting summary](https://zhuanlan.zhihu.com/p/35348586)
+6. [Common SLAM interview questions, Part 1](https://zhuanlan.zhihu.com/p/46694678)

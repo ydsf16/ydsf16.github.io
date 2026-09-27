@@ -1,0 +1,288 @@
+---
+type: note
+title: "[ORB-SLAM2] Monocular Initialization"
+lang: en
+date: 2019-04-07
+updated: 2024-05-18
+status: "published"
+featured: false
+priority: 24
+tags: [SLAM, VIO, Sensor Fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/61614421
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> ORB-SLAM proposes an automatic initialization procedure that selects Homography or Fundamental models according to the scene and delays initialization when quality is inadequate. This is a working note on its details.
+
+## 1. Initialization flow
+
+### Step 0. Select a reference frame and extract ORB features
+
+The reference frame needs more than 100 extracted ORB features.
+
+### Step 1. Match current-frame and reference-frame ORB features
+
+1. The current frame also needs more than 100 features; otherwise return to Step 0.
+2. Use the DBoW2 bag of words to accelerate matching.
+3. If fewer than 100 matches are found, return to Step 0.
+4. Otherwise initialize.
+
+### Step 2. Estimate Homography and Fundamental models concurrently
+
+For Homography,
+
+$$
+\mathbf x_c=\mathbf H_{cr}\mathbf x_r.
+\tag{1}
+$$
+
+RANSAC uses four correspondences per hypothesis.
+
+For Fundamental matrix,
+
+$$
+\mathbf x_c^{\mathsf T}\mathbf F\mathbf x_r=0.
+\tag{2}
+$$
+
+RANSAC uses eight correspondences per hypothesis.
+
+The RANSAC iteration count is fixed. In every iteration, both models receive a score:
+
+$$
+\begin{aligned}
+S_M&=\sum_i\left[
+\rho_M(d_{cr}^2(\mathbf x_c^i,\mathbf x_r^i,M))+
+\rho_M(d_{rc}^2(\mathbf x_c^i,\mathbf x_r^i,M))
+\right],\\
+\rho_M(d^2)&=
+\begin{cases}
+\Gamma-d^2,&d^2<T_M,\\
+0,&d^2\ge T_M.
+\end{cases}
+\end{aligned}
+\tag{3}
+$$
+
+$M$ is $\mathbf H$ or $\mathbf F$. $T_M$ comes from a 95% chi-squared test: $T_H=5.99$ for two degrees of freedom and $T_F=3.84$ for one degree of freedom, assuming one-pixel standard deviation. The original ORB-SLAM implementation sets $\Gamma=T_H$.
+
+After all iterations, retain the highest-scoring $\mathbf H$ and $\mathbf F$.
+
+### Step 3. Select Homography or Fundamental
+
+$$
+R_H=\frac{S_H}{S_H+S_F}.
+\tag{4}
+$$
+
+Use Homography if $R_H>0.45$; otherwise use Fundamental.
+
+### Steps 4–5. Recover pose, map points, and run BA
+
+Recover relative pose and 3D map points from the selected model, then run bundle adjustment.
+
+The main technical questions are how to estimate $\mathbf H$ and $\mathbf F$, and how to decompose each into rotation $\mathbf R$ and translation $\mathbf t$.
+
+## 2. Homography matrix
+
+In the first camera frame, a 3D point is $\mathbf P=[X,Y,Z]^{\mathsf T}$. If the points lie on a plane,
+
+$$
+\mathbf n^{\mathsf T}\mathbf P+d=0,
+\qquad
+-\frac{\mathbf n^{\mathsf T}\mathbf P}{d}=1.
+\tag{5--6}
+$$
+
+Projecting $\mathbf P$ into the second frame yields
+
+$$
+\begin{aligned}
+s_2\mathbf p_2
+&=\mathbf K(\mathbf R\mathbf P+\mathbf t)\\
+&=\mathbf K\left(\mathbf R-\frac{\mathbf t\mathbf n^{\mathsf T}}d\right)\mathbf P\\
+&=\mathbf K\left(\mathbf R-\frac{\mathbf t\mathbf n^{\mathsf T}}d\right)
+s_1\mathbf K^{-1}\mathbf p_1.
+\end{aligned}
+$$
+
+Since image points are homogeneous, $\mathbf H$ is defined up to scale:
+
+$$
+\mathbf p_2=s\mathbf H\mathbf p_1,
+\qquad
+\mathbf H=\mathbf K\left(\mathbf R-\frac{\mathbf t\mathbf n^{\mathsf T}}d\right)\mathbf K^{-1}.
+\tag{7--8}
+$$
+
+Expanding the relation gives
+
+$$
+\begin{aligned}
+h_{11}u_1+h_{12}v_1+h_{13}-u_1u_2h_{31}-v_1u_2h_{32}-u_2h_{33}&=0,\\
+h_{21}u_1+h_{22}v_1+h_{23}-u_1v_2h_{31}-v_1v_2h_{32}-v_2h_{33}&=0.
+\end{aligned}
+\tag{9}
+$$
+
+### Solution 1
+
+Set $h_{33}=1$, giving eight unknowns. Each correspondence gives two equations; four correspondences solve $\mathbf H$. With more matches, solve the overdetermined system
+
+$$
+\mathbf M\mathbf x=\mathbf b
+$$
+
+by least squares, for example
+
+$$
+\mathbf x=(\mathbf M^{\mathsf T}\mathbf M)^{-1}\mathbf M^{\mathsf T}\mathbf b
+\quad\text{or}\quad
+\mathbf x=\mathbf R^{-1}\mathbf Q^{\mathsf T}\mathbf b
+$$
+
+from QR decomposition.
+
+### Solution 2
+
+Keep all nine parameters and solve
+
+$$
+\mathbf M\mathbf x=0.
+$$
+
+The solution is $\mathbf x=\eta\boldsymbol\xi$, another up-to-scale form. $\boldsymbol\xi$ is the right singular vector associated with the smallest singular value of $\mathbf M$, or the eigenvector of $\mathbf M^{\mathsf T}\mathbf M$ with its smallest eigenvalue. ORB-SLAM uses this form and estimates Homography from eight matches during RANSAC to remain consistent with Fundamental estimation.
+
+ORB-SLAM also normalizes 2D features to zero mean and unit variance before Homography computation, improving numerical conditioning.
+
+## 3. Fundamental matrix
+
+For the same 3D point observed by two cameras,
+
+$$
+s_1\mathbf p_1=\mathbf K\mathbf P,
+\qquad
+s_2\mathbf p_2=\mathbf K(\mathbf R\mathbf P+\mathbf t).
+\tag{11}
+$$
+
+Define normalized coordinates $\mathbf x_i=\mathbf K^{-1}\mathbf p_i$. Then
+
+$$
+s_2\mathbf x_2=s_1\mathbf R\mathbf x_1+\mathbf t.
+\tag{12}
+$$
+
+Crossing with $\mathbf t$ gives the epipolar constraint
+
+$$
+\mathbf x_2^{\mathsf T}
+\underbrace{[\mathbf t]_\times\mathbf R}_{\mathbf E}
+\mathbf x_1=0,
+\tag{13}
+$$
+
+where $\mathbf E$ is the essential matrix. Reintroducing pixel coordinates gives
+
+$$
+\mathbf p_2^{\mathsf T}
+\underbrace{\mathbf K^{-\mathsf T}[\mathbf t]_\times\mathbf R\mathbf K^{-1}}_{
+\mathbf F=\mathbf K^{-\mathsf T}\mathbf E\mathbf K^{-1}}
+\mathbf p_1=0.
+\tag{14}
+$$
+
+$\mathbf F$ is up to scale and hence has eight degrees of freedom. One correspondence contributes one equation, so eight pairs solve it. Expanding Equation (14) is linear in the nine elements of $\mathbf F$; solve $\mathbf M\mathbf x=0$ with the same SVD approach as Homography.
+
+## 4. Scoring models
+
+For Homography, use squared Mahalanobis distance between corresponding points:
+
+$$
+\mathbf x_2'=\mathbf H\mathbf x_1,
+\qquad
+d^2=(\mathbf x_2-\mathbf x_2')^{\mathsf T}
+\boldsymbol\Sigma^{-1}
+(\mathbf x_2-\mathbf x_2').
+$$
+
+This follows a two-degree-of-freedom chi-squared distribution, so Equation (3) uses $\Gamma=T_H=5.99$.
+
+For Fundamental matrix, use squared point-to-epipolar-line distance. The line in camera 2 is
+
+$$
+\mathbf x_2^{\mathsf T}\underbrace{\mathbf F\mathbf x_1}_{\mathbf n}=0,
+$$
+
+and the squared distance is
+
+$$
+d^2=
+\frac{(\mathbf x_2^{\mathsf T}\mathbf F\mathbf x_1)^2}
+{(\mathbf F\mathbf x_1)_1^2+(\mathbf F\mathbf x_1)_2^2}.
+$$
+
+Under unit-pixel Gaussian noise it follows one-degree-of-freedom chi-squared, hence $T_F=3.84$. $T_M$ separates inliers from outliers.
+
+## 5. Decompose Fundamental matrix into rotation and translation
+
+Given $\mathbf F$,
+
+$$
+\mathbf E=\mathbf K^{\mathsf T}\mathbf F\mathbf K.
+$$
+
+The essential matrix is
+
+$$
+\mathbf E=s[\mathbf t]_\times\mathbf R,
+$$
+
+and has five degrees of freedom. Let
+
+$$
+\mathbf W=
+\begin{bmatrix}0&-1&0\\1&0&0\\0&0&1\end{bmatrix},
+\qquad
+\mathbf E=\mathbf U\boldsymbol\Sigma\mathbf V^{\mathsf T}.
+$$
+
+The four candidates are
+
+$$
+\begin{aligned}
+\mathbf R&=\mathbf U\mathbf W\mathbf V^{\mathsf T},
+&\mathbf t&=\phantom{-}\mathbf U[0,0,1]^{\mathsf T},\\
+\mathbf R&=\mathbf U\mathbf W\mathbf V^{\mathsf T},
+&\mathbf t&=-\mathbf U[0,0,1]^{\mathsf T},\\
+\mathbf R&=\mathbf U\mathbf W^{\mathsf T}\mathbf V^{\mathsf T},
+&\mathbf t&=\phantom{-}\mathbf U[0,0,1]^{\mathsf T},\\
+\mathbf R&=\mathbf U\mathbf W^{\mathsf T}\mathbf V^{\mathsf T},
+&\mathbf t&=-\mathbf U[0,0,1]^{\mathsf T}.
+\end{aligned}
+$$
+
+Choose by triangulation: points must lie in front of both cameras, have low reprojection error, sufficient parallax, and yield a clearly unique best candidate. If multiple candidates remain equally good, reject this initialization attempt.
+
+## 6. Recover pose from Homography
+
+ORB-SLAM produces eight Homography pose candidates, then selects one using triangulated-point count and parallax. It accepts only when:
+
+1. the best count is more than $0.7$ times the runner-up count;
+2. best parallax exceeds the minimum;
+3. the best count exceeds the configured minimum;
+4. the best count exceeds $0.9$ times the match count.
+
+## Related reading
+
+- [SLAM trajectory ground-truth acquisition](/en/notes/zhihu-60589790-slam/)
+- [EPnP](/en/notes/zhihu-59070440-pnp-pnp-epnp/)
+- [PnP DLT](/en/notes/zhihu-58648937-pnp-pnp-dlt/)
+- [ORB-SLAM2 chi-squared outlier rejection](/en/notes/zhihu-58556978-orb-slam2-chi-squared-outlier/)
+- [Particle filter localization](/en/notes/zhihu-43523632-pr-2-pf/)

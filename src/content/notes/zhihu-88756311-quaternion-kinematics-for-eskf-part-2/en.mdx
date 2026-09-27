@@ -1,0 +1,289 @@
+---
+type: note
+title: "Quaternion Kinematics for ESKF: Part 2"
+lang: en
+date: 2019-10-30
+updated: 2019-11-27
+status: "published"
+featured: false
+priority: 12
+tags: [SLAM, VIO, sensor fusion]
+categories: [Spatial AI, Technical Notes]
+draft: false
+source:
+  platform: Zhihu
+  type: article
+  url: https://zhuanlan.zhihu.com/p/88756311
+relatedProducts: []
+relatedProjects: [robotics-experiments]
+---
+
+> I have been reading Joan Solà's *Quaternion Kinematics for the Error-State Kalman Filter* and summarize some of its key points here.
+
+## 1. Error-state kinematics for IMU-driven systems
+
+Why use an error state?
+
+- The orientation error state is minimal, avoiding over-parameterization and singular covariance matrices caused by constraints.
+- The error-state system operates close to its nominal state, far from parameter singularities and gimbal lock, so linearization remains valid.
+- The error state is small, so second-order products are negligible. Jacobians are consequently easy and fast to compute.
+- Error dynamics are slow because large signal dynamics are integrated into the nominal state. Kalman-filter corrections can run at a lower rate than prediction.
+
+An error-state filter has true, nominal, and error-state quantities:
+
+$$
+\text{true}=\text{nominal}\oplus\text{error state}.
+$$
+
+The nominal state represents the large signal without noise; all noise is handled in the error state, which is used as the filter state.
+
+![Common ESKF variables.](/media/notes/zhihu-88756311-quaternion-kinematics-for-eskf-part-2/image-01.jpg)
+
+The rotation error state is local: $\delta\theta$ is on the right of $R$ and is referenced in the local frame. Gyroscope measurements are also local-frame quantities, making this representation convenient for IMU measurements.
+
+## 2. System kinematics in continuous time
+
+### 2.1 True-state kinematics
+
+$$
+\begin{aligned}
+\dot{\mathbf p}_t&=\mathbf v_t,&
+\dot{\mathbf v}_t&=\mathbf a_t,&
+\dot{\mathbf q}_t&=\frac12\mathbf q_t\otimes\boldsymbol\omega_t,\\
+\dot{\mathbf a}_{bt}&=\mathbf a_w,&
+\dot{\boldsymbol\omega}_{bt}&=\boldsymbol\omega_w,&
+\dot{\mathbf g}_t&=0.
+\end{aligned}
+$$
+
+$\mathbf a_{bt}$ is accelerometer bias and $\boldsymbol\omega_{bt}$ is gyroscope bias. IMU measurements are local-frame quantities affected by bias and noise:
+
+$$
+\mathbf a_m=\mathbf R_t^\mathsf T(\mathbf a_t-\mathbf g_t)+\mathbf a_{bt}+\mathbf a_n,
+\qquad
+\boldsymbol\omega_m=\boldsymbol\omega_t+\boldsymbol\omega_{bt}+\boldsymbol\omega_n.
+$$
+
+Substituting these measurements into true-state kinematics gives
+
+$$
+\begin{aligned}
+\dot{\mathbf p}_t&=\mathbf v_t,\\
+\dot{\mathbf v}_t&=\mathbf R_t(\mathbf a_m-\mathbf a_{bt}-\mathbf a_n),\\
+\dot{\mathbf q}_t&=\frac12\mathbf q_t\otimes(\boldsymbol\omega_m-\boldsymbol\omega_{bt}-\boldsymbol\omega_n),\\
+\dot{\mathbf a}_{bt}&=\mathbf a_w,\qquad
+\dot{\boldsymbol\omega}_{bt}=\boldsymbol\omega_w,\qquad
+\dot{\mathbf g}_t=0.
+\end{aligned}
+$$
+
+These are true-state kinematics with real IMU measurements. The final objective is the error-state kinematics.
+
+### 2.2 Nominal-state kinematics
+
+> Nominal-state kinematics correspond to the modeled system without noise or perturbations.
+
+$$
+\begin{aligned}
+\dot{\mathbf p}&=\mathbf v,\\
+\dot{\mathbf v}&=\mathbf R(\mathbf a_m-\mathbf a_b),\\
+\dot{\mathbf q}&=\frac12\mathbf q\otimes(\boldsymbol\omega_m-\boldsymbol\omega_b),\\
+\dot{\mathbf a}_b&=0,\qquad
+\dot{\boldsymbol\omega}_b=0,\qquad
+\dot{\mathbf g}=0.
+\end{aligned}
+$$
+
+### 2.3 Error-state kinematics
+
+Subtract nominal-state kinematics from true-state kinematics:
+
+$$
+\begin{aligned}
+\dot{\delta\mathbf p}&=\delta\mathbf v,\\
+\dot{\delta\mathbf v}&=-\mathbf R[\mathbf a_m-\mathbf a_b]_\times\delta\boldsymbol\theta-\mathbf R\delta\mathbf a_b+\delta\mathbf g-\mathbf R\mathbf a_n,\\
+\dot{\delta\boldsymbol\theta}&=-[\boldsymbol\omega_m-\boldsymbol\omega_b]_\times\delta\boldsymbol\theta-\delta\boldsymbol\omega_b-\boldsymbol\omega_n,\\
+\dot{\delta\mathbf a}_b&=\mathbf a_w,\qquad
+\dot{\delta\boldsymbol\omega}_b=\boldsymbol\omega_w,\qquad
+\dot{\delta\mathbf g}=0.
+\end{aligned}
+$$
+
+The derivation writes true state as nominal plus error and moves error terms to the left side. For velocity,
+
+$$
+\begin{aligned}
+\dot{(\mathbf v+\delta\mathbf v)}
+&=(\mathbf R\delta\mathbf R)(\mathbf a_m-\mathbf a_b-\delta\mathbf a_b-\mathbf a_n)+\mathbf g+\delta\mathbf g,\\
+\dot{\mathbf v}+\dot{\delta\mathbf v}
+&=\mathbf R(\mathbf I+\delta\boldsymbol\theta_\times)
+(\mathbf a_m-\mathbf a_b-\delta\mathbf a_b-\mathbf a_n)+\mathbf g+\delta\mathbf g.
+\end{aligned}
+$$
+
+Discarding second-order small terms gives
+
+$$
+\dot{\delta\mathbf v}
+=-\mathbf R\delta\mathbf a_b
+-\mathbf R(\mathbf a_m-\mathbf a_b)\delta\boldsymbol\theta_\times
++\delta\mathbf g-\mathbf R\mathbf a_n.
+$$
+
+For attitude, substitute the right-local error quaternion into the nominal and true quaternion equations:
+
+$$
+\begin{aligned}
+\dot{(\mathbf q\otimes\delta\mathbf q)}
+&=\frac12(\mathbf q\otimes\delta\mathbf q)\otimes
+(\boldsymbol\omega_m-\boldsymbol\omega_b-\delta\boldsymbol\omega_b-\boldsymbol\omega_n),\\
+\dot{\mathbf q}\otimes\delta\mathbf q+\mathbf q\otimes\dot{\delta\mathbf q}
+&=\frac12(\mathbf q\otimes\delta\mathbf q)\otimes
+(\boldsymbol\omega_m-\boldsymbol\omega_b-\delta\boldsymbol\omega_b-\boldsymbol\omega_n).
+\end{aligned}
+$$
+
+After substituting the nominal quaternion derivative and retaining first-order terms,
+
+$$
+\dot{\delta\boldsymbol\theta}
+=-(\boldsymbol\omega_m-\boldsymbol\omega_b)\times\delta\boldsymbol\theta
+-\delta\boldsymbol\omega_b-\boldsymbol\omega_n.
+$$
+
+## 3. System kinematics in discrete time
+
+Integration is needed for the nominal state and for deterministic and stochastic error-state components.
+
+### 3.1 Nominal-state kinematics
+
+$$
+\begin{aligned}
+\mathbf p&\leftarrow\mathbf p+\mathbf v\Delta t+
+\frac12\bigl(\mathbf R(\mathbf a_m-\mathbf a_b)+\mathbf g\bigr)\Delta t^2,\\
+\mathbf v&\leftarrow\mathbf v+
+\bigl(\mathbf R(\mathbf a_m-\mathbf a_b)+\mathbf g\bigr)\Delta t,\\
+\mathbf q&\leftarrow\mathbf q\otimes
+\mathbf q\bigl((\boldsymbol\omega_m-\boldsymbol\omega_b)\Delta t\bigr),\\
+\mathbf a_b&\leftarrow\mathbf a_b,\qquad
+\boldsymbol\omega_b\leftarrow\boldsymbol\omega_b,\qquad
+\mathbf g\leftarrow\mathbf g.
+\end{aligned}
+$$
+
+### 3.2 Error-state kinematics
+
+$$
+\begin{aligned}
+\delta\mathbf p&\leftarrow\delta\mathbf p+\delta\mathbf v\Delta t,\\
+\delta\mathbf v&\leftarrow\delta\mathbf v+
+\bigl(-\mathbf R[\mathbf a_m-\mathbf a_b]_\times\delta\boldsymbol\theta
+-\mathbf R\delta\mathbf a_b+\delta\mathbf g\bigr)\Delta t+\mathbf v_i,\\
+\delta\boldsymbol\theta&\leftarrow
+\mathbf R^\mathsf T\!\bigl((\boldsymbol\omega_m-\boldsymbol\omega_b)\Delta t\bigr)
+\delta\boldsymbol\theta-\delta\boldsymbol\omega_b\Delta t+\boldsymbol\theta_i,\\
+\delta\mathbf a_b&\leftarrow\delta\mathbf a_b+\mathbf a_i,\qquad
+\delta\boldsymbol\omega_b\leftarrow\delta\boldsymbol\omega_b+\boldsymbol\omega_i,\qquad
+\delta\mathbf g\leftarrow\delta\mathbf g.
+\end{aligned}
+$$
+
+The noise-term covariances are
+
+$$
+\mathbf V_i=\sigma_{a_n}^2\Delta t^2\mathbf I,\quad
+\boldsymbol\Theta_i=\sigma_{\omega_n}^2\Delta t^2\mathbf I,\quad
+\mathbf A_i=\sigma_{a_w}^2\Delta t\mathbf I,\quad
+\boldsymbol\Omega_i=\sigma_{\omega_w}^2\Delta t\mathbf I.
+$$
+
+### 3.3 Error-state Jacobian and perturbation matrices
+
+The ESKF prediction covariance propagation is
+
+$$
+\mathbf P\leftarrow\mathbf F_x\mathbf P\mathbf F_x^\mathsf T+
+\mathbf F_i\mathbf Q_i\mathbf F_i^\mathsf T.
+$$
+
+Here
+
+$$
+\mathbf F_x=
+\begin{bmatrix}
+\mathbf I&\mathbf I\Delta t&0&0&0&0\\
+0&\mathbf I&-\mathbf R[\mathbf a_m-\mathbf a_b]_\times\Delta t&-\mathbf R\Delta t&0&\mathbf I\Delta t\\
+0&0&\mathbf R^\mathsf T((\boldsymbol\omega_m-\boldsymbol\omega_b)\Delta t)&0&-\mathbf I\Delta t&0\\
+0&0&0&\mathbf I&0&0\\
+0&0&0&0&\mathbf I&0\\
+0&0&0&0&0&\mathbf I
+\end{bmatrix},
+$$
+
+$$
+\mathbf F_i=
+\begin{bmatrix}
+0&0&0&0\\
+\mathbf I&0&0&0\\
+0&\mathbf I&0&0\\
+0&0&\mathbf I&0\\
+0&0&0&\mathbf I\\
+0&0&0&0
+\end{bmatrix},
+\qquad
+\mathbf Q_i=
+\begin{bmatrix}
+\mathbf V_i&0&0&0\\
+0&\boldsymbol\Theta_i&0&0\\
+0&0&\mathbf A_i&0\\
+0&0&0&\boldsymbol\Omega_i
+\end{bmatrix}.
+$$
+
+## 4. Fusing IMU with complementary sensory data
+
+> IMU information makes ESKF predictions. Complementary observations correct the filter and reveal IMU bias errors. Correction has three steps: observe the error state, inject observed errors into the nominal state, and reset the error state.
+
+### 4.1 Observing the error state through filter correction
+
+The observation equation is
+
+$$
+y=h(\mathbf x_t)+v,
+\qquad
+v\sim\mathcal N(0,\mathbf V).
+$$
+
+The correction equations are
+
+$$
+\begin{aligned}
+\mathbf K&\leftarrow\mathbf P\mathbf H^\mathsf T
+(\mathbf H\mathbf P\mathbf H^\mathsf T+\mathbf V)^{-1},\\
+\widehat{\delta\mathbf x}&\leftarrow\mathbf K\bigl(y-h(\hat{\mathbf x}_t)\bigr),\\
+\mathbf P&\leftarrow(\mathbf I-\mathbf K\mathbf H)\mathbf P,
+\end{aligned}
+$$
+
+or, in Joseph form,
+
+$$
+\mathbf P\leftarrow(\mathbf I-\mathbf K\mathbf H)\mathbf P
+(\mathbf I-\mathbf K\mathbf H)^\mathsf T+\mathbf K\mathbf V\mathbf K^\mathsf T.
+$$
+
+The Jacobian is $\mathbf H=\frac{\partial h}{\partial\delta\mathbf x}$ and can be obtained by the chain rule:
+
+$$
+\mathbf H=\frac{\partial h}{\partial\delta\mathbf x}
+=\frac{\partial h}{\partial\mathbf x}
+\frac{\partial\mathbf x}{\partial\delta\mathbf x}.
+$$
+
+### 4.2 Injecting observed error into the nominal state
+
+Inject the estimated error into the nominal state, paying particular attention to the rotation-plus operation.
+
+### 4.3 ESKF reset
+
+Reset the error state after injection. The rotation reset is close to identity and is often safely approximated.
