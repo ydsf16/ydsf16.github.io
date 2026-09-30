@@ -18,7 +18,7 @@ npm run check
 npm run build
 ```
 
-Temporary canonical site configuration is `https://tinygrape.com.cn` in `astro.config.mjs`. DNS, Cloudflare Pages authorization, custom-domain setup, and GitHub Pages decisions remain manual review items.
+Temporary canonical site configuration is `https://tinygrapelab.com` in `astro.config.mjs`. DNS, custom-domain setup, and GitHub Pages decisions remain manual review items.
 
 ## Add content
 

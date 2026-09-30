@@ -8,7 +8,7 @@ const { locale = 'en', title = 'TinyGrape Lab', description: suppliedDescription
 const normalizedLocale = locale as Locale;
 const copy = siteCopy[normalizedLocale];
 const description = suppliedDescription || copy.heroBody;
-const siteUrl = Astro.site?.toString().replace(/\/$/, '') || 'https://tinygrape.com.cn';
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') || 'https://tinygrapelab.com';
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const imageUrl = new URL(image, siteUrl).toString();
 const pageTitle = `${title} · TinyGrape Lab`;

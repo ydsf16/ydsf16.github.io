@@ -5,7 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 
 export default defineConfig({
-  site: 'https://tinygrape.com.cn',
+  site: 'https://tinygrapelab.com',
   integrations: [mdx(), sitemap()],
   markdown: { shikiConfig: { theme: 'github-light' }, remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }
 });

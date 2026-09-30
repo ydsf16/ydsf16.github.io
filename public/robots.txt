@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tinygrape.com.cn/sitemap-index.xml
+Sitemap: https://tinygrapelab.com/sitemap-index.xml
