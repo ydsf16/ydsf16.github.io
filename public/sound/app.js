@@ -429,9 +429,9 @@ window.addEventListener('blur', () => { gas = brake = 0; manualReleaseAt = perfo
 
 function renderTelemetry(now, speed, accel, fresh) {
   $('telemetry-brief').textContent = manual ? '踏板 → 声音' : fresh ? 'GPS → 声音' : gpsState;
-  $('telemetry-gps').textContent = gpsState + (Number.isFinite(gpsAccuracy) ? ` · 精度约 ${Math.round(gpsAccuracy)} m` : '');
+  $('telemetry-gps').textContent = gpsState + (Number.isFinite(gpsAccuracy) ? ` · 精度约 ${Math.round(gpsAccuracy)} m` : '') + (window.isSecureContext === false ? ' · 非安全页面' : '');
   $('location-help').hidden = gpsState !== '定位未授权' && gpsState !== '定位超时' && gpsState !== '定位暂不可用';
-  $('location-error').textContent = gpsErrorMessage ? `浏览器提示：${gpsErrorMessage}` : '请检查车机浏览器的网站定位权限。';
+  $('location-error').textContent = `${gpsErrorMessage ? `浏览器提示：${gpsErrorMessage} · ` : ''}当前地址：${location.protocol}//${location.host} · 安全上下文：${window.isSecureContext === true ? '是' : window.isSecureContext === false ? '否' : '浏览器未提供'}`;
   $('telemetry-speed').textContent = fresh ? `${sensorSpeed.toFixed(1)} km/h · ${gpsSpeedMethod}` : sensorSpeed === null ? '等待速度数据' : `信号中断 · ${Math.round((now - lastSensorAt) / 1000)} 秒前`;
   $('telemetry-motion').textContent = lastMotionSampleAt && now - lastMotionSampleAt > 3000 ? '动作信号中断' : lastMotionSampleAt ? motionAxis && now - lastMotionAt < 800 ? '已接入加速度' : '已连接，待校准' : motionState;
   $('motion-help').hidden = motionState !== '未授权' && motionState !== '权限不可用';
