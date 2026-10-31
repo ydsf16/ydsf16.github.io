@@ -8,7 +8,7 @@
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="./style.css">
-  <script src="./app.js?v=5" type="module"></script>
+  <script src="./app.js?v=6" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -41,8 +41,10 @@
       </section>
       <section class="controls" aria-label="声音与试音控制">
         <label class="volume"><span>音量</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="声浪音量"><output id="volume-value">55%</output></label>
-        <button type="button" id="manual-toggle" class="manual-toggle" aria-pressed="false">手动试音</button>
-        <div class="manual-panel" id="manual-panel" hidden><p>停车时试音 · 按住油门或刹车</p><div class="pedals"><button id="brake" class="pedal" type="button">刹车</button><button id="gas" class="pedal gas" type="button">按住油门</button></div></div>
+        <div class="pedal-deck"><div class="pedal-copy"><strong>模拟踏板</strong><span id="pedal-hint">按住即响应 · 松开后回到车速联动</span></div><div class="pedals">
+          <button id="brake" class="pedal brake" type="button" aria-label="按住刹车"><span id="brake-label">刹车</span></button>
+          <button id="gas" class="pedal gas" type="button" aria-label="按住油门"><span id="gas-label">油门</span></button>
+        </div></div>
       </section>
       <section class="garage" aria-label="选择载具"><div class="garage-heading"><strong>选择载具</strong><span>左右滑动</span></div><div class="vehicle-list">
         <button type="button" class="vehicle-card" data-kind="car" aria-pressed="true"><span class="card-kind">汽车 / V8</span><strong>运动跑车</strong><small>仪表 · 换挡 · 排气</small></button>

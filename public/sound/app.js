@@ -17,7 +17,7 @@ try { savedVolume = localStorage.getItem('tg-sound-volume'); } catch { /* Privat
 let volume = clamp(savedVolume === null || savedVolume === undefined ? 55 : Number(savedVolume), 0, 100);
 let gpsWatch = null, gpsFix = null, sensorSpeed = null, sensorAccel = 0, lastSensorAt = 0;
 let motionAxis = null, motionSample = null, motionAcceleration = null, lastMotionAt = 0;
-let manual = false, gas = 0, brake = 0, manualSpeed = 0;
+let manual = false, gas = 0, brake = 0, manualSpeed = 0, manualReleaseAt = 0;
 let virtualRpm = profiles[kind].idle, virtualLoad = 0, gear = 1, shiftUntil = 0;
 let lastFrame = performance.now(), lastMessage = 0, lastDisplay = 0;
 
@@ -64,6 +64,10 @@ function selectVehicle(next) {
   if (node) node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
   if (fallback) fallback.setKind(kind);
   updateAudioStatus();
+  $('gas-label').textContent = kind === 'jet' ? '推力' : '油门';
+  $('brake-label').textContent = kind === 'jet' ? '减速' : '刹车';
+  $('gas').setAttribute('aria-label', '按住' + (kind === 'jet' ? '推力' : '油门'));
+  $('brake').setAttribute('aria-label', '按住' + (kind === 'jet' ? '减速' : '刹车'));
 }
 document.querySelectorAll('.vehicle-card').forEach(button => button.addEventListener('click', () => {
   ensureAudio(true);
@@ -321,32 +325,35 @@ function startLocation() {
 }
 startLocation();
 
-$('manual-toggle').addEventListener('click', () => {
-  manual = !manual;
-  $('manual-toggle').setAttribute('aria-pressed', String(manual));
-  $('manual-panel').hidden = !manual;
-  if (manual) { manualSpeed = sensorSpeed ?? 0; $('source').textContent = '手动试音'; }
-  else { gas = brake = 0; }
-});
 function bindPedal(id, setter) {
   const element = $(id);
   element.addEventListener('pointerdown', event => {
-    event.preventDefault(); element.setPointerCapture(event.pointerId); setter(1); element.classList.add('held');
+    event.preventDefault();
+    if (!manual) manualSpeed = sensorSpeed !== null && performance.now() - lastSensorAt < 5500 ? sensorSpeed : 0;
+    manual = true;
+    element.setPointerCapture(event.pointerId);
+    setter(1);
+    element.classList.add('held');
   });
-  const release = () => { setter(0); element.classList.remove('held'); };
+  const release = () => {
+    setter(0);
+    element.classList.remove('held');
+    if (!gas && !brake) manualReleaseAt = performance.now();
+  };
   element.addEventListener('pointerup', release);
   element.addEventListener('pointercancel', release);
   element.addEventListener('lostpointercapture', release);
 }
 bindPedal('gas', value => gas = value);
 bindPedal('brake', value => brake = value);
-window.addEventListener('blur', () => { gas = brake = 0; });
+window.addEventListener('blur', () => { gas = brake = 0; manualReleaseAt = performance.now(); });
 
 function frame(now) {
   const dt = clamp((now - lastFrame) / 1000, 0, .08);
   lastFrame = now;
   const p = profiles[kind];
   const fresh = sensorSpeed !== null && now - lastSensorAt < 5500;
+  if (manual && fresh && !gas && !brake && now - manualReleaseAt > 2500) manual = false;
   let speed = fresh ? sensorSpeed : 0;
   let accel = fresh ? sensorAccel : 0;
   if (fresh && motionAxis && now - lastMotionAt < 800) accel = clamp(.85 * motionAcceleration + .15 * sensorAccel, -7, 7);
@@ -402,7 +409,8 @@ function frame(now) {
     $('jet-thrust').textContent = Math.round(virtualLoad * 100) + '%';
     $('jet-speed').textContent = Math.round(speed);
     $('jet-load').textContent = '负载 ' + Math.round(virtualLoad * 100) + '%';
-    $('source').textContent = manual ? '手动试音' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
+    $('source').textContent = manual ? '模拟踏板' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
+    $('pedal-hint').textContent = manual ? fresh ? '松开后自动返回车速联动' : '手动模拟中 · 按住踏板' : fresh ? '按住即响应 · 松开后返回车速' : '按住踏板即可试音';
     if (!manual && !fresh && lastSensorAt) status('信号中断', true);
     if (audioReady && context?.state === 'running') updateAudioStatus();
     lastDisplay = now;
