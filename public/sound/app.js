@@ -25,12 +25,23 @@ $('volume').addEventListener('input', () => {
   $('volume-value').textContent = volume + '%';
   try { localStorage.setItem('tg-sound-volume', String(volume)); } catch { /* Audio still works. */ }
   if (master && context) master.gain.setTargetAtTime(volume / 100, context.currentTime, .025);
+  updateAudioStatus();
 });
 function status(text, waiting = false) {
   $('live').classList.toggle('waiting', waiting);
   $('live').querySelector('span').textContent = text;
 }
 function audioStatus(text) { $('audio-status').textContent = text; }
+function configureAudioSession() {
+  // On iOS, the default ambient session can be silenced by the Ring/Silent switch.
+  try {
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+  } catch { /* Older browsers do not expose the Audio Session API. */ }
+}
+function updateAudioStatus() {
+  if (!context) return;
+  audioStatus(context.state === 'running' ? volume === 0 ? '音量为 0' : '声浪实时生成中' : '轻触载具卡片开启声音');
+}
 function selectVehicle(next) {
   if (!profiles[next]) return;
   kind = next;
@@ -73,8 +84,9 @@ function makeFallback(ctx) {
   };
 }
 async function ensureAudio(fromGesture = false) {
+  configureAudioSession();
   if (audioReady) {
-    if (context?.state === 'suspended') context.resume().catch(() => {});
+    if (context?.state === 'suspended') context.resume().then(updateAudioStatus).catch(() => audioStatus('浏览器未允许播放声音'));
     if (fromGesture) requestMotion();
     return;
   }
@@ -82,6 +94,7 @@ async function ensureAudio(fromGesture = false) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) { audioStatus('此浏览器不支持声音合成'); return; }
     context = new Ctx({ latencyHint: 'interactive' });
+    context.onstatechange = updateAudioStatus;
     master = context.createGain();
     master.gain.value = volume / 100;
     const limiter = context.createDynamicsCompressor();
@@ -90,7 +103,7 @@ async function ensureAudio(fromGesture = false) {
     master.connect(limiter).connect(context.destination);
   }
   // resume() and iOS motion permission must both be requested inside the tap.
-  const resume = context.resume().catch(() => {});
+  const resume = context.resume().then(updateAudioStatus).catch(() => audioStatus('浏览器未允许播放声音'));
   if (fromGesture) requestMotion();
   if (audioReady || ensureAudio.loading) return;
   ensureAudio.loading = true;
@@ -100,15 +113,20 @@ async function ensureAudio(fromGesture = false) {
     node = new AudioWorkletNode(context, 'tinygrape-vehicle-sound', { numberOfInputs: 0, outputChannelCount: [1] });
     node.connect(master);
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
+    node.onprocessorerror = () => {
+      node.disconnect();
+      node = null;
+      if (!fallback) fallback = makeFallback(context);
+      fallback.setKind(kind);
+      updateAudioStatus();
+    };
   } catch (err) {
     fallback = makeFallback(context);
     fallback.setKind(kind);
   }
   audioReady = true;
-  audioStatus(context.state === 'running' ? '声浪实时生成中' : '轻触载具卡片开启声音');
-  resume.then(() => {
-    if (context?.state === 'running') audioStatus('声浪实时生成中');
-  });
+  updateAudioStatus();
+  resume.then(updateAudioStatus);
   ensureAudio.loading = false;
 }
 // A permitted browser may start immediately. If autoplay is blocked, any card,
@@ -275,7 +293,7 @@ function frame(now) {
     $('jet-load').textContent = '负载 ' + Math.round(virtualLoad * 100) + '%';
     $('source').textContent = manual ? '手动试音' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
     if (!manual && !fresh && lastSensorAt) status('信号中断', true);
-    if (audioReady && context?.state === 'running' && $('audio-status').textContent !== '声浪实时生成中') audioStatus('声浪实时生成中');
+    if (audioReady && context?.state === 'running') updateAudioStatus();
     lastDisplay = now;
   }
   requestAnimationFrame(frame);
