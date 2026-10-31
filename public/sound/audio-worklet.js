@@ -14,6 +14,7 @@ class VehicleSound extends AudioWorkletProcessor {
     this.pulse = { car: 0, tractor: 0 };
     this.noise = 0;
     this.jetNoise = 0;
+    this.carNoise = 0;
     this.seed = 47531;
     this.port.onmessage = ({ data }) => {
       if (data.kind in this.weights) this.vehicle = data.kind;
@@ -56,10 +57,16 @@ class VehicleSound extends AudioWorkletProcessor {
           this.pulse.car *= .995 - .0015 * this.load;
           const firing = Math.sin(TAU * phase * 8);
           const exhaust = Math.sin(TAU * phase * 16 + .18);
+          const bank = Math.sin(TAU * phase * 24 + .45);
           const intake = Math.sin(TAU * phase * 32 + .34);
+          const edge = Math.sin(TAU * phase * 48 + .12);
           const sub = Math.sin(TAU * phase * 4 + .3);
           const rough = Math.sin(TAU * phase * 2 + .9);
-          signal = .14 * firing + .15 * exhaust + .08 * intake + .06 * sub + .025 * rough + .16 * (this.pulse.car - .38);
+          const grit = this.random();
+          this.carNoise += (grit - this.carNoise) * .07;
+          signal = .13 * firing + .14 * exhaust + .085 * bank + .07 * intake + .04 * edge
+            + .045 * sub + .015 * rough + .075 * (this.pulse.car - .38)
+            + (.035 + .09 * this.load) * (grit - this.carNoise) * (.45 + this.pulse.car * .45);
           signal *= .62 + .62 * this.load;
         } else if (kind === 'tractor') {
           const prev = this.phase.tractor;

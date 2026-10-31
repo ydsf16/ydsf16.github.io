@@ -7,10 +7,10 @@ const profiles = {
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
 if (!profiles[kind]) kind = 'car';
-let context, node, master, fallback, synthGain, carSamples;
+let context, node, master, fallback, synthGain, carSamples, carIdle;
 let carSamplesLoading = false;
 let carSamplesError = false;
-const carLoopRpms = [2977, 4438, 6040, 7252];
+const carLoopRpms = [2977, 4438];
 let audioReady = false;
 let savedVolume;
 try { savedVolume = localStorage.getItem('tg-sound-volume'); } catch { /* Private browsing may disable storage. */ }
@@ -46,7 +46,7 @@ function updateAudioStatus() {
   if (context.state !== 'running') { audioStatus('轻触载具卡片开启声音'); return; }
   if (volume === 0) { audioStatus('音量为 0'); return; }
   if (kind === 'car') {
-    audioStatus(carSamples ? 'V8 真实录音＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
+    audioStatus(carIdle ? 'V8 真实怠速＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
   } else audioStatus('声浪实时生成中');
 }
 function selectVehicle(next) {
@@ -70,6 +70,29 @@ document.querySelectorAll('.vehicle-card').forEach(button => button.addEventList
   selectVehicle(button.dataset.kind);
 }));
 selectVehicle(kind);
+function buildDial(target, max, minor, major, labels) {
+  const group = $(target);
+  const ns = 'http://www.w3.org/2000/svg';
+  for (let value = 0; value <= max; value += minor) {
+    const angle = (-120 + 240 * value / max) * Math.PI / 180;
+    const big = value % major === 0;
+    const line = document.createElementNS(ns, 'line');
+    const radius = big ? 110 : 119;
+    for (const [name, r] of [['x1',radius],['x2',129]]) line.setAttribute(name, 150 + Math.sin(angle) * r);
+    for (const [name, r] of [['y1',radius],['y2',129]]) line.setAttribute(name, 150 - Math.cos(angle) * r);
+    line.setAttribute('class', `dial-tick${big ? '' : ' minor'}${target === 'rpm-ticks' && value >= 6500 ? ' red' : ''}`);
+    group.appendChild(line);
+    if (!big) continue;
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('x', 150 + Math.sin(angle) * 91);
+    text.setAttribute('y', 150 - Math.cos(angle) * 91);
+    text.setAttribute('class', 'dial-number');
+    text.textContent = labels(value);
+    group.appendChild(text);
+  }
+}
+buildDial('rpm-ticks', 8000, 250, 1000, value => value / 1000);
+buildDial('speed-ticks', 240, 10, 40, value => value);
 
 function makeFallback(ctx) {
   const tone = ctx.createOscillator();
@@ -96,11 +119,20 @@ async function loadCarSamples() {
   carSamplesLoading = true;
   updateAudioStatus();
   try {
-    const buffers = await Promise.all(carLoopRpms.map(async (_, i) => {
-      const response = await fetch(`./samples/v8-${i + 1}.wav`);
-      if (!response.ok) throw new Error(`sample ${i + 1}: ${response.status}`);
+    const files = ['v8-idle.wav', ...carLoopRpms.map((_, i) => `v8-${i + 1}.wav`)];
+    const [idleBuffer, ...buffers] = await Promise.all(files.map(async file => {
+      const response = await fetch(`./samples/${file}`);
+      if (!response.ok) throw new Error(`${file}: ${response.status}`);
       return context.decodeAudioData(await response.arrayBuffer());
     }));
+    const idleSource = context.createBufferSource();
+    const idleGain = context.createGain();
+    idleSource.buffer = idleBuffer;
+    idleSource.loop = true;
+    idleGain.gain.value = 0;
+    idleSource.connect(idleGain).connect(master);
+    idleSource.start(0, Math.random() * idleBuffer.duration);
+    carIdle = { source: idleSource, gain: idleGain };
     const lowpass = context.createBiquadFilter();
     lowpass.type = 'lowpass';
     lowpass.frequency.value = 6500;
@@ -126,11 +158,13 @@ async function loadCarSamples() {
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
   const now = context.currentTime;
-  const active = kind === 'car' && carSamples;
+  const active = kind === 'car' && carSamples && carIdle;
   const blend = active ? clamp((rpm - 1450) / 1050, 0, 1) : 0;
   const smooth = blend * blend * (3 - 2 * blend);
-  synthGain.gain.setTargetAtTime(active ? 1 - .76 * smooth : 1, now, .025);
+  synthGain.gain.setTargetAtTime(active ? .32 + .62 * smooth : 1, now, .025);
   if (!carSamples) return;
+  carIdle.source.playbackRate.setTargetAtTime(clamp(rpm / 1205, .6, 1.4), now, .025);
+  carIdle.gain.gain.setTargetAtTime(kind === 'car' ? (1 - smooth) * (.6 + .18 * clamp(load, 0, 1)) : 0, now, .04);
   const weights = carLoopRpms.map(() => 0);
   if (rpm <= carLoopRpms[0]) weights[0] = 1;
   else if (rpm >= carLoopRpms.at(-1)) weights[weights.length - 1] = 1;
@@ -142,7 +176,7 @@ function updateCarSampleMix(rpm, load) {
     weights[i] = Math.cos(cross * Math.PI / 2);
     weights[i + 1] = Math.sin(cross * Math.PI / 2);
   }
-  const loudness = .5 + .65 * clamp(load, 0, 1);
+  const loudness = .09 + .1 * clamp(load, 0, 1);
   carSamples.lowpass.frequency.setTargetAtTime(1800 + 7500 * clamp(load, 0, 1), now, .04);
   carSamples.forEach((loop, i) => {
     loop.source.playbackRate.setTargetAtTime(clamp(rpm / carLoopRpms[i], .25, 1.45), now, .018);
@@ -178,7 +212,7 @@ async function ensureAudio(fromGesture = false) {
   ensureAudio.loading = true;
   try {
     if (!context.audioWorklet) throw new Error('no worklet');
-    await context.audioWorklet.addModule('./audio-worklet.js?v=3');
+    await context.audioWorklet.addModule('./audio-worklet.js?v=5');
     node = new AudioWorkletNode(context, 'tinygrape-vehicle-sound', { numberOfInputs: 0, outputChannelCount: [1] });
     node.connect(synthGain);
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
@@ -359,7 +393,9 @@ function frame(now) {
   if (now - lastDisplay > 100) {
     $('car-speed').textContent = Math.round(speed);
     $('car-rpm').textContent = Math.round(virtualRpm).toLocaleString('en-US');
-    $('car-gear').textContent = 'D' + gear + ' · 虚拟挡位';
+    $('car-gear').textContent = 'D' + gear;
+    $('rpm-needle').style.transform = `rotate(${-120 + 240 * clamp(virtualRpm / 8000, 0, 1)}deg)`;
+    $('speed-needle').style.transform = `rotate(${-120 + 240 * clamp(speed / 240, 0, 1)}deg)`;
     $('car-load').textContent = '负载 ' + Math.round(virtualLoad * 100) + '%';
     $('tractor-rpm').textContent = Math.round(virtualRpm).toLocaleString('en-US');
     $('tractor-speed').textContent = Math.round(speed);

@@ -8,7 +8,7 @@
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="./style.css">
-  <script src="./app.js?v=4" type="module"></script>
+  <script src="./app.js?v=5" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -20,8 +20,14 @@
       <section class="stage" aria-label="当前载具仪表">
         <div class="stage-heading"><div><p class="eyebrow" id="type">V8 · SPORTS CAR</p><h1 id="name">V8 运动跑车</h1></div><span class="source" id="source">等待数据</span></div>
         <div class="scene scene-car" aria-label="跑车仪表盘">
-          <div class="gauges"><div class="gauge speed-gauge"><div class="gauge-inner"><strong id="car-speed">0</strong><small>km/h · 速度</small></div></div><div class="gauge rpm-gauge"><div class="gauge-inner"><strong id="car-rpm">850</strong><small>rpm · 虚拟转速</small></div></div></div>
-          <div class="scene-details"><span id="car-gear">D1 · 虚拟挡位</span><span id="car-load">负载 0%</span></div>
+          <div class="car-cluster"><div class="cluster-header"><span>SPORT <i></i> READY</span><span>V8 · ENGINE SOUND</span></div>
+            <div class="dial-row">
+              <div class="dial-shell"><svg viewBox="0 0 300 300" class="dial" aria-hidden="true"><circle class="dial-rim" cx="150" cy="150" r="141"/><circle class="dial-face" cx="150" cy="150" r="132"/><g id="rpm-ticks"></g><g id="rpm-needle" class="dial-needle"><path d="M147 158 L150 39 L153 158 Z"/><circle cx="150" cy="150" r="9"/></g></svg><div class="dial-readout"><strong id="car-rpm">850</strong><span>RPM ×1000</span></div></div>
+              <div class="cluster-center"><small>DRIVE</small><strong id="car-gear">D1</strong><span>虚拟挡位</span><i></i><b id="car-load">负载 0%</b></div>
+              <div class="dial-shell"><svg viewBox="0 0 300 300" class="dial" aria-hidden="true"><circle class="dial-rim" cx="150" cy="150" r="141"/><circle class="dial-face" cx="150" cy="150" r="132"/><g id="speed-ticks"></g><g id="speed-needle" class="dial-needle"><path d="M147 158 L150 39 L153 158 Z"/><circle cx="150" cy="150" r="9"/></g></svg><div class="dial-readout"><strong id="car-speed">0</strong><span>km/h</span></div></div>
+            </div>
+            <div class="cluster-bottom"><span>◉ 车辆运动联动</span><span>SIMULATED INSTRUMENT CLUSTER</span></div>
+          </div>
         </div>
         <div class="scene scene-tractor" aria-label="拖拉机柴油发动机">
           <div class="tractor-engine" aria-hidden="true"><div class="tractor-tank"></div><div class="tractor-block"></div><div class="tractor-flywheel"><div></div></div><div class="tractor-exhaust"></div></div>
@@ -43,7 +49,7 @@
         <button type="button" class="vehicle-card" data-kind="tractor" aria-pressed="false"><span class="card-kind">农机 / DIESEL</span><strong>手扶拖拉机</strong><small>飞轮 · 单缸柴油</small></button>
         <button type="button" class="vehicle-card" data-kind="jet" aria-pressed="false"><span class="card-kind">航空 / JET</span><strong>喷气战斗机</strong><small>座舱 · 涡轮喷流</small></button>
       </div></section>
-      <p class="footnote">免费声浪实验原型 · V8 中高转速采用真实录音改编循环，<a href="./samples/CREDITS.txt">录音来源与 CC BY-SA 3.0 授权</a>。其余声音和仪表为模拟效果。请停车设置，驾驶时勿操作屏幕，音量以能听清交通提示为准。</p>
+      <p class="footnote">免费声浪实验原型 · V8 包含真实怠速录音与少量录音质感，<a href="./samples/CREDITS.txt">音源及授权</a>。仪表为模拟效果。请停车设置，驾驶时勿操作屏幕，音量以能听清交通提示为准。</p>
     </main>
   </div>
 </body>

@@ -1,18 +1,28 @@
-V8 recorded sound loops — CC BY-SA 3.0
+V8 sound recordings and their licenses
+
+v8-idle.wav — stable eight-cylinder idle, remixed into a seamless loop from
+  "Eight-cylinder engine idling.wav" by Lumamorph, Freesound, CC BY 4.0:
+  https://freesound.org/people/Lumamorph/sounds/636066/
+  https://creativecommons.org/licenses/by/4.0/
+  Changes: selected 2–6 seconds from the high-quality preview, mono conversion,
+  55 Hz high-pass, normalization, and an overlap fade at the loop boundary.
+
+The higher-speed recordings below are deliberately quiet texture beneath the
+continuously synthesized engine. These are recorded Ferrari 458 Italia sounds.
+They do not reproduce the exact engine state of the user's vehicle.
+
+Ferrari 458 Italia recorded loops — CC BY-SA 3.0
 
 Original recordings by Edvvc on Wikimedia Commons:
   Ferrari 458 Italia — https://commons.wikimedia.org/wiki/File:Ferrari_458_Italia.ogg
-  Ferrari F430 (2010) — https://commons.wikimedia.org/wiki/File:Ferrari_F430_(2010).ogg
 
 Loops prepared by ssabeeth (trimmed, pitch-flattened, looped, level-matched):
   https://github.com/ssabeeth/v8-engine-explorer/blob/main/src/42_samples.js
 
 v8-1.wav  — Ferrari 458 Italia, measured source RPM 2977
 v8-2.wav  — Ferrari 458 Italia, measured source RPM 4438
-v8-3.wav  — Ferrari F430 GT, measured source RPM 6040
-v8-4.wav  — Ferrari F430 GT, measured source RPM 7252
 
-The four WAV files were extracted from the above project's loops and each
+The two Ferrari WAV files were extracted from the above project's loops and each
 shortened by 18 ms with an end-to-start overlap fade to reduce loop clicks.
 They are redistributed under the same Creative Commons Attribution-ShareAlike
 3.0 license. You may share and adapt them under its terms:
