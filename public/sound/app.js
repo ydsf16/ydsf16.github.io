@@ -303,8 +303,8 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function requestMotion(fromGesture = false) {
-  if (requestMotion.attempted) return;
+function requestMotion(fromGesture = false, explicitRetry = false) {
+  if (requestMotion.attempted && !explicitRetry) return;
   if (typeof DeviceMotionEvent === 'undefined') { motionState = '设备不支持'; return; }
   const requiresGesture = typeof DeviceMotionEvent.requestPermission === 'function';
   if (requiresGesture && !fromGesture) return;
@@ -316,11 +316,14 @@ function requestMotion(fromGesture = false) {
     motionState = '已授权，等待数据';
   };
   if (requiresGesture) {
-    DeviceMotionEvent.requestPermission().then(result => {
-      if (result === 'granted') attach(); else motionState = '未授权';
-    }).catch(() => { motionState = '权限不可用'; });
+    try {
+      DeviceMotionEvent.requestPermission().then(result => {
+        if (result === 'granted') attach(); else motionState = '未授权';
+      }).catch(() => { motionState = '权限不可用'; });
+    } catch { motionState = '权限不可用'; }
   } else attach();
 }
+$('motion-retry').addEventListener('click', () => requestMotion(true, true));
 function onMotion(event) {
   const m = event.acceleration;
   if (!m || ![m.x, m.y, m.z].every(Number.isFinite)) { motionState = '已授权，暂无数据'; return; }
@@ -420,6 +423,7 @@ function renderTelemetry(now, speed, accel, fresh) {
   $('telemetry-gps').textContent = gpsState + (Number.isFinite(gpsAccuracy) ? ` · 精度约 ${Math.round(gpsAccuracy)} m` : '');
   $('telemetry-speed').textContent = fresh ? `${sensorSpeed.toFixed(1)} km/h · ${gpsSpeedMethod}` : sensorSpeed === null ? '等待速度数据' : `信号中断 · ${Math.round((now - lastSensorAt) / 1000)} 秒前`;
   $('telemetry-motion').textContent = lastMotionSampleAt && now - lastMotionSampleAt > 3000 ? '动作信号中断' : lastMotionSampleAt ? motionAxis && now - lastMotionAt < 800 ? '已接入加速度' : '已连接，待校准' : motionState;
+  $('motion-help').hidden = motionState !== '未授权' && motionState !== '权限不可用';
   $('telemetry-input').textContent = manual || fresh ? `${speed.toFixed(1)} km/h · ${accel.toFixed(1)} m/s²${manual ? ' · 踏板' : ''}` : '等待速度 / 可按踏板';
 }
 
