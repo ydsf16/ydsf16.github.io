@@ -32,7 +32,7 @@ The speed and acceleration mapping, blending and sound synthesis on this site
 are separate software implementation. These samples were not recorded from
 the user's vehicle and do not claim to reproduce its exact engine state.
 
-Tractor diesel sound pack — Kubota ZT140 single-cylinder style simulation
+Tractor diesel sound pack — single-cylinder
 
 tractor-single-cylinder-v2.wav — real single-cylinder tractor engine excerpt:
   "old Eicher tractor.wav" by viertelnachvier, Freesound, CC BY 4.0:
@@ -45,14 +45,11 @@ tractor-single-cylinder-v2.wav — real single-cylinder tractor engine excerpt:
   overlap to avoid the perceptible level dip in the earlier 1.60 second loop.
   The resulting loop is 1.505 seconds. The recording is credited above.
 
-Kubota ZT140 engine parameters used for the simulation: one horizontal,
-water-cooled, four-stroke diesel cylinder; maximum/rated 2400 rpm:
-  https://kubota.com.ph/product/zt140-di/
-The browser engine changes sample speed in proportion to modeled rpm and
-adds one synthesized combustion event per two crankshaft turns. This is a
-Kubota-inspired timbre; the recording is from Eicher, not a Kubota engine.
+The browser changes sample speed in proportion to engine rpm and adds one
+combustion event per two crankshaft turns. The credited recording is from
+an Eicher tractor; it does not claim to reproduce any particular model.
 
 Engine illustration — generated from a reference photograph provided by the
 site owner. The red fuel tank and blue-green one-cylinder crankcase are
 drawn as a cartoon. The large rotating flywheel is an independent CSS layer.
-The illustration does not identify an actual Kubota model.
+The illustration does not identify any particular tractor model.
