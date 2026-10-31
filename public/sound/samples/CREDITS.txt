@@ -32,18 +32,21 @@ The speed and acceleration mapping, blending and sound synthesis on this site
 are separate software implementation. These samples were not recorded from
 the user's vehicle and do not claim to reproduce its exact engine state.
 
-Tractor diesel sound pack — Kubota B2601 style simulation
+Tractor diesel sound pack — Kubota ZT140 single-cylinder style simulation
 
-tractor-diesel-idle.wav — close recorded tractor engine idle, from
-  "tractor idle engine motor close1.flac" by kyles on Freesound, CC0:
-  https://freesound.org/people/kyles/sounds/637883/
-  https://creativecommons.org/publicdomain/zero/1.0/
-  Changes: high-quality preview excerpt at 3–16 s, mono 24 kHz conversion,
-  45–8000 Hz filtering, level adjustment, and 400 ms overlap loop fade.
+tractor-single-cylinder.wav — real single-cylinder tractor engine excerpt:
+  "old Eicher tractor.wav" by viertelnachvier, Freesound, CC BY 4.0:
+  https://freesound.org/people/viertelnachvier/sounds/157822/
+  https://creativecommons.org/licenses/by/4.0/
+  The original recording documents a 1957 Eicher ED 13/Ie (a), an air-cooled
+  one-cylinder diesel tractor recorded in a barn. Changes: selected a fairly
+  stable 20.12–21.87 second section from the high-quality preview, converted
+  to mono 24 kHz, filtered to 42–9000 Hz, adjusted gain, and crossfaded the
+  ends to make a 1.60 second loop. The recording is credited above as required.
 
-The original recording does not identify the tractor's brand or engine model.
-Kubota B2601 styling and 3-cylinder firing simulation follow the official
-B2601 specifications (3-cylinder diesel, rated 2800 RPM):
-  https://media.kubota.io/uploads/B2301-B2601-Tractor-Operator-Manual.pdf
-This is a Kubota-inspired sound simulation, not an authentic B2601 recording
-or a Kubota-sponsored product. The recording is CC0 and can be redistributed.
+Kubota ZT140 engine parameters used for the simulation: one horizontal,
+water-cooled, four-stroke diesel cylinder; maximum/rated 2400 rpm:
+  https://kubota.com.ph/product/zt140-di/
+The browser engine changes sample speed in proportion to modeled rpm and
+adds one synthesized combustion event per two crankshaft turns. This is a
+Kubota-inspired timbre; the recording is from Eicher, not a Kubota engine.

@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const profiles = {
   car: { name: 'V8 运动跑车', type: 'V8 · SPORTS CAR', idle: 850, max: 7500, top: 210, accel: 5.4 },
-  tractor: { name: '久保田 B2601 风格', type: 'THREE CYLINDER · DIESEL SIMULATION', idle: 900, max: 2800, top: 25, accel: 1.8 },
+  tractor: { name: '久保田 ZT140 单缸风格', type: 'SINGLE CYLINDER · DIESEL SIMULATION', idle: 800, max: 2400, top: 20, accel: 1.5 },
   jet: { name: '喷气战斗机', type: 'JET · TURBINE', idle: 3000, max: 11000, top: 980, accel: 11 }
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
@@ -50,7 +50,7 @@ function updateAudioStatus() {
   if (kind === 'car') {
     audioStatus(carIdle ? 'V8 真实怠速＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
   } else if (kind === 'tractor') {
-    audioStatus(tractorSample ? '柴油机实录＋三缸模拟 · 久保田风格' : tractorSampleError ? '录音加载失败，仅合成柴油声' : '正在载入柴油机音色包…');
+    audioStatus(tractorSample ? '单缸拖拉机实录＋实时合成 · 久保田风格' : tractorSampleError ? '录音加载失败，仅合成单缸柴油声' : '正在载入单缸柴油音色包…');
   } else audioStatus('声浪实时生成中');
 }
 function selectVehicle(next) {
@@ -114,7 +114,7 @@ function makeFallback(ctx) {
   return {
     setKind(next) { tone.type = next === 'jet' ? 'sine' : next === 'tractor' ? 'square' : 'sawtooth'; },
     update(rpm, load, next) {
-      const f = next === 'jet' ? 110 + rpm * .045 : next === 'tractor' ? rpm / 25 : rpm / 18;
+      const f = next === 'jet' ? 110 + rpm * .045 : next === 'tractor' ? rpm / 40 : rpm / 18;
       tone.frequency.setTargetAtTime(f, ctx.currentTime, .03);
       sub.frequency.setTargetAtTime(f * .5, ctx.currentTime, .03);
       lowpass.frequency.setTargetAtTime(250 + load * 2400, ctx.currentTime, .04);
@@ -168,8 +168,8 @@ async function loadTractorSample() {
   tractorSampleLoading = true;
   updateAudioStatus();
   try {
-    const response = await fetch('./samples/tractor-diesel-idle.wav');
-    if (!response.ok) throw new Error(`tractor-diesel-idle.wav: ${response.status}`);
+    const response = await fetch('./samples/tractor-single-cylinder.wav');
+    if (!response.ok) throw new Error(`tractor-single-cylinder.wav: ${response.status}`);
     const buffer = await context.decodeAudioData(await response.arrayBuffer());
     const source = context.createBufferSource();
     const gain = context.createGain();
@@ -192,12 +192,14 @@ function updateTractorSampleMix(rpm, load) {
   if (!context || !synthGain) return;
   const now = context.currentTime;
   const active = kind === 'tractor' && !!tractorSample;
-  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .18 + .28 * clamp((rpm - 1100) / 1700, 0, 1) : 1, now, .035);
+  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .19 + .17 * clamp((rpm - 800) / 1600, 0, 1) : 1, now, .035);
   if (!tractorSample) return;
-  const rev = clamp((rpm - 900) / 1900, 0, 1);
-  tractorSample.source.playbackRate.setTargetAtTime(.95 + .65 * rev, now, .035);
-  tractorSample.lowpass.frequency.setTargetAtTime(2100 + 3000 * rev + 900 * load, now, .045);
-  tractorSample.gain.gain.setTargetAtTime(active ? .80 - .16 * rev + .12 * load : 0, now, .05);
+  const rev = clamp((rpm - 800) / 1600, 0, 1);
+  // The excerpt's measured firing cadence is about 13 Hz, or 1560 rpm
+  // for one firing per two crankshaft revolutions.
+  tractorSample.source.playbackRate.setTargetAtTime(clamp(rpm / 1560, .48, 1.6), now, .025);
+  tractorSample.lowpass.frequency.setTargetAtTime(2300 + 2600 * rev + 650 * load, now, .04);
+  tractorSample.gain.gain.setTargetAtTime(active ? .62 - .10 * rev + .10 * load : 0, now, .045);
 }
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
@@ -256,7 +258,7 @@ async function ensureAudio(fromGesture = false) {
   ensureAudio.loading = true;
   try {
     if (!context.audioWorklet) throw new Error('no worklet');
-    await context.audioWorklet.addModule('./audio-worklet.js?v=5');
+    await context.audioWorklet.addModule('./audio-worklet.js?v=6');
     node = new AudioWorkletNode(context, 'tinygrape-vehicle-sound', { numberOfInputs: 0, outputChannelCount: [1] });
     node.connect(synthGain);
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
@@ -418,8 +420,8 @@ function frame(now) {
     targetLoad = clamp(.10 + Math.max(0, accel) * .27 + speed * .0012 - Math.max(0, -accel) * .18, .02, 1);
     if (now < shiftUntil) targetLoad *= .24;
   } else if (kind === 'tractor') {
-    targetRpm = clamp(p.idle + speed * 58 + Math.max(0, accel) * 180, p.idle, p.max);
-    if (manual && gas && speed < 2) targetRpm += 600 * gas;
+    targetRpm = clamp(p.idle + speed * 68 + Math.max(0, accel) * 200, p.idle, p.max);
+    if (manual && gas && speed < 2) targetRpm = Math.min(p.max, targetRpm + 750 * gas);
     targetLoad = clamp(.14 + Math.max(0, accel) * .37 + speed * .005, .1, 1);
   } else {
     targetLoad = clamp(.24 + speed / 1500 + Math.max(0, accel) * .09 - Math.max(0, -accel) * .04, .16, 1);

@@ -72,16 +72,18 @@ class VehicleSound extends AudioWorkletProcessor {
           const prev = this.phase.tractor;
           const phase = (prev + Math.max(600, this.rpm) / (120 * sr)) % 1;
           this.phase.tractor = phase;
-          // Three evenly spaced combustions during a four-stroke 720-degree cycle.
-          if (Math.floor(prev * 3) !== Math.floor(phase * 3)) this.pulse.tractor = .72 + this.load * .45;
-          this.pulse.tractor *= .992;
-          const firing = Math.sin(TAU * phase * 3);
-          const exhaust = Math.sin(TAU * phase * 6 + .2);
+          // One combustion every 720 crankshaft degrees, with a short knock
+          // and a slower exhaust resonance to preserve the single-cylinder beat.
+          if (phase < prev) this.pulse.tractor = .9 + this.load * .55;
+          this.pulse.tractor *= .996;
+          const firing = Math.sin(TAU * phase + .15);
+          const exhaust = Math.sin(TAU * phase * 2 - .25);
+          const flywheel = Math.sin(TAU * phase * 4 + .55);
           const rattle = this.random();
-          this.noise += (rattle - this.noise) * .14;
-          signal = .19 * firing + .10 * exhaust + .07 * this.pulse.tractor
-            + (.035 + .06 * this.load) * (rattle - this.noise) * (.35 + this.pulse.tractor);
-          signal *= .65 + .55 * this.load;
+          this.noise += (rattle - this.noise) * .11;
+          signal = .16 * firing + .13 * exhaust + .055 * flywheel + .12 * (this.pulse.tractor - .1)
+            + (.025 + .07 * this.load) * (rattle - this.noise) * (.25 + this.pulse.tractor);
+          signal *= .58 + .58 * this.load;
         } else {
           const spin = clamp(this.rpm / 11000, .08, 1);
           this.phase.jet = (this.phase.jet + (115 + spin * 560) / sr) % 1;

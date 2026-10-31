@@ -8,7 +8,7 @@
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="./style.css">
-  <script src="./app.js?v=7" type="module"></script>
+  <script src="./app.js?v=8" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -31,7 +31,7 @@
         </div>
         <div class="scene scene-tractor" aria-label="拖拉机柴油发动机">
           <div class="tractor-engine" aria-hidden="true"><div class="tractor-tank"></div><div class="tractor-block"></div><div class="tractor-flywheel"><div></div></div><div class="tractor-exhaust"></div></div>
-          <div class="scene-details"><span><strong id="tractor-rpm">900</strong> rpm · 三缸柴油</span><span><strong id="tractor-speed">0</strong> km/h</span></div>
+          <div class="scene-details"><span><strong id="tractor-rpm">800</strong> rpm · 单缸柴油</span><span><strong id="tractor-speed">0</strong> km/h</span></div>
         </div>
         <div class="scene scene-jet" aria-label="喷气机座舱仪表">
           <div class="jet-display"><div class="jet-horizon"><span>✦</span></div><div class="jet-readouts"><div><small>虚拟推力</small><strong id="jet-thrust">28%</strong></div><div><small>地速</small><strong id="jet-speed">0</strong><small>km/h</small></div></div></div>
@@ -48,7 +48,7 @@
       </section>
       <section class="garage" aria-label="选择载具"><div class="garage-heading"><strong>选择载具</strong><span>左右滑动</span></div><div class="vehicle-list">
         <button type="button" class="vehicle-card" data-kind="car" aria-pressed="true"><span class="card-kind">汽车 / V8</span><strong>运动跑车</strong><small>仪表 · 换挡 · 排气</small></button>
-        <button type="button" class="vehicle-card" data-kind="tractor" aria-pressed="false"><span class="card-kind">农机 / DIESEL</span><strong>久保田 B2601 风格</strong><small>三缸柴油 · 实录混合</small></button>
+        <button type="button" class="vehicle-card" data-kind="tractor" aria-pressed="false"><span class="card-kind">农机 / DIESEL</span><strong>久保田 ZT140 风格</strong><small>单缸柴油 · 实录合成</small></button>
         <button type="button" class="vehicle-card" data-kind="jet" aria-pressed="false"><span class="card-kind">航空 / JET</span><strong>喷气战斗机</strong><small>座舱 · 涡轮喷流</small></button>
       </div></section>
       <p class="footnote">免费声浪实验原型 · V8 包含真实怠速录音与少量录音质感，<a href="./samples/CREDITS.txt">音源及授权</a>。仪表为模拟效果。请停车设置，驾驶时勿操作屏幕，音量以能听清交通提示为准。</p>
