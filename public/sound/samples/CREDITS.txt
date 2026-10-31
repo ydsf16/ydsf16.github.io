@@ -34,20 +34,21 @@ the user's vehicle and do not claim to reproduce its exact engine state.
 
 Tractor diesel sound pack — single-cylinder
 
-tractor-single-cylinder-v2.wav — real single-cylinder tractor engine excerpt:
-  "old Eicher tractor.wav" by viertelnachvier, Freesound, CC BY 4.0:
-  https://freesound.org/people/viertelnachvier/sounds/157822/
+tractor-idle-v3.wav and tractor-rev-v3.wav — two layers from the same real
+small tractor engine recording:
+  "Tractor_Kleinland_Pony.wav" by aUREa, Freesound, CC BY 4.0:
+  https://freesound.org/people/aUREa/sounds/268779/
   https://creativecommons.org/licenses/by/4.0/
-  The original recording documents a 1957 Eicher ED 13/Ie (a), an air-cooled
-  one-cylinder diesel tractor recorded in a barn. Changes: selected a stable
-  20.34–21.87 second section from the high-quality preview, converted to mono
-  24 kHz, filtered to 42–9000 Hz, adjusted gain, and matched a 25 ms loop
-  overlap to avoid the perceptible level dip in the earlier 1.60 second loop.
-  The resulting loop is 1.505 seconds. The recording is credited above.
+  The source is a 9-horsepower small tractor, recorded at a tractor museum.
+  Changes: took the low-speed section around 12.1–19.9 seconds and the
+  accelerated section around 42.3–45.8 seconds from its public HQ preview;
+  converted to mono 24 kHz PCM, aligned individual combustion cycles in the
+  accelerated section to about 14.5 Hz, adjusted levels, and blended a 38 ms
+  overlap at each loop boundary. The low-speed loop is about 7.8 seconds;
+  the faster loop is about 3.5 seconds. Both are blended continuously by RPM.
 
-The browser changes sample speed in proportion to engine rpm and adds one
-combustion event per two crankshaft turns. The credited recording is from
-an Eicher tractor; it does not claim to reproduce any particular model.
+The browser changes the playback rate with RPM and adds a quiet combustion
+layer. The sound does not claim to reproduce any particular tractor model.
 
 Engine illustration — generated from a reference photograph provided by the
 site owner. The red fuel tank and blue-green one-cylinder crankcase are

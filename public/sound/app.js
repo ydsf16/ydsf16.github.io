@@ -169,20 +169,26 @@ async function loadTractorSample() {
   tractorSampleLoading = true;
   updateAudioStatus();
   try {
-    const response = await fetch('./samples/tractor-single-cylinder-v2.wav');
-    if (!response.ok) throw new Error(`tractor-single-cylinder-v2.wav: ${response.status}`);
-    const buffer = await context.decodeAudioData(await response.arrayBuffer());
-    const source = context.createBufferSource();
-    const gain = context.createGain();
-    const lowpass = context.createBiquadFilter();
-    lowpass.type = 'lowpass';
-    lowpass.frequency.value = 3200;
-    source.buffer = buffer;
-    source.loop = true;
-    gain.gain.value = 0;
-    source.connect(lowpass).connect(gain).connect(master);
-    source.start(0, Math.random() * buffer.duration);
-    tractorSample = { source, gain, lowpass };
+    const files = ['tractor-idle-v3.wav', 'tractor-rev-v3.wav'];
+    const buffers = await Promise.all(files.map(async file => {
+      const response = await fetch(`./samples/${file}`);
+      if (!response.ok) throw new Error(`${file}: ${response.status}`);
+      return context.decodeAudioData(await response.arrayBuffer());
+    }));
+    const layers = buffers.map(buffer => {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      const lowpass = context.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 3500;
+      source.buffer = buffer;
+      source.loop = true;
+      gain.gain.value = 0;
+      source.connect(lowpass).connect(gain).connect(master);
+      source.start(0);
+      return { source, gain, lowpass };
+    });
+    tractorSample = { idle: layers[0], rev: layers[1] };
     tractorSampleError = false;
   } catch (error) {
     console.warn('Tractor recording unavailable; using synthesized sound', error);
@@ -193,14 +199,20 @@ function updateTractorSampleMix(rpm, load) {
   if (!context || !synthGain) return;
   const now = context.currentTime;
   const active = kind === 'tractor' && !!tractorSample;
-  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .19 + .17 * clamp((rpm - 800) / 1600, 0, 1) : 1, now, .035);
+  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .05 + .035 * load : 1, now, .035);
   if (!tractorSample) return;
   const rev = clamp((rpm - 800) / 1600, 0, 1);
-  // The excerpt's measured firing cadence is about 13 Hz, or 1560 rpm
-  // for one firing per two crankshaft revolutions.
-  tractorSample.source.playbackRate.setTargetAtTime(clamp(rpm / 1560, .48, 1.6), now, .025);
-  tractorSample.lowpass.frequency.setTargetAtTime(2300 + 2600 * rev + 650 * load, now, .04);
-  tractorSample.gain.gain.setTargetAtTime(active ? .62 - .10 * rev + .10 * load : 0, now, .045);
+  // Both source sections are from the same small tractor. Their firing
+  // cadences are about 7.7 Hz and 14.5 Hz (one event per 720 degrees).
+  const blend = clamp((rpm - 1000) / 600, 0, 1);
+  const smooth = blend * blend * (3 - 2 * blend);
+  tractorSample.idle.source.playbackRate.setTargetAtTime(clamp(rpm / 924, .7, 1.8), now, .025);
+  tractorSample.rev.source.playbackRate.setTargetAtTime(clamp(rpm / 1740, .7, 1.55), now, .025);
+  const cutoff = 3000 + 2600 * rev + 500 * load;
+  tractorSample.idle.lowpass.frequency.setTargetAtTime(cutoff, now, .04);
+  tractorSample.rev.lowpass.frequency.setTargetAtTime(cutoff, now, .04);
+  tractorSample.idle.gain.gain.setTargetAtTime(active ? Math.cos(smooth * Math.PI / 2) * (.82 + .07 * load) : 0, now, .045);
+  tractorSample.rev.gain.gain.setTargetAtTime(active ? Math.sin(smooth * Math.PI / 2) * (.69 + .11 * load) : 0, now, .045);
 }
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
