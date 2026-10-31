@@ -74,7 +74,6 @@ function selectVehicle(next) {
   $('brake').setAttribute('aria-label', '按住' + (kind === 'jet' ? '减速' : '刹车'));
 }
 document.querySelectorAll('.vehicle-card').forEach(button => button.addEventListener('click', () => {
-  ensureAudio(true);
   selectVehicle(button.dataset.kind);
 }));
 selectVehicle(kind);
@@ -229,11 +228,10 @@ function updateCarSampleMix(rpm, load) {
     loop.gain.gain.setTargetAtTime(kind === 'car' ? weights[i] * smooth * loudness : 0, now, .03);
   });
 }
-async function ensureAudio(fromGesture = false) {
+async function ensureAudio() {
   configureAudioSession();
   if (audioReady) {
     if (context?.state === 'suspended') context.resume().then(updateAudioStatus).catch(() => audioStatus('浏览器未允许播放声音'));
-    if (fromGesture) requestMotion();
     return;
   }
   if (!context) {
@@ -251,9 +249,8 @@ async function ensureAudio(fromGesture = false) {
     limiter.ratio.value = 4;
     master.connect(limiter).connect(context.destination);
   }
-  // resume() and iOS motion permission must both be requested inside the tap.
+  // Browsers that block autoplay resume this context on the first interaction.
   const resume = context.resume().then(updateAudioStatus).catch(() => audioStatus('浏览器未允许播放声音'));
-  if (fromGesture) requestMotion();
   if (audioReady || ensureAudio.loading) return;
   ensureAudio.loading = true;
   try {
@@ -282,28 +279,42 @@ async function ensureAudio(fromGesture = false) {
 }
 // A permitted browser may start immediately. If autoplay is blocked, any card,
 // slider or manual-control touch resumes the same audio context.
-ensureAudio(false);
-document.addEventListener('pointerdown', () => ensureAudio(true), { passive: true });
-document.addEventListener('keydown', () => ensureAudio(true));
+ensureAudio();
+requestMotion();
+function onUserGesture() {
+  ensureAudio();
+}
+document.addEventListener('pointerdown', event => {
+  if (event.pointerType === 'mouse') requestMotion(true);
+  onUserGesture();
+}, { passive: true });
+document.addEventListener('pointerup', event => {
+  if (event.pointerType !== 'mouse') requestMotion(true);
+}, { passive: true });
+document.addEventListener('touchend', () => requestMotion(true), { passive: true });
+document.addEventListener('keydown', () => {
+  requestMotion(true);
+  onUserGesture();
+});
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && context?.state === 'suspended') {
     context.resume().then(updateAudioStatus).catch(() => audioStatus('轻触屏幕开启声音'));
   }
 });
 
-function requestMotion() {
-  if (requestMotion.done || requestMotion.pending) return;
+function requestMotion(fromGesture = false) {
+  if (requestMotion.attempted || typeof DeviceMotionEvent === 'undefined') return;
+  const requiresGesture = typeof DeviceMotionEvent.requestPermission === 'function';
+  if (requiresGesture && !fromGesture) return;
+  // Keep the decision for the whole page, including when access is denied.
+  requestMotion.attempted = true;
   const attach = () => {
     window.addEventListener('devicemotion', onMotion);
-    requestMotion.done = true;
-    requestMotion.pending = false;
   };
-  if (typeof DeviceMotionEvent === 'undefined') return;
-  if (typeof DeviceMotionEvent.requestPermission === 'function') {
-    requestMotion.pending = true;
+  if (requiresGesture) {
     DeviceMotionEvent.requestPermission().then(result => {
-      if (result === 'granted') attach(); else requestMotion.pending = false;
-    }).catch(() => { requestMotion.pending = false; });
+      if (result === 'granted') attach();
+    }).catch(() => { /* The visitor can keep using GPS and pedals. */ });
   } else attach();
 }
 function onMotion(event) {
