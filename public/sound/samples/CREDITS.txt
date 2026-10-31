@@ -52,11 +52,7 @@ The browser engine changes sample speed in proportion to modeled rpm and
 adds one synthesized combustion event per two crankshaft turns. This is a
 Kubota-inspired timbre; the recording is from Eicher, not a Kubota engine.
 
-Engine side photograph — "Mesin Diesel Pompa Air Kubota.jpg" by SATELIT BM:
-  https://commons.wikimedia.org/wiki/File:Mesin_Diesel_Pompa_Air_Kubota.jpg
-  https://creativecommons.org/licenses/by-sa/4.0/
-  Source photo resized to 960 × 540 for the site. The wheel animation is
-  layered over the photo in CSS; this visual adaptation is shared under
-  CC BY-SA 4.0. It shows a real Kubota diesel engine powering a water pump,
-  and its exact model is not identified in the source photo. It is used as
-  an engine-side visual reference for this ZT140-style sound simulation.
+Engine illustration — generated from a reference photograph provided by the
+site owner. The red fuel tank and blue-green one-cylinder crankcase are
+drawn as a cartoon. The large rotating flywheel is an independent CSS layer.
+The illustration does not identify an actual Kubota model.
