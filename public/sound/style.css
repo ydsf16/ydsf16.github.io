@@ -54,7 +54,7 @@
 /* User-reference cartoon engine with independent oversized flywheel. */
 .tractor-visual{width:min(100%,630px,calc(36svh * 1.5));aspect-ratio:3/2;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible;filter:drop-shadow(0 18px 18px #0007)}
 .tractor-photo{object-fit:contain}
-.wheel-rotor{left:49%;top:43%;width:30%;border:clamp(5px,1vw,10px) solid #4c737b;background:repeating-conic-gradient(from 14deg,#87b9bb 0deg 29deg,#315c69 29deg 45deg,#9fcac7 45deg 62deg);box-shadow:inset 0 0 0 clamp(8px,1.8vw,20px) #608e99,inset 0 0 20px 20px #183c4b,0 0 0 3px #163a43,0 6px 18px #000a}
+.wheel-rotor{left:45%;top:39%;width:38%;border:clamp(5px,1vw,10px) solid #4c737b;background:repeating-conic-gradient(from 14deg,#87b9bb 0deg 29deg,#315c69 29deg 45deg,#9fcac7 45deg 62deg);box-shadow:inset 0 0 0 clamp(8px,1.8vw,20px) #608e99,inset 0 0 20px 20px #183c4b,0 0 0 3px #163a43,0 6px 18px #000a}
 .wheel-rotor::before{background:repeating-conic-gradient(from 9deg,#204b5a 0 44deg,#93c3c2 45deg 65deg,#204b5a 66deg 120deg);box-shadow:inset 0 0 8px #162f39,0 0 0 4px #a3cbcb}
 .wheel-rotor::after{background:radial-gradient(circle at 32% 30%,#e2e5d5,#567b84 67%);box-shadow:0 0 0 4px #244b58,0 2px 7px #102b35}
 @media(max-width:700px){.tractor-visual{width:min(100%,calc(24svh * 1.5))}}

@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const profiles = {
   car: { name: 'V8 运动跑车', type: 'V8 · SPORTS CAR', idle: 850, max: 7500, top: 210, accel: 5.4 },
-  tractor: { name: '久保田 ZT140 单缸风格', type: 'SINGLE CYLINDER · DIESEL SIMULATION', idle: 800, max: 2400, top: 72, accel: 4 },
+  tractor: { name: '拖拉机', type: 'SINGLE CYLINDER · DIESEL', idle: 800, max: 2400, top: 72, accel: 4 },
   jet: { name: '喷气战斗机', type: 'JET · TURBINE', idle: 3000, max: 11000, top: 980, accel: 11 }
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
@@ -45,13 +45,13 @@ function configureAudioSession() {
 }
 function updateAudioStatus() {
   if (!context) return;
-  if (context.state !== 'running') { audioStatus('轻触载具卡片开启声音'); return; }
+  if (context.state !== 'running') { audioStatus('轻触屏幕开启声音'); return; }
   if (volume === 0) { audioStatus('音量为 0'); return; }
   if (kind === 'car') {
-    audioStatus(carIdle ? 'V8 真实怠速＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
+    audioStatus(carIdle ? 'V8 声浪播放中' : carSamplesError ? 'V8 声浪播放中' : '正在载入 V8 声音…');
   } else if (kind === 'tractor') {
-    audioStatus(tractorSample ? '单缸拖拉机实录＋实时合成 · 久保田风格' : tractorSampleError ? '录音加载失败，仅合成单缸柴油声' : '正在载入单缸柴油音色包…');
-  } else audioStatus('声浪实时生成中');
+    audioStatus(tractorSample ? '拖拉机声音播放中' : tractorSampleError ? '拖拉机声音播放中' : '正在载入拖拉机声音…');
+  } else audioStatus('喷气机声音播放中');
 }
 function selectVehicle(next) {
   if (!profiles[next]) return;
@@ -238,7 +238,7 @@ async function ensureAudio(fromGesture = false) {
   }
   if (!context) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) { audioStatus('此浏览器不支持声音合成'); return; }
+    if (!Ctx) { audioStatus('此浏览器不支持声音播放'); return; }
     context = new Ctx({ latencyHint: 'interactive' });
     context.onstatechange = updateAudioStatus;
     master = context.createGain();
@@ -286,7 +286,9 @@ ensureAudio(false);
 document.addEventListener('pointerdown', () => ensureAudio(true), { passive: true });
 document.addEventListener('keydown', () => ensureAudio(true));
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && context?.state === 'suspended') audioStatus('轻触载具卡片开启声音');
+  if (!document.hidden && context?.state === 'suspended') {
+    context.resume().then(updateAudioStatus).catch(() => audioStatus('轻触屏幕开启声音'));
+  }
 });
 
 function requestMotion() {
@@ -459,8 +461,8 @@ function frame(now) {
     $('jet-thrust').textContent = Math.round(virtualLoad * 100) + '%';
     $('jet-speed').textContent = Math.round(speed);
     $('jet-load').textContent = '负载 ' + Math.round(virtualLoad * 100) + '%';
-    $('source').textContent = manual ? '模拟踏板' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
-    $('pedal-hint').textContent = manual ? fresh ? '松开后自动返回车速联动' : '手动模拟中 · 按住踏板' : fresh ? '按住即响应 · 松开后返回车速' : '按住踏板即可试音';
+    $('source').textContent = manual ? '踏板控制' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
+    $('pedal-hint').textContent = manual ? fresh ? '松开后自动返回车速联动' : '按住踏板控制' : fresh ? '按住即响应 · 松开后返回车速' : '按住踏板即可试音';
     if (!manual && !fresh && lastSensorAt) status('信号中断', true);
     if (audioReady && context?.state === 'running') updateAudioStatus();
     lastDisplay = now;
