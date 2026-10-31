@@ -7,8 +7,8 @@
   <meta name="description" content="TinyGrapeLab 免费声浪实验室。跑车、拖拉机与喷气机，随速度和加速度实时变化。">
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
-  <link rel="stylesheet" href="./style.css?v=14">
-  <script src="./app.js?v=14" type="module"></script>
+  <link rel="stylesheet" href="./style.css?v=15">
+  <script src="./app.js?v=15" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -56,7 +56,8 @@
           <div><small>动作传感器</small><strong id="telemetry-motion">等待首次触碰</strong></div>
           <div><small>送入声音引擎</small><strong id="telemetry-input">等待速度</strong></div>
         </div>
-        <div class="motion-help" id="motion-help" hidden><button type="button" id="motion-retry">重新申请动作权限</button><span>如果仍未授权，请用 Safari 直接打开网页检查权限。</span></div>
+        <div class="permission-help" id="location-help" hidden><button type="button" id="location-retry">重新申请定位</button><span id="location-error">请检查车机浏览器的网站定位权限。</span></div>
+        <div class="permission-help" id="motion-help" hidden><button type="button" id="motion-retry">重新申请动作权限</button><span>如果仍未授权，请用 Safari 直接打开网页检查权限。</span></div>
       </details>
       <section class="garage" aria-label="选择载具"><div class="garage-heading"><strong>选择载具</strong><span>左右滑动</span></div><div class="vehicle-list">
         <button type="button" class="vehicle-card" data-kind="car" aria-pressed="true"><span class="card-kind">汽车 / V8</span><strong>运动跑车</strong><small>仪表 · 换挡 · 排气</small></button>

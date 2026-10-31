@@ -20,6 +20,7 @@ let volume = clamp(savedVolume === null || savedVolume === undefined ? 55 : Numb
 let gpsWatch = null, gpsFix = null, sensorSpeed = null, sensorAccel = 0, lastSensorAt = 0;
 let motionAxis = null, motionSample = null, motionAcceleration = null, lastMotionAt = 0;
 let gpsState = '正在请求定位', gpsAccuracy = null, gpsSpeedMethod = '', motionState = '等待首次触碰', lastMotionSampleAt = 0;
+let gpsErrorMessage = '';
 let manual = false, gas = 0, brake = 0, manualSpeed = 0, manualReleaseAt = 0;
 let virtualRpm = profiles[kind].idle, virtualLoad = 0, gear = 1, shiftUntil = 0;
 let lastFrame = performance.now(), lastMessage = 0, lastDisplay = 0;
@@ -343,6 +344,7 @@ function haversine(a, b) {
 }
 function onPosition(position) {
   const c = position.coords, t = position.timestamp;
+  gpsErrorMessage = '';
   gpsAccuracy = c.accuracy;
   if (!Number.isFinite(c.accuracy) || c.accuracy > 80) { gpsState = '定位精度较低'; status('定位较弱', true); return; }
   gpsState = '定位已连接';
@@ -385,15 +387,22 @@ function onPosition(position) {
 }
 function startLocation() {
   if (!navigator.geolocation) { gpsState = '浏览器不支持'; status('手动试音', true); return; }
+  if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
+  gpsWatch = null;
+  gpsState = '正在请求定位';
+  gpsAccuracy = null;
+  gpsErrorMessage = '';
   try {
     gpsWatch = navigator.geolocation.watchPosition(onPosition, err => {
       gpsState = err.code === 1 ? '定位未授权' : err.code === 3 ? '定位超时' : '定位暂不可用';
+      gpsErrorMessage = err.message || `浏览器返回错误码 ${err.code}`;
       status(err.code === 1 ? '定位未授权' : '定位暂不可用', true);
       $('source').textContent = '可手动试音';
     }, { enableHighAccuracy: true, maximumAge: 500, timeout: 12000 });
-  } catch { gpsState = '定位暂不可用'; status('定位暂不可用', true); }
+  } catch (error) { gpsState = '定位暂不可用'; gpsErrorMessage = error.message || ''; status('定位暂不可用', true); }
 }
 startLocation();
+$('location-retry').addEventListener('click', startLocation);
 
 function bindPedal(id, setter) {
   const element = $(id);
@@ -421,6 +430,8 @@ window.addEventListener('blur', () => { gas = brake = 0; manualReleaseAt = perfo
 function renderTelemetry(now, speed, accel, fresh) {
   $('telemetry-brief').textContent = manual ? '踏板 → 声音' : fresh ? 'GPS → 声音' : gpsState;
   $('telemetry-gps').textContent = gpsState + (Number.isFinite(gpsAccuracy) ? ` · 精度约 ${Math.round(gpsAccuracy)} m` : '');
+  $('location-help').hidden = gpsState !== '定位未授权' && gpsState !== '定位超时' && gpsState !== '定位暂不可用';
+  $('location-error').textContent = gpsErrorMessage ? `浏览器提示：${gpsErrorMessage}` : '请检查车机浏览器的网站定位权限。';
   $('telemetry-speed').textContent = fresh ? `${sensorSpeed.toFixed(1)} km/h · ${gpsSpeedMethod}` : sensorSpeed === null ? '等待速度数据' : `信号中断 · ${Math.round((now - lastSensorAt) / 1000)} 秒前`;
   $('telemetry-motion').textContent = lastMotionSampleAt && now - lastMotionSampleAt > 3000 ? '动作信号中断' : lastMotionSampleAt ? motionAxis && now - lastMotionAt < 800 ? '已接入加速度' : '已连接，待校准' : motionState;
   $('motion-help').hidden = motionState !== '未授权' && motionState !== '权限不可用';

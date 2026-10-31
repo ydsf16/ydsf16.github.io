@@ -72,6 +72,6 @@
 .telemetry-grid small{font-size:10px;color:#91a6b1}
 .telemetry-grid strong{font-size:11px;font-weight:550;font-variant-numeric:tabular-nums;line-height:1.4;overflow-wrap:anywhere}
 @media(max-width:700px){.telemetry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.motion-help{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #30404b;padding:9px 13px 12px;color:#aabcc4;font-size:10px}
-.motion-help[hidden]{display:none}
-.motion-help button{border:1px solid var(--accent);border-radius:7px;background:#393024;color:#ffe2b6;padding:7px 10px;font-size:11px}
+.permission-help{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #30404b;padding:9px 13px 12px;color:#aabcc4;font-size:10px}
+.permission-help[hidden]{display:none}
+.permission-help button{border:1px solid var(--accent);border-radius:7px;background:#393024;color:#ffe2b6;padding:7px 10px;font-size:11px}
