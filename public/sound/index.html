@@ -7,8 +7,8 @@
   <meta name="description" content="TinyGrapeLab 免费声浪实验室。跑车、拖拉机与喷气机，随速度和加速度实时变化。">
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
-  <link rel="stylesheet" href="./style.css?v=11">
-  <script src="./app.js?v=12" type="module"></script>
+  <link rel="stylesheet" href="./style.css?v=13">
+  <script src="./app.js?v=13" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -49,6 +49,14 @@
           <button id="gas" class="pedal gas" type="button" aria-label="按住油门"><span id="gas-label">油门</span></button>
         </div></div>
       </section>
+      <details class="telemetry" id="telemetry"><summary>数据链路 <span id="telemetry-brief">正在连接定位</span></summary>
+        <div class="telemetry-grid">
+          <div><small>定位</small><strong id="telemetry-gps">请求中</strong></div>
+          <div><small>GPS 速度</small><strong id="telemetry-speed">等待数据</strong></div>
+          <div><small>动作传感器</small><strong id="telemetry-motion">等待首次触碰</strong></div>
+          <div><small>送入声音引擎</small><strong id="telemetry-input">等待速度</strong></div>
+        </div>
+      </details>
       <section class="garage" aria-label="选择载具"><div class="garage-heading"><strong>选择载具</strong><span>左右滑动</span></div><div class="vehicle-list">
         <button type="button" class="vehicle-card" data-kind="car" aria-pressed="true"><span class="card-kind">汽车 / V8</span><strong>运动跑车</strong><small>仪表 · 换挡 · 排气</small></button>
         <button type="button" class="vehicle-card" data-kind="tractor" aria-pressed="false"><span class="card-kind">农机 / DIESEL</span><strong>拖拉机</strong><small>单缸柴油 · 大飞轮</small></button>

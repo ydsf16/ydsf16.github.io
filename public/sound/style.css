@@ -59,3 +59,16 @@
 .wheel-rotor::after{background:radial-gradient(circle at 32% 30%,#e2e5d5,#567b84 67%);box-shadow:0 0 0 4px #244b58,0 2px 7px #102b35}
 @media(max-width:700px){.tractor-visual{width:min(100%,calc(24svh * 1.5))}}
 @media(max-height:560px){.tractor-visual{width:min(100%,calc(26svh * 1.5))}}
+
+/* Compact, optional live sensor diagnostics. */
+.telemetry{border:1px solid #30404b;border-radius:11px;background:#121e27;color:#d6e2e5;font-size:11px}
+.telemetry summary{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;padding:9px 13px;font-weight:650}
+.telemetry summary::-webkit-details-marker{display:none}
+.telemetry summary::before{content:'›';font-size:17px;line-height:9px;color:var(--accent);transition:transform .15s}
+.telemetry[open] summary::before{transform:rotate(90deg)}
+.telemetry summary span{font-weight:450;color:#9eb2bc;font-variant-numeric:tabular-nums}
+.telemetry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:2px 13px 12px}
+.telemetry-grid div{min-width:0;display:flex;flex-direction:column;gap:3px;border-top:1px solid #30404b;padding-top:8px}
+.telemetry-grid small{font-size:10px;color:#91a6b1}
+.telemetry-grid strong{font-size:11px;font-weight:550;font-variant-numeric:tabular-nums;line-height:1.4;overflow-wrap:anywhere}
+@media(max-width:700px){.telemetry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

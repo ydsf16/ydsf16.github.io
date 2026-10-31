@@ -19,6 +19,7 @@ try { savedVolume = localStorage.getItem('tg-sound-volume'); } catch { /* Privat
 let volume = clamp(savedVolume === null || savedVolume === undefined ? 55 : Number(savedVolume), 0, 100);
 let gpsWatch = null, gpsFix = null, sensorSpeed = null, sensorAccel = 0, lastSensorAt = 0;
 let motionAxis = null, motionSample = null, motionAcceleration = null, lastMotionAt = 0;
+let gpsState = '正在请求定位', gpsAccuracy = null, gpsSpeedMethod = '', motionState = '等待首次触碰', lastMotionSampleAt = 0;
 let manual = false, gas = 0, brake = 0, manualSpeed = 0, manualReleaseAt = 0;
 let virtualRpm = profiles[kind].idle, virtualLoad = 0, gear = 1, shiftUntil = 0;
 let lastFrame = performance.now(), lastMessage = 0, lastDisplay = 0;
@@ -303,24 +304,29 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function requestMotion(fromGesture = false) {
-  if (requestMotion.attempted || typeof DeviceMotionEvent === 'undefined') return;
+  if (requestMotion.attempted) return;
+  if (typeof DeviceMotionEvent === 'undefined') { motionState = '设备不支持'; return; }
   const requiresGesture = typeof DeviceMotionEvent.requestPermission === 'function';
   if (requiresGesture && !fromGesture) return;
   // Keep the decision for the whole page, including when access is denied.
   requestMotion.attempted = true;
+  motionState = requiresGesture ? '正在请求权限' : '等待传感器数据';
   const attach = () => {
     window.addEventListener('devicemotion', onMotion);
+    motionState = '已授权，等待数据';
   };
   if (requiresGesture) {
     DeviceMotionEvent.requestPermission().then(result => {
-      if (result === 'granted') attach();
-    }).catch(() => { /* The visitor can keep using GPS and pedals. */ });
+      if (result === 'granted') attach(); else motionState = '未授权';
+    }).catch(() => { motionState = '权限不可用'; });
   } else attach();
 }
 function onMotion(event) {
   const m = event.acceleration;
-  if (!m || ![m.x, m.y, m.z].every(Number.isFinite)) return;
+  if (!m || ![m.x, m.y, m.z].every(Number.isFinite)) { motionState = '已授权，暂无数据'; return; }
   motionSample = [m.x, m.y, m.z];
+  lastMotionSampleAt = performance.now();
+  motionState = '已连接';
   if (motionAxis) {
     const projected = motionSample.reduce((sum, value, i) => sum + value * motionAxis[i], 0);
     motionAcceleration = clamp(projected, -7, 7);
@@ -334,19 +340,23 @@ function haversine(a, b) {
 }
 function onPosition(position) {
   const c = position.coords, t = position.timestamp;
-  if (!Number.isFinite(c.accuracy) || c.accuracy > 80) { status('定位较弱', true); return; }
+  gpsAccuracy = c.accuracy;
+  if (!Number.isFinite(c.accuracy) || c.accuracy > 80) { gpsState = '定位精度较低'; status('定位较弱', true); return; }
+  gpsState = '定位已连接';
   let measured = Number.isFinite(c.speed) && c.speed >= 0 ? c.speed * 3.6 : null;
+  let method = measured === null ? '' : '设备速度';
   if (measured === null && gpsFix) {
     const dt = (t - gpsFix.t) / 1000;
     if (dt >= .5 && dt <= 8) {
       const d = haversine(gpsFix.coords, c);
-      if (d > Math.max(3, Math.min(12, (c.accuracy + gpsFix.coords.accuracy) * .3))) measured = d / dt * 3.6;
-      else if (d < 3 && dt > 2) measured = 0;
+      if (d > Math.max(3, Math.min(12, (c.accuracy + gpsFix.coords.accuracy) * .3))) { measured = d / dt * 3.6; method = '位置估算'; }
+      else if (d < 3 && dt > 2) { measured = 0; method = '位置估算'; }
     }
   }
   gpsFix = { coords: { latitude: c.latitude, longitude: c.longitude, accuracy: c.accuracy }, t };
   if (measured === null) return;
   measured = clamp(measured, 0, 1000);
+  gpsSpeedMethod = method;
   if (sensorSpeed !== null) {
     const dt = (t - onPosition.previousTime) / 1000;
     if (dt > .3 && dt < 10) {
@@ -371,13 +381,14 @@ function onPosition(position) {
   status(motionAxis && performance.now() - lastMotionAt < 1000 ? '速度＋运动' : '速度联动');
 }
 function startLocation() {
-  if (!navigator.geolocation) { status('手动试音', true); return; }
+  if (!navigator.geolocation) { gpsState = '浏览器不支持'; status('手动试音', true); return; }
   try {
     gpsWatch = navigator.geolocation.watchPosition(onPosition, err => {
+      gpsState = err.code === 1 ? '定位未授权' : err.code === 3 ? '定位超时' : '定位暂不可用';
       status(err.code === 1 ? '定位未授权' : '定位暂不可用', true);
       $('source').textContent = '可手动试音';
     }, { enableHighAccuracy: true, maximumAge: 500, timeout: 12000 });
-  } catch { status('定位暂不可用', true); }
+  } catch { gpsState = '定位暂不可用'; status('定位暂不可用', true); }
 }
 startLocation();
 
@@ -403,6 +414,14 @@ function bindPedal(id, setter) {
 bindPedal('gas', value => gas = value);
 bindPedal('brake', value => brake = value);
 window.addEventListener('blur', () => { gas = brake = 0; manualReleaseAt = performance.now(); });
+
+function renderTelemetry(now, speed, accel, fresh) {
+  $('telemetry-brief').textContent = manual ? '踏板 → 声音' : fresh ? 'GPS → 声音' : gpsState;
+  $('telemetry-gps').textContent = gpsState + (Number.isFinite(gpsAccuracy) ? ` · 精度约 ${Math.round(gpsAccuracy)} m` : '');
+  $('telemetry-speed').textContent = fresh ? `${sensorSpeed.toFixed(1)} km/h · ${gpsSpeedMethod}` : sensorSpeed === null ? '等待速度数据' : `信号中断 · ${Math.round((now - lastSensorAt) / 1000)} 秒前`;
+  $('telemetry-motion').textContent = lastMotionSampleAt && now - lastMotionSampleAt > 3000 ? '动作信号中断' : lastMotionSampleAt ? motionAxis && now - lastMotionAt < 800 ? '已接入加速度' : '已连接，待校准' : motionState;
+  $('telemetry-input').textContent = manual || fresh ? `${speed.toFixed(1)} km/h · ${accel.toFixed(1)} m/s²${manual ? ' · 踏板' : ''}` : '等待速度 / 可按踏板';
+}
 
 function frame(now) {
   const dt = clamp((now - lastFrame) / 1000, 0, .08);
@@ -474,6 +493,7 @@ function frame(now) {
     $('jet-load').textContent = '负载 ' + Math.round(virtualLoad * 100) + '%';
     $('source').textContent = manual ? '踏板控制' : fresh ? motionAxis && now - lastMotionAt < 800 ? '速度＋加速度' : '速度联动' : '等待速度数据';
     $('pedal-hint').textContent = manual ? fresh ? '松开后自动返回车速联动' : '按住踏板控制' : fresh ? '按住即响应 · 松开后返回车速' : '按住踏板即可试音';
+    renderTelemetry(now, speed, accel, fresh);
     if (!manual && !fresh && lastSensorAt) status('信号中断', true);
     if (audioReady && context?.state === 'running') updateAudioStatus();
     lastDisplay = now;
