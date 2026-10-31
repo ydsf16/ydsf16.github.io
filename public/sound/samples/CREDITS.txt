@@ -31,3 +31,19 @@ They are redistributed under the same Creative Commons Attribution-ShareAlike
 The speed and acceleration mapping, blending and sound synthesis on this site
 are separate software implementation. These samples were not recorded from
 the user's vehicle and do not claim to reproduce its exact engine state.
+
+Tractor diesel sound pack — Kubota B2601 style simulation
+
+tractor-diesel-idle.wav — close recorded tractor engine idle, from
+  "tractor idle engine motor close1.flac" by kyles on Freesound, CC0:
+  https://freesound.org/people/kyles/sounds/637883/
+  https://creativecommons.org/publicdomain/zero/1.0/
+  Changes: high-quality preview excerpt at 3–16 s, mono 24 kHz conversion,
+  45–8000 Hz filtering, level adjustment, and 400 ms overlap loop fade.
+
+The original recording does not identify the tractor's brand or engine model.
+Kubota B2601 styling and 3-cylinder firing simulation follow the official
+B2601 specifications (3-cylinder diesel, rated 2800 RPM):
+  https://media.kubota.io/uploads/B2301-B2601-Tractor-Operator-Manual.pdf
+This is a Kubota-inspired sound simulation, not an authentic B2601 recording
+or a Kubota-sponsored product. The recording is CC0 and can be redistributed.

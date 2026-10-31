@@ -72,12 +72,16 @@ class VehicleSound extends AudioWorkletProcessor {
           const prev = this.phase.tractor;
           const phase = (prev + Math.max(600, this.rpm) / (120 * sr)) % 1;
           this.phase.tractor = phase;
-          if (phase < prev) this.pulse.tractor = 1.2 + this.load * .7;
-          this.pulse.tractor *= .99915;
-          const thud = Math.sin(TAU * phase * 5);
-          const metal = Math.sin(TAU * phase * 19);
-          signal = .31 * (this.pulse.tractor - .3) + .20 * thud + .05 * metal * this.pulse.tractor;
-          signal *= .68 + .45 * this.load;
+          // Three evenly spaced combustions during a four-stroke 720-degree cycle.
+          if (Math.floor(prev * 3) !== Math.floor(phase * 3)) this.pulse.tractor = .72 + this.load * .45;
+          this.pulse.tractor *= .992;
+          const firing = Math.sin(TAU * phase * 3);
+          const exhaust = Math.sin(TAU * phase * 6 + .2);
+          const rattle = this.random();
+          this.noise += (rattle - this.noise) * .14;
+          signal = .19 * firing + .10 * exhaust + .07 * this.pulse.tractor
+            + (.035 + .06 * this.load) * (rattle - this.noise) * (.35 + this.pulse.tractor);
+          signal *= .65 + .55 * this.load;
         } else {
           const spin = clamp(this.rpm / 11000, .08, 1);
           this.phase.jet = (this.phase.jet + (115 + spin * 560) / sr) % 1;

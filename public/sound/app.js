@@ -2,14 +2,16 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const profiles = {
   car: { name: 'V8 运动跑车', type: 'V8 · SPORTS CAR', idle: 850, max: 7500, top: 210, accel: 5.4 },
-  tractor: { name: '手扶拖拉机', type: 'SINGLE CYLINDER · DIESEL', idle: 720, max: 2200, top: 42, accel: 1.8 },
+  tractor: { name: '久保田 B2601 风格', type: 'THREE CYLINDER · DIESEL SIMULATION', idle: 900, max: 2800, top: 25, accel: 1.8 },
   jet: { name: '喷气战斗机', type: 'JET · TURBINE', idle: 3000, max: 11000, top: 980, accel: 11 }
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
 if (!profiles[kind]) kind = 'car';
-let context, node, master, fallback, synthGain, carSamples, carIdle;
+let context, node, master, fallback, synthGain, carSamples, carIdle, tractorSample;
 let carSamplesLoading = false;
 let carSamplesError = false;
+let tractorSampleLoading = false;
+let tractorSampleError = false;
 const carLoopRpms = [2977, 4438];
 let audioReady = false;
 let savedVolume;
@@ -47,6 +49,8 @@ function updateAudioStatus() {
   if (volume === 0) { audioStatus('音量为 0'); return; }
   if (kind === 'car') {
     audioStatus(carIdle ? 'V8 真实怠速＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
+  } else if (kind === 'tractor') {
+    audioStatus(tractorSample ? '柴油机实录＋三缸模拟 · 久保田风格' : tractorSampleError ? '录音加载失败，仅合成柴油声' : '正在载入柴油机音色包…');
   } else audioStatus('声浪实时生成中');
 }
 function selectVehicle(next) {
@@ -159,13 +163,49 @@ async function loadCarSamples() {
     carSamplesError = true;
   } finally { carSamplesLoading = false; updateAudioStatus(); }
 }
+async function loadTractorSample() {
+  if (tractorSample || tractorSampleLoading || !context) return;
+  tractorSampleLoading = true;
+  updateAudioStatus();
+  try {
+    const response = await fetch('./samples/tractor-diesel-idle.wav');
+    if (!response.ok) throw new Error(`tractor-diesel-idle.wav: ${response.status}`);
+    const buffer = await context.decodeAudioData(await response.arrayBuffer());
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    const lowpass = context.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 3200;
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.value = 0;
+    source.connect(lowpass).connect(gain).connect(master);
+    source.start(0, Math.random() * buffer.duration);
+    tractorSample = { source, gain, lowpass };
+    tractorSampleError = false;
+  } catch (error) {
+    console.warn('Tractor recording unavailable; using synthesized sound', error);
+    tractorSampleError = true;
+  } finally { tractorSampleLoading = false; updateAudioStatus(); }
+}
+function updateTractorSampleMix(rpm, load) {
+  if (!context || !synthGain) return;
+  const now = context.currentTime;
+  const active = kind === 'tractor' && !!tractorSample;
+  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .18 + .28 * clamp((rpm - 1100) / 1700, 0, 1) : 1, now, .035);
+  if (!tractorSample) return;
+  const rev = clamp((rpm - 900) / 1900, 0, 1);
+  tractorSample.source.playbackRate.setTargetAtTime(.95 + .65 * rev, now, .035);
+  tractorSample.lowpass.frequency.setTargetAtTime(2100 + 3000 * rev + 900 * load, now, .045);
+  tractorSample.gain.gain.setTargetAtTime(active ? .80 - .16 * rev + .12 * load : 0, now, .05);
+}
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
   const now = context.currentTime;
   const active = kind === 'car' && carSamples && carIdle;
   const blend = active ? clamp((rpm - 1450) / 1050, 0, 1) : 0;
   const smooth = blend * blend * (3 - 2 * blend);
-  synthGain.gain.setTargetAtTime(active ? .32 + .62 * smooth : 1, now, .025);
+  if (kind !== 'tractor') synthGain.gain.setTargetAtTime(active ? .32 + .62 * smooth : 1, now, .025);
   if (!carSamples) return;
   carIdle.source.playbackRate.setTargetAtTime(clamp(rpm / 1205, .6, 1.4), now, .025);
   carIdle.gain.gain.setTargetAtTime(kind === 'car' ? (1 - smooth) * (.6 + .18 * clamp(load, 0, 1)) : 0, now, .04);
@@ -233,6 +273,7 @@ async function ensureAudio(fromGesture = false) {
   }
   audioReady = true;
   loadCarSamples();
+  loadTractorSample();
   updateAudioStatus();
   resume.then(updateAudioStatus);
   ensureAudio.loading = false;
@@ -377,7 +418,7 @@ function frame(now) {
     targetLoad = clamp(.10 + Math.max(0, accel) * .27 + speed * .0012 - Math.max(0, -accel) * .18, .02, 1);
     if (now < shiftUntil) targetLoad *= .24;
   } else if (kind === 'tractor') {
-    targetRpm = clamp(p.idle + speed * 29 + Math.max(0, accel) * 150, p.idle, p.max);
+    targetRpm = clamp(p.idle + speed * 58 + Math.max(0, accel) * 180, p.idle, p.max);
     if (manual && gas && speed < 2) targetRpm += 600 * gas;
     targetLoad = clamp(.14 + Math.max(0, accel) * .37 + speed * .005, .1, 1);
   } else {
@@ -390,10 +431,12 @@ function frame(now) {
   if (node && now - lastMessage > 25) {
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
     updateCarSampleMix(virtualRpm, virtualLoad);
+    updateTractorSampleMix(virtualRpm, virtualLoad);
     lastMessage = now;
   }
   if (fallback && now - lastMessage > 25) {
     updateCarSampleMix(virtualRpm, virtualLoad);
+    updateTractorSampleMix(virtualRpm, virtualLoad);
     lastMessage = now;
   }
   if (fallback && context?.state === 'running') fallback.update(virtualRpm, virtualLoad, kind);
