@@ -8,7 +8,7 @@
   <title>声浪实验室 · TinyGrapeLab</title>
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="./style.css">
-  <script src="./app.js?v=8" type="module"></script>
+  <script src="./app.js?v=9" type="module"></script>
 </head>
 <body>
   <div class="app" id="app" data-vehicle="car">
@@ -30,8 +30,13 @@
           </div>
         </div>
         <div class="scene scene-tractor" aria-label="拖拉机柴油发动机">
-          <div class="tractor-engine" aria-hidden="true"><div class="tractor-tank"></div><div class="tractor-block"></div><div class="tractor-flywheel"><div></div></div><div class="tractor-exhaust"></div></div>
-          <div class="scene-details"><span><strong id="tractor-rpm">800</strong> rpm · 单缸柴油</span><span><strong id="tractor-speed">0</strong> km/h</span></div>
+          <div class="tractor-visual" role="img" aria-label="实拍久保田单缸柴油发动机侧面，飞轮随模拟转速旋转">
+            <img class="tractor-photo" src="./images/kubota-engine-side.jpg" alt="" loading="eager">
+            <div id="tractor-flywheel" class="wheel-rotor" aria-hidden="true"><i></i><b></b></div>
+            <div class="engine-belt belt-upper" aria-hidden="true"></div><div class="engine-belt belt-lower" aria-hidden="true"></div>
+            <span class="engine-caption">KUBOTA · 单缸柴油 · 飞轮动态示意</span>
+          </div>
+          <div class="scene-details"><span><strong id="tractor-rpm">800</strong> rpm · 单缸柴油</span><span><strong id="tractor-speed">0</strong> km/h · 模拟上限 72</span></div>
         </div>
         <div class="scene scene-jet" aria-label="喷气机座舱仪表">
           <div class="jet-display"><div class="jet-horizon"><span>✦</span></div><div class="jet-readouts"><div><small>虚拟推力</small><strong id="jet-thrust">28%</strong></div><div><small>地速</small><strong id="jet-speed">0</strong><small>km/h</small></div></div></div>

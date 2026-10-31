@@ -34,15 +34,16 @@ the user's vehicle and do not claim to reproduce its exact engine state.
 
 Tractor diesel sound pack — Kubota ZT140 single-cylinder style simulation
 
-tractor-single-cylinder.wav — real single-cylinder tractor engine excerpt:
+tractor-single-cylinder-v2.wav — real single-cylinder tractor engine excerpt:
   "old Eicher tractor.wav" by viertelnachvier, Freesound, CC BY 4.0:
   https://freesound.org/people/viertelnachvier/sounds/157822/
   https://creativecommons.org/licenses/by/4.0/
   The original recording documents a 1957 Eicher ED 13/Ie (a), an air-cooled
-  one-cylinder diesel tractor recorded in a barn. Changes: selected a fairly
-  stable 20.12–21.87 second section from the high-quality preview, converted
-  to mono 24 kHz, filtered to 42–9000 Hz, adjusted gain, and crossfaded the
-  ends to make a 1.60 second loop. The recording is credited above as required.
+  one-cylinder diesel tractor recorded in a barn. Changes: selected a stable
+  20.34–21.87 second section from the high-quality preview, converted to mono
+  24 kHz, filtered to 42–9000 Hz, adjusted gain, and matched a 25 ms loop
+  overlap to avoid the perceptible level dip in the earlier 1.60 second loop.
+  The resulting loop is 1.505 seconds. The recording is credited above.
 
 Kubota ZT140 engine parameters used for the simulation: one horizontal,
 water-cooled, four-stroke diesel cylinder; maximum/rated 2400 rpm:
@@ -50,3 +51,12 @@ water-cooled, four-stroke diesel cylinder; maximum/rated 2400 rpm:
 The browser engine changes sample speed in proportion to modeled rpm and
 adds one synthesized combustion event per two crankshaft turns. This is a
 Kubota-inspired timbre; the recording is from Eicher, not a Kubota engine.
+
+Engine side photograph — "Mesin Diesel Pompa Air Kubota.jpg" by SATELIT BM:
+  https://commons.wikimedia.org/wiki/File:Mesin_Diesel_Pompa_Air_Kubota.jpg
+  https://creativecommons.org/licenses/by-sa/4.0/
+  Source photo resized to 960 × 540 for the site. The wheel animation is
+  layered over the photo in CSS; this visual adaptation is shared under
+  CC BY-SA 4.0. It shows a real Kubota diesel engine powering a water pump,
+  and its exact model is not identified in the source photo. It is used as
+  an engine-side visual reference for this ZT140-style sound simulation.

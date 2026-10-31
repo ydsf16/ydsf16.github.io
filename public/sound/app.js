@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const profiles = {
   car: { name: 'V8 运动跑车', type: 'V8 · SPORTS CAR', idle: 850, max: 7500, top: 210, accel: 5.4 },
-  tractor: { name: '久保田 ZT140 单缸风格', type: 'SINGLE CYLINDER · DIESEL SIMULATION', idle: 800, max: 2400, top: 20, accel: 1.5 },
+  tractor: { name: '久保田 ZT140 单缸风格', type: 'SINGLE CYLINDER · DIESEL SIMULATION', idle: 800, max: 2400, top: 72, accel: 4 },
   jet: { name: '喷气战斗机', type: 'JET · TURBINE', idle: 3000, max: 11000, top: 980, accel: 11 }
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
@@ -168,8 +168,8 @@ async function loadTractorSample() {
   tractorSampleLoading = true;
   updateAudioStatus();
   try {
-    const response = await fetch('./samples/tractor-single-cylinder.wav');
-    if (!response.ok) throw new Error(`tractor-single-cylinder.wav: ${response.status}`);
+    const response = await fetch('./samples/tractor-single-cylinder-v2.wav');
+    if (!response.ok) throw new Error(`tractor-single-cylinder-v2.wav: ${response.status}`);
     const buffer = await context.decodeAudioData(await response.arrayBuffer());
     const source = context.createBufferSource();
     const gain = context.createGain();
@@ -420,7 +420,7 @@ function frame(now) {
     targetLoad = clamp(.10 + Math.max(0, accel) * .27 + speed * .0012 - Math.max(0, -accel) * .18, .02, 1);
     if (now < shiftUntil) targetLoad *= .24;
   } else if (kind === 'tractor') {
-    targetRpm = clamp(p.idle + speed * 68 + Math.max(0, accel) * 200, p.idle, p.max);
+    targetRpm = clamp(p.idle + speed * 24 + Math.max(0, accel) * 180, p.idle, p.max);
     if (manual && gas && speed < 2) targetRpm = Math.min(p.max, targetRpm + 750 * gas);
     targetLoad = clamp(.14 + Math.max(0, accel) * .37 + speed * .005, .1, 1);
   } else {
@@ -430,6 +430,11 @@ function frame(now) {
   const inertia = kind === 'jet' ? 1.7 : kind === 'tractor' ? 3.5 : 6;
   virtualRpm += (targetRpm - virtualRpm) * (1 - Math.exp(-inertia * dt));
   virtualLoad += (targetLoad - virtualLoad) * (1 - Math.exp(-(targetLoad > virtualLoad ? 16 : 5) * dt));
+  if (kind === 'tractor' && dt > 0) {
+    // Display rotation is slowed so the wheel remains visible at 60 Hz screens.
+    frame.flywheelAngle = ((frame.flywheelAngle || 0) - 360 * clamp(virtualRpm / 600, 1.1, 4.2) * dt) % 360;
+    $('tractor-flywheel').style.transform = `rotate(${frame.flywheelAngle}deg)`;
+  }
   if (node && now - lastMessage > 25) {
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
     updateCarSampleMix(virtualRpm, virtualLoad);
