@@ -7,7 +7,9 @@ const profiles = {
 };
 let kind = new URLSearchParams(location.search).get('vehicle');
 if (!profiles[kind]) kind = 'car';
-let context, node, master, fallback;
+let context, node, master, fallback, synthGain, carSamples;
+let carSamplesLoading = false;
+const carLoopRpms = [2977, 4438, 6040, 7252];
 let audioReady = false;
 let savedVolume;
 try { savedVolume = localStorage.getItem('tg-sound-volume'); } catch { /* Private browsing may disable storage. */ }
@@ -70,7 +72,7 @@ function makeFallback(ctx) {
   const lowpass = ctx.createBiquadFilter();
   tone.type = 'sawtooth'; sub.type = 'triangle'; lowpass.type = 'lowpass';
   gain.gain.value = .14;
-  tone.connect(lowpass); sub.connect(lowpass); lowpass.connect(gain); gain.connect(master);
+  tone.connect(lowpass); sub.connect(lowpass); lowpass.connect(gain); gain.connect(synthGain);
   tone.start(); sub.start();
   return {
     setKind(next) { tone.type = next === 'jet' ? 'sine' : next === 'tractor' ? 'square' : 'sawtooth'; },
@@ -82,6 +84,62 @@ function makeFallback(ctx) {
       gain.gain.setTargetAtTime(.07 + load * .16, ctx.currentTime, .04);
     }
   };
+}
+async function loadCarSamples() {
+  if (carSamples || carSamplesLoading || !context) return;
+  carSamplesLoading = true;
+  try {
+    const buffers = await Promise.all(carLoopRpms.map(async (_, i) => {
+      const response = await fetch(`./samples/v8-${i + 1}.wav`);
+      if (!response.ok) throw new Error(`sample ${i + 1}: ${response.status}`);
+      return context.decodeAudioData(await response.arrayBuffer());
+    }));
+    const lowpass = context.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 6500;
+    lowpass.connect(master);
+    carSamples = buffers.map((buffer, i) => {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      source.playbackRate.value = profiles.car.idle / carLoopRpms[i];
+      gain.gain.value = 0;
+      source.connect(gain).connect(lowpass);
+      source.start(0, Math.random() * buffer.duration);
+      return { source, gain };
+    });
+    carSamples.lowpass = lowpass;
+  } catch (error) {
+    console.warn('V8 recordings unavailable; using synthesized sound', error);
+    audioStatus('录音加载失败，使用合成声浪');
+  } finally { carSamplesLoading = false; }
+}
+function updateCarSampleMix(rpm, load) {
+  if (!context || !synthGain) return;
+  const now = context.currentTime;
+  const active = kind === 'car' && carSamples;
+  const blend = active ? clamp((rpm - 1450) / 1050, 0, 1) : 0;
+  const smooth = blend * blend * (3 - 2 * blend);
+  synthGain.gain.setTargetAtTime(active ? 1 - .76 * smooth : 1, now, .025);
+  if (!carSamples) return;
+  const weights = carLoopRpms.map(() => 0);
+  if (rpm <= carLoopRpms[0]) weights[0] = 1;
+  else if (rpm >= carLoopRpms.at(-1)) weights[weights.length - 1] = 1;
+  else {
+    let i = 0;
+    while (rpm > carLoopRpms[i + 1]) i++;
+    const x = clamp(Math.log(rpm / carLoopRpms[i]) / Math.log(carLoopRpms[i + 1] / carLoopRpms[i]), 0, 1);
+    const cross = x * x * (3 - 2 * x);
+    weights[i] = Math.cos(cross * Math.PI / 2);
+    weights[i + 1] = Math.sin(cross * Math.PI / 2);
+  }
+  const loudness = .5 + .65 * clamp(load, 0, 1);
+  carSamples.lowpass.frequency.setTargetAtTime(1800 + 7500 * clamp(load, 0, 1), now, .04);
+  carSamples.forEach((loop, i) => {
+    loop.source.playbackRate.setTargetAtTime(clamp(rpm / carLoopRpms[i], .25, 1.45), now, .018);
+    loop.gain.gain.setTargetAtTime(kind === 'car' ? weights[i] * smooth * loudness : 0, now, .03);
+  });
 }
 async function ensureAudio(fromGesture = false) {
   configureAudioSession();
@@ -97,6 +155,9 @@ async function ensureAudio(fromGesture = false) {
     context.onstatechange = updateAudioStatus;
     master = context.createGain();
     master.gain.value = volume / 100;
+    synthGain = context.createGain();
+    synthGain.gain.value = 1;
+    synthGain.connect(master);
     const limiter = context.createDynamicsCompressor();
     limiter.threshold.value = -10;
     limiter.ratio.value = 4;
@@ -109,9 +170,9 @@ async function ensureAudio(fromGesture = false) {
   ensureAudio.loading = true;
   try {
     if (!context.audioWorklet) throw new Error('no worklet');
-    await context.audioWorklet.addModule('./audio-worklet.js');
+    await context.audioWorklet.addModule('./audio-worklet.js?v=3');
     node = new AudioWorkletNode(context, 'tinygrape-vehicle-sound', { numberOfInputs: 0, outputChannelCount: [1] });
-    node.connect(master);
+    node.connect(synthGain);
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
     node.onprocessorerror = () => {
       node.disconnect();
@@ -125,6 +186,7 @@ async function ensureAudio(fromGesture = false) {
     fallback.setKind(kind);
   }
   audioReady = true;
+  loadCarSamples();
   updateAudioStatus();
   resume.then(updateAudioStatus);
   ensureAudio.loading = false;
@@ -278,6 +340,11 @@ function frame(now) {
   virtualLoad += (targetLoad - virtualLoad) * (1 - Math.exp(-(targetLoad > virtualLoad ? 16 : 5) * dt));
   if (node && now - lastMessage > 25) {
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
+    updateCarSampleMix(virtualRpm, virtualLoad);
+    lastMessage = now;
+  }
+  if (fallback && now - lastMessage > 25) {
+    updateCarSampleMix(virtualRpm, virtualLoad);
     lastMessage = now;
   }
   if (fallback && context?.state === 'running') fallback.update(virtualRpm, virtualLoad, kind);

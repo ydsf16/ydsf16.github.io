@@ -55,9 +55,11 @@ class VehicleSound extends AudioWorkletProcessor {
           if (newStep !== oldStep) this.pulse.car += (newStep % 4 === 1 ? .62 : 1) * (.5 + this.load * .8);
           this.pulse.car *= .995 - .0015 * this.load;
           const firing = Math.sin(TAU * phase * 8);
+          const exhaust = Math.sin(TAU * phase * 16 + .18);
+          const intake = Math.sin(TAU * phase * 32 + .34);
           const sub = Math.sin(TAU * phase * 4 + .3);
           const rough = Math.sin(TAU * phase * 2 + .9);
-          signal = .12 * firing + .17 * sub + .08 * rough + .22 * (this.pulse.car - .38);
+          signal = .14 * firing + .15 * exhaust + .08 * intake + .06 * sub + .025 * rough + .16 * (this.pulse.car - .38);
           signal *= .62 + .62 * this.load;
         } else if (kind === 'tractor') {
           const prev = this.phase.tractor;

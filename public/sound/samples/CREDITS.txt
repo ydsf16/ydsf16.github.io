@@ -1,0 +1,23 @@
+V8 recorded sound loops — CC BY-SA 3.0
+
+Original recordings by Edvvc on Wikimedia Commons:
+  Ferrari 458 Italia — https://commons.wikimedia.org/wiki/File:Ferrari_458_Italia.ogg
+  Ferrari F430 (2010) — https://commons.wikimedia.org/wiki/File:Ferrari_F430_(2010).ogg
+
+Loops prepared by ssabeeth (trimmed, pitch-flattened, looped, level-matched):
+  https://github.com/ssabeeth/v8-engine-explorer/blob/main/src/42_samples.js
+
+v8-1.wav  — Ferrari 458 Italia, measured source RPM 2977
+v8-2.wav  — Ferrari 458 Italia, measured source RPM 4438
+v8-3.wav  — Ferrari F430 GT, measured source RPM 6040
+v8-4.wav  — Ferrari F430 GT, measured source RPM 7252
+
+The four WAV files were extracted from the above project's loops and each
+shortened by 18 ms with an end-to-start overlap fade to reduce loop clicks.
+They are redistributed under the same Creative Commons Attribution-ShareAlike
+3.0 license. You may share and adapt them under its terms:
+  https://creativecommons.org/licenses/by-sa/3.0/
+
+The speed and acceleration mapping, blending and sound synthesis on this site
+are separate software implementation. These samples were not recorded from
+the user's vehicle and do not claim to reproduce its exact engine state.
