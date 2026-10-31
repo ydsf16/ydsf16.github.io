@@ -9,6 +9,7 @@ let kind = new URLSearchParams(location.search).get('vehicle');
 if (!profiles[kind]) kind = 'car';
 let context, node, master, fallback, synthGain, carSamples;
 let carSamplesLoading = false;
+let carSamplesError = false;
 const carLoopRpms = [2977, 4438, 6040, 7252];
 let audioReady = false;
 let savedVolume;
@@ -42,7 +43,11 @@ function configureAudioSession() {
 }
 function updateAudioStatus() {
   if (!context) return;
-  audioStatus(context.state === 'running' ? volume === 0 ? '音量为 0' : '声浪实时生成中' : '轻触载具卡片开启声音');
+  if (context.state !== 'running') { audioStatus('轻触载具卡片开启声音'); return; }
+  if (volume === 0) { audioStatus('音量为 0'); return; }
+  if (kind === 'car') {
+    audioStatus(carSamples ? 'V8 真实录音＋实时合成' : carSamplesError ? '录音加载失败，仅合成声浪' : '正在载入 V8 录音…');
+  } else audioStatus('声浪实时生成中');
 }
 function selectVehicle(next) {
   if (!profiles[next]) return;
@@ -58,6 +63,7 @@ function selectVehicle(next) {
   virtualRpm = profiles[kind].idle;
   if (node) node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
   if (fallback) fallback.setKind(kind);
+  updateAudioStatus();
 }
 document.querySelectorAll('.vehicle-card').forEach(button => button.addEventListener('click', () => {
   ensureAudio(true);
@@ -88,6 +94,7 @@ function makeFallback(ctx) {
 async function loadCarSamples() {
   if (carSamples || carSamplesLoading || !context) return;
   carSamplesLoading = true;
+  updateAudioStatus();
   try {
     const buffers = await Promise.all(carLoopRpms.map(async (_, i) => {
       const response = await fetch(`./samples/v8-${i + 1}.wav`);
@@ -110,10 +117,11 @@ async function loadCarSamples() {
       return { source, gain };
     });
     carSamples.lowpass = lowpass;
+    carSamplesError = false;
   } catch (error) {
     console.warn('V8 recordings unavailable; using synthesized sound', error);
-    audioStatus('录音加载失败，使用合成声浪');
-  } finally { carSamplesLoading = false; }
+    carSamplesError = true;
+  } finally { carSamplesLoading = false; updateAudioStatus(); }
 }
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
