@@ -16,10 +16,17 @@ class VehicleSound extends AudioWorkletProcessor {
     this.jetNoise = 0;
     this.carNoise = 0;
     this.seed = 47531;
+    this.tractorGrains = null;
+    this.activeTractorGrains = [];
+    this.tractorFiltered = 0;
     this.port.onmessage = ({ data }) => {
       if (data.kind in this.weights) this.vehicle = data.kind;
       if (Number.isFinite(data.rpm)) this.targetRpm = clamp(data.rpm, 0, 16000);
       if (Number.isFinite(data.load)) this.targetLoad = clamp(data.load, 0, 1);
+      if (data.tractorGrains) {
+        this.tractorGrains = data.tractorGrains;
+        this.activeTractorGrains.length = 0;
+      }
     };
   }
   random() {
@@ -72,6 +79,34 @@ class VehicleSound extends AudioWorkletProcessor {
           const prev = this.phase.tractor;
           const phase = (prev + Math.max(600, this.rpm) / (120 * sr)) % 1;
           this.phase.tractor = phase;
+          if (this.tractorGrains) {
+            if (phase < prev || (this.activeTractorGrains.length === 0 && i === 0)) {
+              const highMix = clamp((this.rpm - 960) / 800, 0, 1);
+              const high = (this.random() + 1) * .5 < highMix;
+              const bank = high ? this.tractorGrains.high : this.tractorGrains.low;
+              const length = high ? this.tractorGrains.highLength : this.tractorGrains.lowLength;
+              const count = Math.floor(bank.length / length);
+              const index = Math.min(count - 1, Math.floor((this.random() + 1) * .5 * count));
+              this.activeTractorGrains.push({ bank, offset: index * length, length, pos: 0 });
+            }
+            for (let j = this.activeTractorGrains.length - 1; j >= 0; j--) {
+              const grain = this.activeTractorGrains[j];
+              const at = Math.floor(grain.pos);
+              if (at >= grain.length - 1) {
+                this.activeTractorGrains.splice(j, 1);
+                continue;
+              }
+              const fraction = grain.pos - at;
+              signal += grain.bank[grain.offset + at] * (1 - fraction)
+                + grain.bank[grain.offset + at + 1] * fraction;
+              grain.pos += this.tractorGrains.sampleRate / sr;
+            }
+            // Repeat real combustion snippets at the requested cadence. The
+            // recording itself always runs at its original sample rate.
+            signal *= 1.5 * (.85 + this.load * .25);
+            this.tractorFiltered += (signal - this.tractorFiltered) * (1 - Math.exp(-TAU * 3000 / sr));
+            signal = this.tractorFiltered;
+          } else {
           // One combustion every 720 crankshaft degrees, with a short knock
           // and a slower exhaust resonance to preserve the single-cylinder beat.
           if (phase < prev) this.pulse.tractor = .9 + this.load * .55;
@@ -84,6 +119,7 @@ class VehicleSound extends AudioWorkletProcessor {
           signal = .16 * firing + .13 * exhaust + .055 * flywheel + .12 * (this.pulse.tractor - .1)
             + (.025 + .07 * this.load) * (rattle - this.noise) * (.25 + this.pulse.tractor);
           signal *= .58 + .58 * this.load;
+          }
         } else {
           const spin = clamp(this.rpm / 11000, .08, 1);
           this.phase.jet = (this.phase.jet + (115 + spin * 560) / sr) % 1;

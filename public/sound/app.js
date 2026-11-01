@@ -169,13 +169,13 @@ async function loadTractorSample() {
   tractorSampleLoading = true;
   updateAudioStatus();
   try {
-    const files = ['tractor-idle-v3.wav', 'tractor-rev-v3.wav'];
+    const files = ['tractor-idle-v3.wav', 'tractor-rev-v4.wav', 'tractor-grains-idle-v4.wav', 'tractor-grains-rev-v4.wav'];
     const buffers = await Promise.all(files.map(async file => {
       const response = await fetch(`./samples/${file}`);
       if (!response.ok) throw new Error(`${file}: ${response.status}`);
       return context.decodeAudioData(await response.arrayBuffer());
     }));
-    const layers = buffers.map(buffer => {
+    const layers = buffers.slice(0, 2).map(buffer => {
       const source = context.createBufferSource();
       const gain = context.createGain();
       const lowpass = context.createBiquadFilter();
@@ -189,6 +189,15 @@ async function loadTractorSample() {
       return { source, gain, lowpass };
     });
     tractorSample = { idle: layers[0], rev: layers[1] };
+    if (node) {
+      const low = buffers[2].getChannelData(0).slice();
+      const high = buffers[3].getChannelData(0).slice();
+      node.port.postMessage({ tractorGrains: {
+        low, high, lowLength: Math.floor(low.length / 32), highLength: Math.floor(high.length / 32),
+        sampleRate: buffers[2].sampleRate
+      } }, [low.buffer, high.buffer]);
+      tractorSample.granular = true;
+    }
     tractorSampleError = false;
   } catch (error) {
     console.warn('Tractor recording unavailable; using synthesized sound', error);
@@ -199,20 +208,15 @@ function updateTractorSampleMix(rpm, load) {
   if (!context || !synthGain) return;
   const now = context.currentTime;
   const active = kind === 'tractor' && !!tractorSample;
-  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active ? .05 + .035 * load : 1, now, .035);
+  if (kind === 'tractor') synthGain.gain.setTargetAtTime(active && !tractorSample.granular ? .025 : 1, now, .035);
   if (!tractorSample) return;
-  const rev = clamp((rpm - 800) / 1600, 0, 1);
-  // Both source sections are from the same small tractor. Their firing
-  // cadences are about 7.7 Hz and 14.5 Hz (one event per 720 degrees).
-  const blend = clamp((rpm - 1000) / 600, 0, 1);
+  const blend = clamp((rpm - 1040) / 700, 0, 1);
   const smooth = blend * blend * (3 - 2 * blend);
-  tractorSample.idle.source.playbackRate.setTargetAtTime(clamp(rpm / 924, .7, 1.8), now, .025);
-  tractorSample.rev.source.playbackRate.setTargetAtTime(clamp(rpm / 1740, .7, 1.55), now, .025);
-  const cutoff = 3000 + 2600 * rev + 500 * load;
-  tractorSample.idle.lowpass.frequency.setTargetAtTime(cutoff, now, .04);
-  tractorSample.rev.lowpass.frequency.setTargetAtTime(cutoff, now, .04);
-  tractorSample.idle.gain.gain.setTargetAtTime(active ? Math.cos(smooth * Math.PI / 2) * (.82 + .07 * load) : 0, now, .045);
-  tractorSample.rev.gain.gain.setTargetAtTime(active ? Math.sin(smooth * Math.PI / 2) * (.69 + .11 * load) : 0, now, .045);
+  const fallbackSamples = active && !tractorSample.granular;
+  tractorSample.idle.lowpass.frequency.setTargetAtTime(2800, now, .04);
+  tractorSample.rev.lowpass.frequency.setTargetAtTime(2800, now, .04);
+  tractorSample.idle.gain.gain.setTargetAtTime(fallbackSamples ? Math.cos(smooth * Math.PI / 2) * .85 : 0, now, .045);
+  tractorSample.rev.gain.gain.setTargetAtTime(fallbackSamples ? Math.sin(smooth * Math.PI / 2) * .75 : 0, now, .045);
 }
 function updateCarSampleMix(rpm, load) {
   if (!context || !synthGain) return;
@@ -269,13 +273,14 @@ async function ensureAudio() {
   ensureAudio.loading = true;
   try {
     if (!context.audioWorklet) throw new Error('no worklet');
-    await context.audioWorklet.addModule('./audio-worklet.js?v=6');
+    await context.audioWorklet.addModule('./audio-worklet.js?v=7');
     node = new AudioWorkletNode(context, 'tinygrape-vehicle-sound', { numberOfInputs: 0, outputChannelCount: [1] });
     node.connect(synthGain);
     node.port.postMessage({ kind, rpm: virtualRpm, load: virtualLoad });
     node.onprocessorerror = () => {
       node.disconnect();
       node = null;
+      if (tractorSample) tractorSample.granular = false;
       if (!fallback) fallback = makeFallback(context);
       fallback.setKind(kind);
       updateAudioStatus();
