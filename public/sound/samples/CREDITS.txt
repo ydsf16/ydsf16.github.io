@@ -34,20 +34,21 @@ the user's vehicle and do not claim to reproduce its exact engine state.
 
 Tractor diesel sound pack — single-cylinder
 
-tractor-idle-v3.wav, tractor-rev-v4.wav, tractor-grains-idle-v4.wav, and
-tractor-grains-rev-v4.wav — sections from the same real small tractor recording:
+tractor-idle-v3.wav and tractor-rev-v3.wav — two layers from the same real
+small tractor engine recording:
   "Tractor_Kleinland_Pony.wav" by aUREa, Freesound, CC BY 4.0:
   https://freesound.org/people/aUREa/sounds/268779/
   https://creativecommons.org/licenses/by/4.0/
   The source is a 9-horsepower small tractor, recorded at a tractor museum.
-  Changes: selected a low-speed passage around 12–20 seconds and a faster
-  passage around 42–46 seconds of the public HQ preview, converted to mono
-  24 kHz PCM, and applied short boundary fades. The two grain banks contain
-  32 unpitched, individual combustion snippets from each passage. The browser
-  schedules the snippets at a cadence controlled by RPM while playing every
-  snippet at the recording's original rate. Browsers without AudioWorklet
-  instead crossfade the two original-rate recordings. The sound does not
-  claim to reproduce any particular tractor model.
+  Changes: took the low-speed section around 12.1–19.9 seconds and the
+  accelerated section around 42.3–45.8 seconds from its public HQ preview;
+  converted to mono 24 kHz PCM, aligned individual combustion cycles in the
+  accelerated section to about 14.5 Hz, adjusted levels, and blended a 38 ms
+  overlap at each loop boundary. The low-speed loop is about 7.8 seconds;
+  the faster loop is about 3.5 seconds. Both are blended continuously by RPM.
+
+The browser changes the playback rate with RPM and adds a quiet combustion
+layer. The sound does not claim to reproduce any particular tractor model.
 
 Engine illustration — generated from a reference photograph provided by the
 site owner. The red fuel tank and blue-green one-cylinder crankcase are
